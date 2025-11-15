@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Plus, Trash2, Edit, Users, Mail, Phone, Building, Globe } from 'lucide-react'
+import { Plus, Trash2, Edit, Users, Mail, Phone, Building, Globe, MapPin } from 'lucide-react'
 import { format } from 'date-fns'
 
 interface Contact {
@@ -16,6 +16,7 @@ interface Contact {
   phone_2: string | null
   website: string | null
   fpa_chapter: string | null
+  state: string | null
   company: string | null
   title: string | null
   notes: string | null
@@ -38,6 +39,7 @@ export default function ContactsPage() {
     phone_2: '',
     website: '',
     fpa_chapter: '',
+    state: '',
     company: '',
     title: '',
     notes: '',
@@ -54,10 +56,10 @@ export default function ContactsPage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
+    // Load all contacts (shared across all users)
     const { data, error } = await supabase
       .from('contacts')
       .select('*')
-      .eq('user_id', user.id)
       .order('name', { ascending: true })
 
     if (error) {
@@ -99,6 +101,7 @@ export default function ContactsPage() {
       phone_2: formData.phone_2 || null,
       website: formData.website || null,
       fpa_chapter: formData.fpa_chapter || null,
+      state: formData.state || null,
       company: formData.company || null,
       title: formData.title || null,
       notes: formData.notes || null,
@@ -159,6 +162,7 @@ export default function ContactsPage() {
       phone_2: contact.phone_2 || '',
       website: contact.website || '',
       fpa_chapter: contact.fpa_chapter || '',
+      state: contact.state || '',
       company: contact.company || '',
       title: contact.title || '',
       notes: contact.notes || '',
@@ -176,6 +180,7 @@ export default function ContactsPage() {
       phone_2: '',
       website: '',
       fpa_chapter: '',
+      state: '',
       company: '',
       title: '',
       notes: '',
@@ -309,6 +314,18 @@ export default function ContactsPage() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   />
                 </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  State
+                </label>
+                <input
+                  type="text"
+                  value={formData.state}
+                  onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                  placeholder="e.g., CA, NY, TX"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -448,6 +465,12 @@ export default function ContactsPage() {
                 <div className="flex items-center gap-2 text-sm text-gray-600">
                   <Building className="h-4 w-4" />
                   <span>FPA Chapter: {contact.fpa_chapter}</span>
+                </div>
+              )}
+              {contact.state && (
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <MapPin className="h-4 w-4" />
+                  <span>{contact.state}</span>
                 </div>
               )}
               {contact.tags && contact.tags.length > 0 && (

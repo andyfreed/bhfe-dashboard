@@ -88,6 +88,7 @@ CREATE TABLE IF NOT EXISTS public.contacts (
   phone_2 TEXT,
   website TEXT,
   fpa_chapter TEXT,
+  state TEXT,
   company TEXT,
   title TEXT,
   notes TEXT,
@@ -225,15 +226,15 @@ CREATE POLICY "Users can update project sections" ON public.project_sections FOR
 CREATE POLICY "Users can delete project sections" ON public.project_sections FOR DELETE 
   USING (true);
 
--- RLS Policies for contacts
-CREATE POLICY "Users can view their own contacts" ON public.contacts FOR SELECT 
-  USING (auth.uid() = user_id);
+-- RLS Policies for contacts (shared across all users)
+CREATE POLICY "Users can view all contacts" ON public.contacts FOR SELECT 
+  USING (true);
 CREATE POLICY "Users can create contacts" ON public.contacts FOR INSERT 
   WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Users can update their own contacts" ON public.contacts FOR UPDATE 
-  USING (auth.uid() = user_id);
-CREATE POLICY "Users can delete their own contacts" ON public.contacts FOR DELETE 
-  USING (auth.uid() = user_id);
+CREATE POLICY "Users can update all contacts" ON public.contacts FOR UPDATE 
+  USING (true);
+CREATE POLICY "Users can delete all contacts" ON public.contacts FOR DELETE 
+  USING (true);
 
 -- RLS Policies for notes
 CREATE POLICY "Users can view their own notes" ON public.notes FOR SELECT 
