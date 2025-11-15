@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Send, MessageSquare, User } from 'lucide-react'
 import { format } from 'date-fns'
+import { useNotifications } from '@/hooks/useNotifications'
 
 interface ChatMessage {
   id: string
@@ -29,7 +30,9 @@ export default function ChatPage() {
   const [currentUser, setCurrentUser] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const previousMessageCountRef = useRef<number>(0)
   const supabase = createClient()
+  const { permission, notify } = useNotifications()
 
   useEffect(() => {
     initializeChat()
@@ -110,6 +113,32 @@ export default function ChatPage() {
     }, [])
 
     setMessages(uniqueMessages)
+
+    // Show notification if new messages arrived and user is not on chat page
+    const newMessageCount = uniqueMessages.length
+    const isOnChatPage = window.location.pathname === '/dashboard/chat'
+    
+    if (
+      previousMessageCountRef.current > 0 && 
+      newMessageCount > previousMessageCountRef.current &&
+      !isOnChatPage &&
+      permission === 'granted'
+    ) {
+      // Find the latest new message
+      const newMessages = uniqueMessages.slice(previousMessageCountRef.current)
+      const latestMessage = newMessages[newMessages.length - 1]
+      const sender = allUsers.find(u => u.id === latestMessage.sender_id)
+      
+      if (sender) {
+        await notify(`New message from ${sender.name || sender.email?.split('@')[0]}`, {
+          body: latestMessage.message.substring(0, 100) + (latestMessage.message.length > 100 ? '...' : ''),
+          tag: 'chat-message',
+          requireInteraction: false,
+        })
+      }
+    }
+    
+    previousMessageCountRef.current = newMessageCount
 
     // Mark messages as read for current user
     await supabase
