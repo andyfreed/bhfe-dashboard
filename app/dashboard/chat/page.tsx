@@ -116,12 +116,12 @@ export default function ChatPage() {
 
     // Show notification if new messages arrived and user is not on chat page
     const newMessageCount = uniqueMessages.length
-    const isOnChatPage = window.location.pathname === '/dashboard/chat'
+    const isOnChatPage = typeof window !== 'undefined' && window.location.pathname === '/dashboard/chat'
     
+    // Check if new messages arrived
     if (
       previousMessageCountRef.current > 0 && 
       newMessageCount > previousMessageCountRef.current &&
-      !isOnChatPage &&
       permission === 'granted'
     ) {
       // Find the latest new message
@@ -129,12 +129,35 @@ export default function ChatPage() {
       const latestMessage = newMessages[newMessages.length - 1]
       const sender = allUsers.find(u => u.id === latestMessage.sender_id)
       
+      // Only show notification if not on chat page, or if app is in background
+      // On iOS, notifications work best when app is in background or closed
       if (sender) {
-        await notify(`New message from ${sender.name || sender.email?.split('@')[0]}`, {
-          body: latestMessage.message.substring(0, 100) + (latestMessage.message.length > 100 ? '...' : ''),
-          tag: 'chat-message',
-          requireInteraction: false,
-        })
+        // Check if app is hidden (in background) or not on chat page
+        const isAppHidden = typeof document !== 'undefined' && document.hidden
+        const shouldNotify = !isOnChatPage || isAppHidden
+        
+        if (shouldNotify) {
+          try {
+            console.log('[Chat] Showing notification for new message:', {
+              sender: sender.name || sender.email?.split('@')[0],
+              message: latestMessage.message.substring(0, 50),
+              isOnChatPage,
+              isAppHidden,
+              permission,
+            })
+            
+            await notify(`New message from ${sender.name || sender.email?.split('@')[0]}`, {
+              body: latestMessage.message.substring(0, 100) + (latestMessage.message.length > 100 ? '...' : ''),
+              tag: 'chat-message',
+              requireInteraction: false,
+              silent: false,
+            })
+          } catch (error) {
+            console.error('[Chat] Error showing notification:', error)
+          }
+        } else {
+          console.log('[Chat] Notification skipped (app in foreground on chat page)')
+        }
       }
     }
     

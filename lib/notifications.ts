@@ -32,30 +32,51 @@ export async function showNotification(
   options?: NotificationOptions
 ): Promise<void> {
   if (!('Notification' in window)) {
-    console.warn('This browser does not support notifications')
+    console.warn('[Notifications] Browser does not support notifications')
     return
   }
 
   if (Notification.permission !== 'granted') {
-    console.warn('Notification permission not granted')
+    console.warn('[Notifications] Permission not granted:', Notification.permission)
     return
   }
 
-  // Check if service worker is available
-  if ('serviceWorker' in navigator) {
-    const registration = await navigator.serviceWorker.ready
-    
-    await registration.showNotification(title, {
-      icon: '/icon-192x192.png',
-      badge: '/icon-192x192.png',
-      ...options,
-    } as NotificationOptions)
-  } else {
-    // Fallback to regular notification if service worker not available
-    new Notification(title, {
-      icon: '/icon-192x192.png',
-      ...options,
-    })
+  try {
+    // Check if service worker is available (preferred for PWA)
+    if ('serviceWorker' in navigator) {
+      try {
+        const registration = await navigator.serviceWorker.ready
+        
+        if (!registration) {
+          console.warn('[Notifications] Service worker not ready')
+          return
+        }
+
+        console.log('[Notifications] Showing notification via service worker')
+        await registration.showNotification(title, {
+          icon: '/icon-192x192.png',
+          badge: '/icon-192x192.png',
+          ...options,
+        } as NotificationOptions)
+      } catch (swError) {
+        console.error('[Notifications] Service worker notification failed, trying fallback:', swError)
+        // Fallback to regular notification if service worker fails
+        new Notification(title, {
+          icon: '/icon-192x192.png',
+          ...options,
+        })
+      }
+    } else {
+      // Fallback to regular notification if service worker not available
+      console.log('[Notifications] Showing notification without service worker')
+      new Notification(title, {
+        icon: '/icon-192x192.png',
+        ...options,
+      })
+    }
+  } catch (error) {
+    console.error('[Notifications] Error showing notification:', error)
+    throw error
   }
 }
 
