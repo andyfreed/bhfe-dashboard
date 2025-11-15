@@ -100,10 +100,15 @@ export default function CalendarPage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
+    // Convert date strings to ISO timestamps (midnight UTC)
+    const startDate = formData.start_date ? new Date(formData.start_date + 'T00:00:00Z').toISOString() : null
+    const endDate = (formData.end_date || formData.start_date) ? new Date((formData.end_date || formData.start_date) + 'T00:00:00Z').toISOString() : null
+
     const eventData = {
       ...formData,
       user_id: user.id,
-      end_date: formData.end_date || formData.start_date,
+      start_date: startDate,
+      end_date: endDate,
     }
 
     if (editingEvent) {
@@ -195,7 +200,7 @@ export default function CalendarPage() {
           const defaultDate = selectedDate || new Date()
           setFormData({
             ...formData,
-            start_date: format(defaultDate, "yyyy-MM-dd'T'HH:mm"),
+            start_date: format(defaultDate, "yyyy-MM-dd"),
           })
           setShowForm(true)
         }}>
@@ -240,7 +245,7 @@ export default function CalendarPage() {
                     Start Date *
                   </label>
                   <input
-                    type="datetime-local"
+                    type="date"
                     value={formData.start_date}
                     onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
                     required
@@ -252,7 +257,7 @@ export default function CalendarPage() {
                     End Date
                   </label>
                   <input
-                    type="datetime-local"
+                    type="date"
                     value={formData.end_date}
                     onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md"
@@ -329,7 +334,7 @@ export default function CalendarPage() {
                   key={day.toISOString()}
                   onClick={() => {
                     setSelectedDate(day)
-                    const defaultDate = format(day, "yyyy-MM-dd'T'HH:mm")
+                    const defaultDate = format(day, "yyyy-MM-dd")
                     setFormData({ ...formData, start_date: defaultDate })
                   }}
                   className={`p-2 min-h-[80px] border border-gray-200 rounded hover:bg-gray-50 text-left ${
@@ -393,8 +398,8 @@ export default function CalendarPage() {
                           <div className="text-sm text-gray-600">{event.description}</div>
                         )}
                         <div className="text-xs text-gray-500 mt-1">
-                          {format(new Date(event.start_date), 'h:mm a')}
-                          {event.end_date && ` - ${format(new Date(event.end_date), 'h:mm a')}`}
+                          {format(new Date(event.start_date), 'MMM d, yyyy')}
+                          {event.end_date && ` - ${format(new Date(event.end_date), 'MMM d, yyyy')}`}
                         </div>
                       </div>
                       <div className="flex gap-2">
@@ -404,8 +409,8 @@ export default function CalendarPage() {
                             setFormData({
                               title: event.title,
                               description: event.description || '',
-                              start_date: format(new Date(event.start_date), "yyyy-MM-dd'T'HH:mm"),
-                              end_date: event.end_date ? format(new Date(event.end_date), "yyyy-MM-dd'T'HH:mm") : '',
+                              start_date: format(new Date(event.start_date), "yyyy-MM-dd"),
+                              end_date: event.end_date ? format(new Date(event.end_date), "yyyy-MM-dd") : '',
                               all_day: event.all_day,
                               color: event.color,
                             })

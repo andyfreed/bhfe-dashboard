@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Plus, Trash2, Edit, Check, X } from 'lucide-react'
+import { Plus, Trash2, Edit, Check, X, ChevronDown, User, Building } from 'lucide-react'
 import { format } from 'date-fns'
 
 interface Todo {
@@ -24,6 +24,7 @@ export default function TodosPage() {
   const [todos, setTodos] = useState<Todo[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
+  const [showDropdown, setShowDropdown] = useState(false)
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null)
   const [formData, setFormData] = useState({
     title: '',
@@ -165,6 +166,7 @@ export default function TodosPage() {
     })
     setEditingTodo(null)
     setShowForm(false)
+    setShowDropdown(false)
   }
 
   const personalTodos = todos.filter((t) => !t.is_company_task && !t.completed)
@@ -182,10 +184,53 @@ export default function TodosPage() {
           <h1 className="text-3xl font-bold text-gray-900">To-Do Lists</h1>
           <p className="text-gray-600 mt-1">Manage your personal and company tasks</p>
         </div>
-        <Button onClick={() => setShowForm(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Todo
-        </Button>
+        <div className="relative">
+          <Button onClick={() => setShowDropdown(!showDropdown)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Todo
+            <ChevronDown className="h-4 w-4 ml-2" />
+          </Button>
+          {showDropdown && (
+            <>
+              <div 
+                className="fixed inset-0 z-10" 
+                onClick={() => setShowDropdown(false)}
+              />
+              <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
+                <div className="py-1">
+                  <button
+                    onClick={() => {
+                      setFormData({ ...formData, is_company_task: false })
+                      setShowDropdown(false)
+                      setShowForm(true)
+                    }}
+                    className="w-full px-4 py-3 text-left hover:bg-gray-100 flex items-center gap-3 transition-colors"
+                  >
+                    <User className="h-5 w-5 text-blue-600" />
+                    <div>
+                      <div className="font-medium text-gray-900">Personal Todo</div>
+                      <div className="text-sm text-gray-500">Create a personal task</div>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setFormData({ ...formData, is_company_task: true })
+                      setShowDropdown(false)
+                      setShowForm(true)
+                    }}
+                    className="w-full px-4 py-3 text-left hover:bg-gray-100 flex items-center gap-3 transition-colors border-t border-gray-200"
+                  >
+                    <Building className="h-5 w-5 text-purple-600" />
+                    <div>
+                      <div className="font-medium text-gray-900">Company Todo</div>
+                      <div className="text-sm text-gray-500">Create a company task</div>
+                    </div>
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       {showForm && (
@@ -254,15 +299,6 @@ export default function TodosPage() {
                     <option value="yearly">Yearly</option>
                   </select>
                 )}
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={formData.is_company_task}
-                    onChange={(e) => setFormData({ ...formData, is_company_task: e.target.checked })}
-                    className="rounded"
-                  />
-                  <span className="text-sm text-gray-700">Company Task</span>
-                </label>
               </div>
               <div className="flex gap-2">
                 <Button type="submit">{editingTodo ? 'Update' : 'Create'}</Button>
