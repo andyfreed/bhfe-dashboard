@@ -153,16 +153,16 @@ export default function DashboardPage() {
   return (
     <div className="space-y-8 animate-in">
       {/* Welcome Header with Gradient */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 p-10 shadow-2xl">
+      <div className="relative overflow-hidden rounded-2xl lg:rounded-3xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 p-6 sm:p-8 lg:p-10 shadow-2xl">
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0icmdiYSgyNTUsMjU1LDI1NSwwLjE1KSIgc3Ryb2tlLXdpZHRoPSIxIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2dyaWQpIi8+PC9zdmc+')] opacity-30" />
         <div className="relative z-10">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="p-3 rounded-2xl bg-white/20 backdrop-blur-sm">
-              <Sparkles className="h-8 w-8 text-white" />
+          <div className="flex items-center gap-2 sm:gap-4 mb-3 sm:mb-4">
+            <div className="p-2 sm:p-3 rounded-xl sm:rounded-2xl bg-white/20 backdrop-blur-sm">
+              <Sparkles className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
             </div>
-            <h1 className="text-5xl font-extrabold text-white tracking-tight drop-shadow-lg">Dashboard</h1>
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight drop-shadow-lg">Dashboard</h1>
           </div>
-          <p className="text-xl text-blue-100 font-semibold drop-shadow">Welcome back! Here's an overview of your business.</p>
+          <p className="text-base sm:text-lg lg:text-xl text-blue-100 font-semibold drop-shadow">Welcome back! Here's an overview of your business.</p>
         </div>
       </div>
 

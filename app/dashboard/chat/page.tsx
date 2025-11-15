@@ -25,7 +25,7 @@ interface Profile {
 export default function ChatPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [newMessage, setNewMessage] = useState('')
-  const [otherUser, setOtherUser] = useState<Profile | null>(null)
+  const [allUsers, setAllUsers] = useState<Profile[]>([])
   const [currentUser, setCurrentUser] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -66,27 +66,27 @@ export default function ChatPage() {
       }
     }
 
-    // Get all users and find the other user
+    // Get all users for group chat
     const { data: allProfiles } = await supabase
       .from('profiles')
       .select('*')
 
     if (allProfiles) {
-      const other = allProfiles.find((p) => p.id !== user.id)
-      if (other) {
-        setOtherUser(other)
-        loadMessages(user.id, other.id)
-      }
+      setAllUsers(allProfiles)
+      loadAllMessages()
     }
 
     setLoading(false)
   }
 
-  const loadMessages = async (userId: string, otherUserId: string) => {
+  const loadAllMessages = async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+
+    // Load all messages for group chat
     const { data, error } = await supabase
       .from('chat_messages')
       .select('*')
-      .or(`and(sender_id.eq.${userId},receiver_id.eq.${otherUserId}),and(sender_id.eq.${otherUserId},receiver_id.eq.${userId})`)
       .order('created_at', { ascending: true })
 
     if (error) {
@@ -94,13 +94,28 @@ export default function ChatPage() {
       return
     }
 
-    setMessages(data || [])
+    // Deduplicate messages by content, sender, and timestamp (since group messages create multiple records)
+    // Group messages with same content, sender, and time (< 1 second apart) together
+    const uniqueMessages = (data || []).reduce((acc: ChatMessage[], message: ChatMessage) => {
+      const existing = acc.find(
+        (m) =>
+          m.message === message.message &&
+          m.sender_id === message.sender_id &&
+          Math.abs(new Date(m.created_at).getTime() - new Date(message.created_at).getTime()) < 1000
+      )
+      if (!existing) {
+        acc.push(message)
+      }
+      return acc
+    }, [])
 
-    // Mark messages as read
+    setMessages(uniqueMessages)
+
+    // Mark messages as read for current user
     await supabase
       .from('chat_messages')
       .update({ is_read: true })
-      .eq('receiver_id', userId)
+      .eq('receiver_id', user.id)
       .eq('is_read', false)
   }
 
@@ -111,10 +126,7 @@ export default function ChatPage() {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'chat_messages' },
         async () => {
-          const { data: { user } } = await supabase.auth.getUser()
-          if (user && otherUser) {
-            loadMessages(user.id, otherUser.id)
-          }
+          loadAllMessages()
         }
       )
       .subscribe()
@@ -126,28 +138,33 @@ export default function ChatPage() {
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!newMessage.trim() || !currentUser || !otherUser) return
+    if (!newMessage.trim() || !currentUser) return
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
-    const { error } = await supabase
-      .from('chat_messages')
-      .insert([
-        {
-          sender_id: user.id,
-          receiver_id: otherUser.id,
-          message: newMessage.trim(),
-        },
-      ])
+    // Send message to all other users (group chat)
+    const otherUsers = allUsers.filter((u) => u.id !== user.id)
+    
+    if (otherUsers.length > 0) {
+      const messagesToInsert = otherUsers.map((otherUser) => ({
+        sender_id: user.id,
+        receiver_id: otherUser.id,
+        message: newMessage.trim(),
+      }))
 
-    if (error) {
-      console.error('Error sending message:', error)
-      return
+      const { error } = await supabase
+        .from('chat_messages')
+        .insert(messagesToInsert)
+
+      if (error) {
+        console.error('Error sending message:', error)
+        return
+      }
     }
 
     setNewMessage('')
-    loadMessages(user.id, otherUser.id)
+    loadAllMessages()
   }
 
   const scrollToBottom = () => {
@@ -158,11 +175,11 @@ export default function ChatPage() {
     return <div className="text-center py-12">Loading...</div>
   }
 
-  if (!otherUser || !currentUser) {
+  if (!currentUser) {
     return (
       <div className="text-center py-12">
         <MessageSquare className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-        <p className="text-gray-500">Waiting for other user to join...</p>
+        <p className="text-gray-500">Loading chat...</p>
       </div>
     )
   }
@@ -177,8 +194,8 @@ export default function ChatPage() {
       <Card className="flex flex-col h-[calc(100vh-250px)]">
         <CardHeader className="border-b border-gray-200">
           <CardTitle className="flex items-center gap-2">
-            <User className="h-5 w-5" />
-            {otherUser.name}
+            <MessageSquare className="h-5 w-5" />
+            Team Chat
           </CardTitle>
         </CardHeader>
         <CardContent className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -189,6 +206,9 @@ export default function ChatPage() {
           ) : (
             messages.map((message) => {
               const isOwnMessage = message.sender_id === currentUser.id
+              const sender = allUsers.find((u) => u.id === message.sender_id)
+              const senderName = sender?.name || 'Unknown'
+              
               return (
                 <div
                   key={message.id}
@@ -201,6 +221,11 @@ export default function ChatPage() {
                         : 'bg-gray-200 text-gray-900'
                     }`}
                   >
+                    {!isOwnMessage && (
+                      <p className="text-xs font-semibold mb-1 text-gray-700">
+                        {senderName}
+                      </p>
+                    )}
                     <p className="text-sm">{message.message}</p>
                     <p
                       className={`text-xs mt-1 ${

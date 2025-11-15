@@ -50,28 +50,28 @@ export function Header() {
   }
 
   return (
-    <header className="h-20 border-b border-slate-200/80 bg-white/80 backdrop-blur-sm px-8 flex items-center justify-between shadow-sm">
-      <div className="flex items-center gap-4">
-        <div className="flex flex-col">
-          <h2 className="text-lg font-bold text-slate-900">{currentDate}</h2>
-          <p className="text-xs text-slate-500 font-medium">Welcome back!</p>
+    <header className="h-16 lg:h-20 border-b border-slate-200/80 bg-white/80 backdrop-blur-sm px-4 sm:px-6 lg:px-8 flex items-center justify-between shadow-sm mt-14 lg:mt-0">
+      <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+        <div className="flex flex-col min-w-0">
+          <h2 className="text-sm sm:text-base lg:text-lg font-bold text-slate-900 truncate">{currentDate}</h2>
+          <p className="text-xs text-slate-500 font-medium hidden sm:block">Welcome back!</p>
         </div>
       </div>
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 sm:gap-4">
         {user && (
-          <div className="flex items-center gap-3 px-4 py-2 rounded-lg bg-slate-50 border border-slate-200/80">
+          <div className="hidden sm:flex items-center gap-2 lg:gap-3 px-3 lg:px-4 py-2 rounded-lg bg-slate-50 border border-slate-200/80">
             <div className="flex items-center justify-center h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-500">
               <User className="h-4 w-4 text-white" />
             </div>
-            <div className="flex flex-col">
-              <span className="text-sm font-semibold text-slate-900">{user.email?.split('@')[0] || 'User'}</span>
-              <span className="text-xs text-slate-500">{user.email || ''}</span>
+            <div className="flex flex-col min-w-0">
+              <span className="text-xs lg:text-sm font-semibold text-slate-900 truncate">{user.email?.split('@')[0] || 'User'}</span>
+              <span className="text-xs text-slate-500 truncate hidden lg:block">{user.email || ''}</span>
             </div>
           </div>
         )}
-        <Button variant="outline" size="sm" onClick={handleSignOut} className="gap-2">
-          <LogOut className="h-4 w-4" />
-          Sign Out
+        <Button variant="outline" size="sm" onClick={handleSignOut} className="gap-1 sm:gap-2 text-xs sm:text-sm">
+          <LogOut className="h-3 w-3 sm:h-4 sm:w-4" />
+          <span className="hidden sm:inline">Sign Out</span>
         </Button>
       </div>
     </header>
