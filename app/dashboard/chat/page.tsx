@@ -129,35 +129,31 @@ export default function ChatPage() {
       const latestMessage = newMessages[newMessages.length - 1]
       const sender = allUsers.find(u => u.id === latestMessage.sender_id)
       
-      // Only show notification if not on chat page, or if app is in background
-      // On iOS, notifications work best when app is in background or closed
-      if (sender) {
-        // Check if app is hidden (in background) or not on chat page
-        const isAppHidden = typeof document !== 'undefined' && document.hidden
-        const shouldNotify = !isOnChatPage || isAppHidden
-        
-        if (shouldNotify) {
-          try {
-            console.log('[Chat] Showing notification for new message:', {
-              sender: sender.name || sender.email?.split('@')[0],
-              message: latestMessage.message.substring(0, 50),
-              isOnChatPage,
-              isAppHidden,
-              permission,
-            })
-            
-            await notify(`New message from ${sender.name || sender.email?.split('@')[0]}`, {
-              body: latestMessage.message.substring(0, 100) + (latestMessage.message.length > 100 ? '...' : ''),
-              tag: 'chat-message',
-              requireInteraction: false,
-              silent: false,
-            })
-          } catch (error) {
-            console.error('[Chat] Error showing notification:', error)
-          }
-        } else {
-          console.log('[Chat] Notification skipped (app in foreground on chat page)')
+      // Show notification if not on chat page
+      // On iOS, notifications work when app is in background
+      // Note: iOS PWAs cannot receive notifications when app is fully closed
+      if (sender && !isOnChatPage) {
+        try {
+          const isAppHidden = typeof document !== 'undefined' && document.hidden
+          console.log('[Chat] Showing notification for new message:', {
+            sender: sender.name || sender.email?.split('@')[0],
+            message: latestMessage.message.substring(0, 50),
+            isOnChatPage,
+            isAppHidden,
+            permission,
+          })
+          
+          await notify(`New message from ${sender.name || sender.email?.split('@')[0]}`, {
+            body: latestMessage.message.substring(0, 100) + (latestMessage.message.length > 100 ? '...' : ''),
+            tag: 'chat-message',
+            requireInteraction: false,
+            silent: false,
+          })
+        } catch (error) {
+          console.error('[Chat] Error showing notification:', error)
         }
+      } else if (isOnChatPage) {
+        console.log('[Chat] Notification skipped (on chat page)')
       }
     }
     
@@ -183,8 +179,50 @@ export default function ChatPage() {
       )
       .subscribe()
 
+    // Set up periodic checking for when app becomes visible
+    // This helps catch messages when app was closed and reopened
+    let visibilityCheckInterval: NodeJS.Timeout | null = null
+    
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        // App went to background - clear interval
+        if (visibilityCheckInterval) {
+          clearInterval(visibilityCheckInterval)
+          visibilityCheckInterval = null
+        }
+      } else {
+        // App became visible - check for messages immediately
+        loadAllMessages()
+        // Set up periodic checking every 30 seconds while visible
+        if (visibilityCheckInterval) {
+          clearInterval(visibilityCheckInterval)
+        }
+        visibilityCheckInterval = setInterval(() => {
+          if (!document.hidden) {
+            loadAllMessages()
+          } else {
+            if (visibilityCheckInterval) {
+              clearInterval(visibilityCheckInterval)
+              visibilityCheckInterval = null
+            }
+          }
+        }, 30000) // Check every 30 seconds
+      }
+    }
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    
+    // Initial check if app is visible
+    if (!document.hidden) {
+      handleVisibilityChange()
+    }
+
     return () => {
       supabase.removeChannel(channel)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      if (visibilityCheckInterval) {
+        clearInterval(visibilityCheckInterval)
+      }
     }
   }
 
