@@ -4,14 +4,18 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Plus, Trash2, Edit, Users, Mail, Phone, Building } from 'lucide-react'
+import { Plus, Trash2, Edit, Users, Mail, Phone, Building, Globe } from 'lucide-react'
 import { format } from 'date-fns'
 
 interface Contact {
   id: string
   name: string
   email: string | null
+  email_2: string | null
   phone: string | null
+  phone_2: string | null
+  website: string | null
+  fpa_chapter: string | null
   company: string | null
   title: string | null
   notes: string | null
@@ -29,7 +33,11 @@ export default function ContactsPage() {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    email_2: '',
     phone: '',
+    phone_2: '',
+    website: '',
+    fpa_chapter: '',
     company: '',
     title: '',
     notes: '',
@@ -86,7 +94,11 @@ export default function ContactsPage() {
     const contactData = {
       name: formData.name,
       email: formData.email || null,
+      email_2: formData.email_2 || null,
       phone: formData.phone || null,
+      phone_2: formData.phone_2 || null,
+      website: formData.website || null,
+      fpa_chapter: formData.fpa_chapter || null,
       company: formData.company || null,
       title: formData.title || null,
       notes: formData.notes || null,
@@ -142,7 +154,11 @@ export default function ContactsPage() {
     setFormData({
       name: contact.name,
       email: contact.email || '',
+      email_2: contact.email_2 || '',
       phone: contact.phone || '',
+      phone_2: contact.phone_2 || '',
+      website: contact.website || '',
+      fpa_chapter: contact.fpa_chapter || '',
       company: contact.company || '',
       title: contact.title || '',
       notes: contact.notes || '',
@@ -155,7 +171,11 @@ export default function ContactsPage() {
     setFormData({
       name: '',
       email: '',
+      email_2: '',
       phone: '',
+      phone_2: '',
+      website: '',
+      fpa_chapter: '',
       company: '',
       title: '',
       notes: '',
@@ -231,12 +251,61 @@ export default function ContactsPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Email 2
+                  </label>
+                  <input
+                    type="email"
+                    value={formData.email_2}
+                    onChange={(e) => setFormData({ ...formData, email_2: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     Phone
                   </label>
                   <input
                     type="tel"
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Phone 2
+                  </label>
+                  <input
+                    type="tel"
+                    value={formData.phone_2}
+                    onChange={(e) => setFormData({ ...formData, phone_2: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Website
+                  </label>
+                  <input
+                    type="url"
+                    value={formData.website}
+                    onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                    placeholder="https://example.com"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    FPA Chapter
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.fpa_chapter}
+                    onChange={(e) => setFormData({ ...formData, fpa_chapter: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   />
                 </div>
@@ -338,12 +407,47 @@ export default function ContactsPage() {
                   </a>
                 </div>
               )}
+              {contact.email_2 && (
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <Mail className="h-4 w-4" />
+                  <a href={`mailto:${contact.email_2}`} className="hover:text-blue-600">
+                    {contact.email_2}
+                  </a>
+                </div>
+              )}
               {contact.phone && (
                 <div className="flex items-center gap-2 text-sm text-gray-600">
                   <Phone className="h-4 w-4" />
                   <a href={`tel:${contact.phone}`} className="hover:text-blue-600">
                     {contact.phone}
                   </a>
+                </div>
+              )}
+              {contact.phone_2 && (
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <Phone className="h-4 w-4" />
+                  <a href={`tel:${contact.phone_2}`} className="hover:text-blue-600">
+                    {contact.phone_2}
+                  </a>
+                </div>
+              )}
+              {contact.website && (
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <Globe className="h-4 w-4" />
+                  <a 
+                    href={contact.website.startsWith('http') ? contact.website : `https://${contact.website}`} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="hover:text-blue-600"
+                  >
+                    {contact.website}
+                  </a>
+                </div>
+              )}
+              {contact.fpa_chapter && (
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <Building className="h-4 w-4" />
+                  <span>FPA Chapter: {contact.fpa_chapter}</span>
                 </div>
               )}
               {contact.tags && contact.tags.length > 0 && (
