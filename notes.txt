@@ -1,0 +1,20 @@
+ok we need to make a web app to manage the day to day of our business. our company sells online CPE courses from our website.
+-new git repo for this is here: https://github.com/andyfreed/bhfe-dashboard.git
+-app should use vercel and auto deploy when pushed to GitHub
+-supabase for the database connection (supabase url is https://ulcppgcgvymedvbtmulm.supabase.co)
+-going to need 2 different users - Andy and Dave
+-functionality: to do lists (per person and another for general company tasks) with the ability to be recurring, calendar with ability to add/remove events and the calendar should automatically update with tasks and to do list items, section for each state in the us for various info on CPE/CE course rules and regs for that state, reminders with the ability to be recurring, project lists and sections, directory for various business contacts, eventually i would like to make a plugin for wordpress that allows our site to communicate certain things to this app so lets leave that possibility open, a basic chat system so one user can send realtime messages in a chat to the other user, section for notes, show the time and date on the app, i want to leave open the possibility of using openai api to have a chatbot integrated that can use the app as well, links area with buttons to go to different frequently visited websites
+-i have the supabase anon public and secret service role numbers, let me know when you need them and/or what i should do with them the anon public is: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVsY3BwZ2NndnltZWR2YnRtdWxtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMyMzE0NzQsImV4cCI6MjA3ODgwNzQ3NH0.UTNXRU44vm-5Kw9HHKVDHS580lxJjLrhuAg_7VvPAL4
+-nice looking Modern UI
+-1password integration if possible (to look up passwords for sites)
+
+
+
+SUPABASE:
+anon public: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVsY3BwZ2NndnltZWR2YnRtdWxtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMyMzE0NzQsImV4cCI6MjA3ODgwNzQ3NH0.UTNXRU44vm-5Kw9HHKVDHS580lxJjLrhuAg_7VvPAL4
+secret service role: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVsY3BwZ2NndnltZWR2YnRtdWxtIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MzIzMTQ3NCwiZXhwIjoyMDc4ODA3NDc0fQ.8EtPgEBDhX65z5weGljGtR4R4zEUT5r_Nqpf5_-tn_g
+project URL: https://ulcppgcgvymedvbtmulm.supabase.co
+
+supabase user ids:
+Andy: 6ee0b7f7-9943-4565-bdb4-8fa2976126f1
+Dave: 5f384f19-cd41-408a-b0c4-368d041843e3

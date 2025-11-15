@@ -14,6 +14,7 @@ interface StateInfo {
   cpe_requirements: string | null
   ce_requirements: string | null
   renewal_period: string | null
+  renewal_month: string | null
   contact_info: string | null
   website_url: string | null
   notes: string | null
@@ -41,6 +42,22 @@ const US_STATES = [
   { code: 'WI', name: 'Wisconsin' }, { code: 'WY', name: 'Wyoming' },
 ]
 
+const MONTHS = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+  'Varies',
+]
+
 export default function StatesPage() {
   const [states, setStates] = useState<StateInfo[]>([])
   const [loading, setLoading] = useState(true)
@@ -50,6 +67,7 @@ export default function StatesPage() {
     cpe_requirements: '',
     ce_requirements: '',
     renewal_period: '',
+    renewal_month: '',
     contact_info: '',
     website_url: '',
     notes: '',
@@ -108,6 +126,7 @@ export default function StatesPage() {
       cpe_requirements: state.cpe_requirements || '',
       ce_requirements: state.ce_requirements || '',
       renewal_period: state.renewal_period || '',
+      renewal_month: state.renewal_month || '',
       contact_info: state.contact_info || '',
       website_url: state.website_url || '',
       notes: state.notes || '',
@@ -126,6 +145,7 @@ export default function StatesPage() {
         cpe_requirements: formData.cpe_requirements || null,
         ce_requirements: formData.ce_requirements || null,
         renewal_period: formData.renewal_period || null,
+        renewal_month: formData.renewal_month || null,
         contact_info: formData.contact_info || null,
         website_url: formData.website_url || null,
         notes: formData.notes || null,
@@ -153,6 +173,7 @@ export default function StatesPage() {
         cpe_requirements: selectedState.cpe_requirements || '',
         ce_requirements: selectedState.ce_requirements || '',
         renewal_period: selectedState.renewal_period || '',
+        renewal_month: selectedState.renewal_month || '',
         contact_info: selectedState.contact_info || '',
         website_url: selectedState.website_url || '',
         notes: selectedState.notes || '',
@@ -278,6 +299,23 @@ export default function StatesPage() {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Renewal Month
+                      </label>
+                      <select
+                        value={formData.renewal_month}
+                        onChange={(e) => setFormData({ ...formData, renewal_month: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      >
+                        <option value="">Select a month</option>
+                        {MONTHS.map((month) => (
+                          <option key={month} value={month}>
+                            {month}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
                         Contact Information
                       </label>
                       <textarea
@@ -339,6 +377,12 @@ export default function StatesPage() {
                       <div>
                         <h3 className="font-medium text-gray-900 mb-2">Renewal Period</h3>
                         <p className="text-gray-700">{selectedState.renewal_period}</p>
+                      </div>
+                    )}
+                    {selectedState.renewal_month && (
+                      <div>
+                        <h3 className="font-medium text-gray-900 mb-2">Renewal Month</h3>
+                        <p className="text-gray-700">{selectedState.renewal_month}</p>
                       </div>
                     )}
                     {selectedState.contact_info && (

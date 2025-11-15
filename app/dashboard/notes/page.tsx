@@ -42,10 +42,10 @@ export default function NotesPage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
+    // Load all notes (shared across all users)
     const { data, error } = await supabase
       .from('notes')
       .select('*')
-      .eq('user_id', user.id)
       .order('is_pinned', { ascending: false })
       .order('updated_at', { ascending: false })
 

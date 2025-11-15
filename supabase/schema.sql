@@ -117,6 +117,7 @@ CREATE TABLE IF NOT EXISTS public.state_info (
   cpe_requirements TEXT,
   ce_requirements TEXT,
   renewal_period TEXT,
+  renewal_month TEXT,
   contact_info TEXT,
   website_url TEXT,
   notes TEXT,
@@ -189,14 +190,14 @@ CREATE POLICY "Users can update their own todos and company todos" ON public.tod
 CREATE POLICY "Users can delete their own todos" ON public.todos FOR DELETE 
   USING (auth.uid() = user_id);
 
--- RLS Policies for calendar_events
+-- RLS Policies for calendar_events (shared across all users)
 CREATE POLICY "Users can view all calendar events" ON public.calendar_events FOR SELECT USING (true);
 CREATE POLICY "Users can create calendar events" ON public.calendar_events FOR INSERT 
   WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Users can update their own calendar events" ON public.calendar_events FOR UPDATE 
-  USING (auth.uid() = user_id);
-CREATE POLICY "Users can delete their own calendar events" ON public.calendar_events FOR DELETE 
-  USING (auth.uid() = user_id);
+CREATE POLICY "Users can update all calendar events" ON public.calendar_events FOR UPDATE 
+  USING (true);
+CREATE POLICY "Users can delete all calendar events" ON public.calendar_events FOR DELETE 
+  USING (true);
 
 -- RLS Policies for reminders
 CREATE POLICY "Users can view their own reminders" ON public.reminders FOR SELECT 
@@ -208,14 +209,14 @@ CREATE POLICY "Users can update their own reminders" ON public.reminders FOR UPD
 CREATE POLICY "Users can delete their own reminders" ON public.reminders FOR DELETE 
   USING (auth.uid() = user_id);
 
--- RLS Policies for projects
+-- RLS Policies for projects (shared across all users)
 CREATE POLICY "Users can view all projects" ON public.projects FOR SELECT USING (true);
 CREATE POLICY "Users can create projects" ON public.projects FOR INSERT 
   WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Users can update their own projects" ON public.projects FOR UPDATE 
-  USING (auth.uid() = user_id);
-CREATE POLICY "Users can delete their own projects" ON public.projects FOR DELETE 
-  USING (auth.uid() = user_id);
+CREATE POLICY "Users can update all projects" ON public.projects FOR UPDATE 
+  USING (true);
+CREATE POLICY "Users can delete all projects" ON public.projects FOR DELETE 
+  USING (true);
 
 -- RLS Policies for project_sections
 CREATE POLICY "Users can view project sections" ON public.project_sections FOR SELECT USING (true);
@@ -236,15 +237,15 @@ CREATE POLICY "Users can update all contacts" ON public.contacts FOR UPDATE
 CREATE POLICY "Users can delete all contacts" ON public.contacts FOR DELETE 
   USING (true);
 
--- RLS Policies for notes
-CREATE POLICY "Users can view their own notes" ON public.notes FOR SELECT 
-  USING (auth.uid() = user_id);
+-- RLS Policies for notes (shared across all users)
+CREATE POLICY "Users can view all notes" ON public.notes FOR SELECT 
+  USING (true);
 CREATE POLICY "Users can create notes" ON public.notes FOR INSERT 
   WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Users can update their own notes" ON public.notes FOR UPDATE 
-  USING (auth.uid() = user_id);
-CREATE POLICY "Users can delete their own notes" ON public.notes FOR DELETE 
-  USING (auth.uid() = user_id);
+CREATE POLICY "Users can update all notes" ON public.notes FOR UPDATE 
+  USING (true);
+CREATE POLICY "Users can delete all notes" ON public.notes FOR DELETE 
+  USING (true);
 
 -- RLS Policies for state_info
 CREATE POLICY "Users can view state info" ON public.state_info FOR SELECT USING (true);
@@ -259,14 +260,14 @@ CREATE POLICY "Users can create messages" ON public.chat_messages FOR INSERT
 CREATE POLICY "Users can update messages they received" ON public.chat_messages FOR UPDATE 
   USING (auth.uid() = receiver_id);
 
--- RLS Policies for links
+-- RLS Policies for links (shared across all users)
 CREATE POLICY "Users can view all links" ON public.links FOR SELECT USING (true);
 CREATE POLICY "Users can create links" ON public.links FOR INSERT 
   WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Users can update their own links" ON public.links FOR UPDATE 
-  USING (auth.uid() = user_id);
-CREATE POLICY "Users can delete their own links" ON public.links FOR DELETE 
-  USING (auth.uid() = user_id);
+CREATE POLICY "Users can update all links" ON public.links FOR UPDATE 
+  USING (true);
+CREATE POLICY "Users can delete all links" ON public.links FOR DELETE 
+  USING (true);
 
 -- Function to update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
