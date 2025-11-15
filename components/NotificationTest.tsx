@@ -17,9 +17,31 @@ export default function NotificationTest() {
     
     if ('serviceWorker' in navigator) {
       try {
-        const registration = await navigator.serviceWorker.ready
-        console.log('[NotificationTest] Service Worker ready:', !!registration)
-        console.log('[NotificationTest] Service Worker active:', registration.active?.scriptURL)
+        // Check for existing registration first
+        const existingReg = await navigator.serviceWorker.getRegistration()
+        if (existingReg) {
+          console.log('[NotificationTest] Service Worker registered:', existingReg.scope)
+          console.log('[NotificationTest] Service Worker state:', existingReg.active?.state)
+          console.log('[NotificationTest] Service Worker script:', existingReg.active?.scriptURL)
+        } else {
+          console.warn('[NotificationTest] No service worker registration found')
+        }
+        
+        // Try to get ready (with timeout)
+        try {
+          const registration = await Promise.race([
+            navigator.serviceWorker.ready,
+            new Promise<null>((resolve) => setTimeout(() => resolve(null), 2000))
+          ])
+          if (registration) {
+            console.log('[NotificationTest] Service Worker ready:', !!registration)
+            console.log('[NotificationTest] Service Worker active:', registration.active?.scriptURL)
+          } else {
+            console.warn('[NotificationTest] Service Worker ready timeout')
+          }
+        } catch (error) {
+          console.error('[NotificationTest] Service Worker ready error:', error)
+        }
       } catch (error) {
         console.error('[NotificationTest] Service Worker error:', error)
       }

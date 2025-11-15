@@ -25,6 +25,39 @@ export async function requestNotificationPermission(): Promise<NotificationPermi
 }
 
 /**
+ * Helper function to wait for service worker with timeout
+ */
+async function waitForServiceWorker(timeout = 3000): Promise<ServiceWorkerRegistration | null> {
+  if (!('serviceWorker' in navigator)) {
+    return null
+  }
+
+  try {
+    // Check if service worker is already registered
+    const existingRegistration = await navigator.serviceWorker.getRegistration()
+    if (!existingRegistration) {
+      console.warn('[Notifications] No service worker registration found')
+      return null
+    }
+
+    // Wait for service worker to be ready with timeout
+    const readyPromise = navigator.serviceWorker.ready
+    const timeoutPromise = new Promise<null>((resolve) => {
+      setTimeout(() => {
+        console.warn('[Notifications] Service worker ready timeout')
+        resolve(null)
+      }, timeout)
+    })
+
+    const registration = await Promise.race([readyPromise, timeoutPromise])
+    return registration
+  } catch (error) {
+    console.error('[Notifications] Error waiting for service worker:', error)
+    return null
+  }
+}
+
+/**
  * Show a notification
  */
 export async function showNotification(
@@ -41,39 +74,52 @@ export async function showNotification(
     return
   }
 
-  try {
-    // Check if service worker is available (preferred for PWA)
-    if ('serviceWorker' in navigator) {
-      try {
-        const registration = await navigator.serviceWorker.ready
-        
-        if (!registration) {
-          console.warn('[Notifications] Service worker not ready')
-          return
-        }
+  const notificationOptions: NotificationOptions = {
+    icon: '/icon-192x192.png',
+    badge: '/icon-192x192.png',
+    ...options,
+  }
 
-        console.log('[Notifications] Showing notification via service worker')
-        await registration.showNotification(title, {
-          icon: '/icon-192x192.png',
-          badge: '/icon-192x192.png',
-          ...options,
-        } as NotificationOptions)
-      } catch (swError) {
-        console.error('[Notifications] Service worker notification failed, trying fallback:', swError)
-        // Fallback to regular notification if service worker fails
-        new Notification(title, {
-          icon: '/icon-192x192.png',
-          ...options,
-        })
+  try {
+    // Try service worker first (preferred for PWA)
+    if ('serviceWorker' in navigator) {
+      console.log('[Notifications] Attempting to show notification via service worker...')
+      const registration = await waitForServiceWorker(2000) // 2 second timeout
+      
+      if (registration && registration.active) {
+        try {
+          console.log('[Notifications] Showing notification via service worker')
+          await registration.showNotification(title, notificationOptions)
+          console.log('[Notifications] Notification sent successfully via service worker')
+          return
+        } catch (swError) {
+          console.error('[Notifications] Service worker showNotification failed:', swError)
+          // Fall through to fallback
+        }
+      } else {
+        console.warn('[Notifications] Service worker not ready, using fallback')
       }
-    } else {
-      // Fallback to regular notification if service worker not available
-      console.log('[Notifications] Showing notification without service worker')
-      new Notification(title, {
-        icon: '/icon-192x192.png',
-        ...options,
-      })
     }
+
+    // Fallback to regular notification API
+    console.log('[Notifications] Showing notification via Notification API')
+    const notification = new Notification(title, notificationOptions)
+    console.log('[Notifications] Notification created successfully')
+    
+    // Handle notification events for debugging
+    notification.onclick = () => {
+      console.log('[Notifications] Notification clicked')
+      notification.close()
+    }
+    
+    notification.onshow = () => {
+      console.log('[Notifications] Notification shown')
+    }
+    
+    notification.onerror = (error) => {
+      console.error('[Notifications] Notification error:', error)
+    }
+
   } catch (error) {
     console.error('[Notifications] Error showing notification:', error)
     throw error
