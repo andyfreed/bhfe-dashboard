@@ -48,9 +48,8 @@ export async function showNotification(
     await registration.showNotification(title, {
       icon: '/icon-192x192.png',
       badge: '/icon-192x192.png',
-      vibrate: [200, 100, 200],
       ...options,
-    })
+    } as NotificationOptions)
   } else {
     // Fallback to regular notification if service worker not available
     new Notification(title, {
