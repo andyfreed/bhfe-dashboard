@@ -17,6 +17,13 @@ const nextConfig: NextConfig = {
     // Number of pages that should be kept simultaneously without being disposed
     pagesBufferLength: 2,
   },
+  
+  // Configure webpack (required for next-pwa)
+  // next-pwa uses webpack configuration which is not compatible with Turbopack
+  webpack: (config, { isServer }) => {
+    // Return webpack config as-is (next-pwa will modify it)
+    return config
+  },
 };
 
 const pwaConfig = withPWA({
