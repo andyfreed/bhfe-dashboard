@@ -2,9 +2,6 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import NotificationPrompt from "@/components/NotificationPrompt";
-import NotificationTest from "@/components/NotificationTest";
-import PushServiceWorker from "@/components/PushServiceWorker";
-import PushSubscriptionManager from "@/components/PushSubscriptionManager";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -56,9 +53,6 @@ export default function RootLayout({
       <body className={`${inter.variable} font-sans antialiased bg-gray-50`}>
         {children}
         <NotificationPrompt />
-        <NotificationTest />
-        <PushServiceWorker />
-        <PushSubscriptionManager />
       </body>
     </html>
   );

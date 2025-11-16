@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button'
 import { Send, MessageSquare, User } from 'lucide-react'
 import { format } from 'date-fns'
 import { useNotifications } from '@/hooks/useNotifications'
-import PushSubscriptionDebug from '@/components/PushSubscriptionDebug'
 
 interface ChatMessage {
   id: string
@@ -325,8 +324,6 @@ export default function ChatPage() {
         <p className="text-gray-600 mt-1">Real-time messaging</p>
       </div>
 
-      <PushSubscriptionDebug />
-
       <Card className="flex flex-col h-[calc(100vh-250px)]">
         <CardHeader className="border-b border-gray-200">
           <CardTitle className="flex items-center gap-2">
@@ -396,4 +393,3 @@ export default function ChatPage() {
     </div>
   )
 }
-
