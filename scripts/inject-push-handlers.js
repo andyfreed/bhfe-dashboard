@@ -42,6 +42,7 @@ const pushHandlerCode = pushHandlerContent
 // This ensures they're registered when the service worker loads
 const injectedContent = swContent + '\n\n// ===== Custom Push Notification Handlers =====\n' + pushHandlerCode
 
+// Write back the modified service worker
 fs.writeFileSync(swPath, injectedContent, 'utf8')
 
 console.log('[Inject Push Handlers] ✅ Push handlers injected successfully')
