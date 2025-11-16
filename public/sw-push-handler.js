@@ -1,8 +1,11 @@
 // Service worker push notification handler
-// This file will be included in the next-pwa generated service worker
+// This code will be injected into the service worker at runtime
+// We'll register these handlers via postMessage from the client
 
-// Listen for push events (when app is closed or in background)
-self.addEventListener('push', (event) => {
+// Function to register push handlers
+function registerPushHandlers() {
+  // Listen for push events (when app is closed or in background)
+  self.addEventListener('push', (event) => {
   console.log('[SW] Push event received:', event)
 
   let notificationData = {
@@ -71,5 +74,18 @@ self.addEventListener('notificationclick', (event) => {
       }
     })
   )
-})
+  })
+}
+
+// Register handlers immediately if this script is loaded
+if (typeof self !== 'undefined') {
+  registerPushHandlers()
+  
+  // Also listen for messages from client to re-register
+  self.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'REGISTER_PUSH_HANDLER') {
+      registerPushHandlers()
+    }
+  })
+}
 

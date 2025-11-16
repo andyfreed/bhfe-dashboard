@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import NotificationPrompt from "@/components/NotificationPrompt";
 import NotificationTest from "@/components/NotificationTest";
+import PushServiceWorker from "@/components/PushServiceWorker";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -55,6 +56,7 @@ export default function RootLayout({
         {children}
         <NotificationPrompt />
         <NotificationTest />
+        <PushServiceWorker />
       </body>
     </html>
   );

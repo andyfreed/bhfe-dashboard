@@ -32,10 +32,6 @@ const pwaConfig = withPWA({
   skipWaiting: true,
   disable: process.env.NODE_ENV === "development", // Disable PWA in development
   publicExcludes: ["!icon-*.png", "!apple-icon-*.png"],
-  // Include custom push handler in service worker
-  workboxOptions: {
-    importScripts: ['/sw-push-handler.js'],
-  },
 });
 
 export default pwaConfig(nextConfig);
