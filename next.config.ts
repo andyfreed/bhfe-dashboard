@@ -32,6 +32,11 @@ const pwaConfig = withPWA({
   skipWaiting: true,
   disable: process.env.NODE_ENV === "development", // Disable PWA in development
   publicExcludes: ["!icon-*.png", "!apple-icon-*.png"],
+  // Add custom service worker code for push notifications
+  buildExcludes: [/middleware-manifest\.json$/],
+  // Note: next-pwa v5 doesn't directly support custom service worker injection
+  // The push handlers are in sw-custom.js but need to be loaded separately
+  // or the generated service worker needs to import it
 });
 
 export default pwaConfig(nextConfig);

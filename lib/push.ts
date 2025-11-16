@@ -53,6 +53,9 @@ export async function sendPushNotification(
   }
 
   try {
+    // Format payload for web-push
+    // The web-push library expects a JSON string that will be sent as the push message
+    // The service worker will receive this in event.data.json()
     const notificationPayload = JSON.stringify({
       title: payload.title,
       body: payload.body,
@@ -62,11 +65,15 @@ export async function sendPushNotification(
       data: payload.data || {},
     })
 
-    console.log('[Push] Sending notification to endpoint:', subscription.endpoint.substring(0, 50) + '...')
-    console.log('[Push] Notification payload:', { title: payload.title, body: payload.body.substring(0, 50) })
+    console.log('[Push] 📤 Sending notification to endpoint:', subscription.endpoint.substring(0, 50) + '...')
+    console.log('[Push] 📤 Notification payload:', { 
+      title: payload.title, 
+      body: payload.body.substring(0, 50),
+      tag: payload.tag,
+    })
     
     await webpush.sendNotification(subscription, notificationPayload)
-    console.log('[Push] Notification sent successfully to:', subscription.endpoint.substring(0, 50) + '...')
+    console.log('[Push] ✅ Notification sent successfully to:', subscription.endpoint.substring(0, 50) + '...')
   } catch (error: any) {
     console.error('[Push] Error sending notification:', error)
     console.error('[Push] Error details:', {

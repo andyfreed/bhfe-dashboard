@@ -1,58 +1,51 @@
 'use client'
 
-// Component to register push handlers in the service worker
-// This runs in the client to inject push event listeners into the service worker
+// Component to ensure push handlers are registered in the service worker
+// Since next-pwa generates its own service worker, we need to manually inject push handlers
 
 import { useEffect } from 'react'
 
 export default function PushServiceWorker() {
   useEffect(() => {
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-      // Wait for service worker to be ready
-      navigator.serviceWorker.ready.then(async (registration) => {
-        console.log('[Push SW] Service worker ready, injecting push handlers')
-        
+      const registerPushHandlers = async () => {
         try {
-          // Load and execute the custom push handler script
-          // This will add push event listeners to the service worker
-          const pushHandlerResponse = await fetch('/sw-custom.js')
-          if (pushHandlerResponse.ok) {
-            const pushHandlerCode = await pushHandlerResponse.text()
+          const registration = await navigator.serviceWorker.ready
+          console.log('[Push SW] Service worker ready, ensuring push handlers are registered')
+          
+          // The push handlers should be automatically registered by the service worker
+          // But we'll send a message to ensure they're active
+          if (registration.active) {
+            registration.active.postMessage({
+              type: 'REGISTER_PUSH_HANDLERS',
+            })
+            console.log('[Push SW] Sent push handlers registration message')
+          }
+          
+          // Verify push manager is available
+          if ('PushManager' in window && registration.pushManager) {
+            console.log('[Push SW] ✅ Push Manager available in service worker')
             
-            // Create a blob URL for the script and execute it in the service worker context
-            // Actually, we need to import it into the service worker
-            // Since we can't directly modify next-pwa's service worker, we'll try to use importScripts
-            // But the best approach is to ensure the handlers are in sw-custom.js and it gets loaded
-            
-            console.log('[Push SW] Push handler script loaded, checking if it can be injected')
-            
-            // For now, just ensure the service worker is ready
-            // The push handlers in sw-custom.js should be loaded by the service worker
-            if (registration.active) {
-              registration.active.postMessage({
-                type: 'REGISTER_PUSH_HANDLERS',
-              })
+            // Check for existing subscription
+            const subscription = await registration.pushManager.getSubscription()
+            if (subscription) {
+              console.log('[Push SW] ✅ Push subscription found:', subscription.endpoint.substring(0, 50) + '...')
+            } else {
+              console.warn('[Push SW] ⚠️ No push subscription found')
             }
+          } else {
+            console.warn('[Push SW] ⚠️ Push Manager not available')
           }
         } catch (error) {
-          console.error('[Push SW] Error loading push handlers:', error)
+          console.error('[Push SW] ❌ Error setting up push handlers:', error)
         }
-        
-        // Also listen for push events at the client level (as fallback)
-        navigator.serviceWorker.addEventListener('message', (event) => {
-          if (event.data && event.data.type === 'PUSH_NOTIFICATION') {
-            // Handle push notification from service worker
-            console.log('[Push SW] Received push notification message:', event.data)
-          }
-        })
-      })
+      }
+
+      // Wait a bit for service worker to be ready
+      setTimeout(registerPushHandlers, 1000)
       
-      // Register push event handler for service worker
-      navigator.serviceWorker.ready.then((registration) => {
-        // This will be handled by the service worker's push event listener
-        // If the service worker has our push handlers, they'll catch it
-        console.log('[Push SW] Service worker ready for push events')
-      })
+      // Also try after a longer delay
+      setTimeout(registerPushHandlers, 3000)
     }
   }, [])
 
