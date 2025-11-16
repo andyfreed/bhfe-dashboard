@@ -251,6 +251,37 @@ export default function ChatPage() {
         console.error('Error sending message:', error)
         return
       }
+
+      // Send push notifications to all receivers
+      const senderName = currentUser.name || currentUser.email?.split('@')[0] || 'Someone'
+      const messagePreview = newMessage.trim().substring(0, 100) + (newMessage.trim().length > 100 ? '...' : '')
+      
+      // Send push notification to each receiver
+      for (const otherUser of otherUsers) {
+        try {
+          await fetch('/api/push/send', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              receiverId: otherUser.id,
+              title: `New message from ${senderName}`,
+              body: messagePreview,
+              tag: 'chat-message',
+              icon: '/icon-192x192.png',
+              badge: '/icon-192x192.png',
+              data: {
+                url: '/dashboard/chat',
+                type: 'chat-message',
+              },
+            }),
+          })
+        } catch (pushError) {
+          console.error('[Chat] Error sending push notification:', pushError)
+          // Don't fail message sending if push notification fails
+        }
+      }
     }
 
     setNewMessage('')

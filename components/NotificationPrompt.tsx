@@ -40,6 +40,16 @@ export default function NotificationPrompt() {
     
     if (newPermission === 'granted') {
       setShowPrompt(false)
+      
+      // Register for push notifications
+      try {
+        const { registerPushSubscription } = await import('@/lib/push-client')
+        await registerPushSubscription()
+        console.log('[NotificationPrompt] Push subscription registered')
+      } catch (error) {
+        console.error('[NotificationPrompt] Error registering push subscription:', error)
+      }
+      
       // Optionally show a test notification
       if ('serviceWorker' in navigator) {
         const registration = await navigator.serviceWorker.ready
