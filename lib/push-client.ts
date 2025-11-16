@@ -134,6 +134,7 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
     outputArray[i] = rawData.charCodeAt(i)
   }
   
-  return outputArray
+  // Return as BufferSource-compatible Uint8Array
+  return new Uint8Array(outputArray.buffer)
 }
 
