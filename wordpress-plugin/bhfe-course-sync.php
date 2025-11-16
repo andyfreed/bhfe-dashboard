@@ -5,9 +5,16 @@
  * Description: Syncs active courses from WordPress to the BHFE Dashboard app via REST API
  * Version: 1.0.0
  * Author: BHFE
+ * Author URI: https://github.com/andyfreed
  * License: GPL v2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: bhfe-course-sync
+ * Requires at least: 5.0
+ * Requires PHP: 7.4
+ * Network: false
+ * 
+ * WP Pusher compatible - Install from: https://github.com/andyfreed/bhfe-dashboard
+ * Subdirectory: wordpress-plugin
  */
 
 // Exit if accessed directly

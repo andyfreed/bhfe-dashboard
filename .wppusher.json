@@ -1,0 +1,5 @@
+{
+  "type": "plugin",
+  "slug": "bhfe-course-sync",
+  "subdirectory": "wordpress-plugin"
+}
