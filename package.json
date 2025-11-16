@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build --webpack",
+    "build": "next build --webpack && node scripts/inject-push-handlers.js",
+    "postbuild": "node scripts/inject-push-handlers.js",
     "start": "next start",
     "lint": "eslint"
   },
