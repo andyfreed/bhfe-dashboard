@@ -45,8 +45,19 @@ export async function POST(request: NextRequest) {
       endpoint: s.endpoint.substring(0, 30) + '...',
     })))
 
+    console.log('[Push] 🔍 Subscription lookup result:', {
+      receiverId,
+      foundCount: subscriptions?.length || 0,
+      foundSubscriptions: subscriptions?.map(s => ({
+        endpoint: s.endpoint.substring(0, 40) + '...',
+        userId: s.user_id,
+      })) || [],
+      availableUserIds: allSubs?.map(s => s.user_id) || [],
+    })
+
     if (!subscriptions || subscriptions.length === 0) {
       console.warn('[Push] ❌ No subscriptions found for user:', receiverId)
+      console.warn('[Push] This means the receiverId doesn\'t match any subscription user_id')
       console.warn('[Push] Available user IDs with subscriptions:', allSubs?.map(s => s.user_id) || [])
       return NextResponse.json({ 
         message: 'No subscriptions found', 
