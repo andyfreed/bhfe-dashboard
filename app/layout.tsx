@@ -4,6 +4,7 @@ import "./globals.css";
 import NotificationPrompt from "@/components/NotificationPrompt";
 import NotificationTest from "@/components/NotificationTest";
 import PushServiceWorker from "@/components/PushServiceWorker";
+import PushSubscriptionManager from "@/components/PushSubscriptionManager";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -57,6 +58,7 @@ export default function RootLayout({
         <NotificationPrompt />
         <NotificationTest />
         <PushServiceWorker />
+        <PushSubscriptionManager />
       </body>
     </html>
   );

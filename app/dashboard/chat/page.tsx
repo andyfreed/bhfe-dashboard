@@ -259,7 +259,8 @@ export default function ChatPage() {
       // Send push notification to each receiver
       for (const otherUser of otherUsers) {
         try {
-          await fetch('/api/push/send', {
+          console.log('[Chat] Sending push notification to:', otherUser.name || otherUser.email)
+          const pushResponse = await fetch('/api/push/send', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -277,6 +278,13 @@ export default function ChatPage() {
               },
             }),
           })
+          
+          const pushResult = await pushResponse.json()
+          console.log('[Chat] Push notification result:', pushResult)
+          
+          if (!pushResponse.ok) {
+            console.error('[Chat] Push notification failed:', pushResult)
+          }
         } catch (pushError) {
           console.error('[Chat] Error sending push notification:', pushError)
           // Don't fail message sending if push notification fails

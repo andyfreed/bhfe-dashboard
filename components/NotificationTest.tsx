@@ -57,6 +57,18 @@ export default function NotificationTest() {
     setTesting(true)
     try {
       console.log('[NotificationTest] Testing notification...')
+      
+      // Also ensure push subscription is registered
+      if (permission === 'granted') {
+        try {
+          const { registerPushSubscription } = await import('@/lib/push-client')
+          await registerPushSubscription()
+          console.log('[NotificationTest] Push subscription checked/registered')
+        } catch (error) {
+          console.error('[NotificationTest] Error registering push subscription:', error)
+        }
+      }
+      
       await showNotification('Test Notification', {
         body: 'This is a test notification from BHFE Dashboard. If you see this, notifications are working!',
         tag: 'test-notification',

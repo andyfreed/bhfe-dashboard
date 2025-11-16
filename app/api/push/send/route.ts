@@ -34,8 +34,11 @@ export async function POST(request: NextRequest) {
     }
 
     if (!subscriptions || subscriptions.length === 0) {
+      console.warn('[Push] No subscriptions found for user:', receiverId)
       return NextResponse.json({ message: 'No subscriptions found', sent: 0 })
     }
+
+    console.log('[Push] Sending notification to', subscriptions.length, 'subscription(s) for user:', receiverId)
 
     // Send notification to all subscriptions
     const results = await Promise.allSettled(
