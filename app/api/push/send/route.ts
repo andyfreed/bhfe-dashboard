@@ -23,9 +23,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Get all push subscriptions for the receiver
+    console.log('[Push] Looking up subscriptions for receiverId:', receiverId)
+    
     const { data: subscriptions, error: fetchError } = await supabase
       .from('push_subscriptions')
-      .select('endpoint, p256dh, auth')
+      .select('endpoint, p256dh, auth, user_id')
       .eq('user_id', receiverId)
 
     if (fetchError) {
@@ -33,9 +35,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch subscriptions' }, { status: 500 })
     }
 
+    // Also check what subscriptions exist (for debugging)
+    const { data: allSubs } = await supabase
+      .from('push_subscriptions')
+      .select('user_id, endpoint')
+      .limit(10)
+    console.log('[Push] All subscriptions in database (first 10):', allSubs?.map(s => ({
+      userId: s.user_id,
+      endpoint: s.endpoint.substring(0, 30) + '...',
+    })))
+
     if (!subscriptions || subscriptions.length === 0) {
-      console.warn('[Push] No subscriptions found for user:', receiverId)
-      return NextResponse.json({ message: 'No subscriptions found', sent: 0 })
+      console.warn('[Push] ❌ No subscriptions found for user:', receiverId)
+      console.warn('[Push] Available user IDs with subscriptions:', allSubs?.map(s => s.user_id) || [])
+      return NextResponse.json({ 
+        message: 'No subscriptions found', 
+        sent: 0,
+        receiverId,
+        availableUserIds: allSubs?.map(s => s.user_id) || [],
+      })
     }
 
     console.log('[Push] Sending notification to', subscriptions.length, 'subscription(s) for user:', receiverId)

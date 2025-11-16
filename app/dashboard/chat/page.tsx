@@ -260,7 +260,11 @@ export default function ChatPage() {
       // Send push notification to each receiver
       for (const otherUser of otherUsers) {
         try {
-          console.log('[Chat] Sending push notification to:', otherUser.name || otherUser.email)
+          console.log('[Chat] Sending push notification to:', {
+            name: otherUser.name || otherUser.email,
+            userId: otherUser.id,
+            email: otherUser.email,
+          })
           const pushResponse = await fetch('/api/push/send', {
             method: 'POST',
             headers: {

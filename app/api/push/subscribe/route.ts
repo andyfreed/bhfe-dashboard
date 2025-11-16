@@ -22,6 +22,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Store subscription in database
+    console.log('[Push] Registering subscription for user:', {
+      userId: user.id,
+      email: user.email,
+      endpoint: subscription.endpoint.substring(0, 50) + '...',
+    })
+    
     const { error } = await supabase
       .from('push_subscriptions')
       .upsert({
@@ -35,11 +41,12 @@ export async function POST(request: NextRequest) {
       })
 
     if (error) {
-      console.error('[Push] Error storing subscription:', error)
+      console.error('[Push] ❌ Error storing subscription:', error)
       return NextResponse.json({ error: 'Failed to store subscription' }, { status: 500 })
     }
 
-    return NextResponse.json({ success: true })
+    console.log('[Push] ✅ Subscription registered successfully for user:', user.id)
+    return NextResponse.json({ success: true, userId: user.id })
   } catch (error) {
     console.error('[Push] Error in subscribe route:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
