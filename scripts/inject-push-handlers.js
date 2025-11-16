@@ -42,9 +42,18 @@ const pushHandlerCode = pushHandlerContent
 // This ensures they're registered when the service worker loads
 const injectedContent = swContent + '\n\n// ===== Custom Push Notification Handlers =====\n' + pushHandlerCode
 
-// Write back the modified service worker
 fs.writeFileSync(swPath, injectedContent, 'utf8')
 
 console.log('[Inject Push Handlers] ✅ Push handlers injected successfully')
 console.log('[Inject Push Handlers] Service worker size:', injectedContent.length, 'bytes')
+console.log('[Inject Push Handlers] Push handler code length:', pushHandlerCode.length, 'bytes')
+
+// Verify injection worked
+const verifyContent = fs.readFileSync(swPath, 'utf8')
+if (verifyContent.includes('[SW] Push event received')) {
+  console.log('[Inject Push Handlers] ✅ Verification: Push handlers found in service worker')
+} else {
+  console.error('[Inject Push Handlers] ❌ Verification failed: Push handlers NOT found in service worker')
+  process.exit(1)
+}
 

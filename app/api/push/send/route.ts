@@ -100,21 +100,40 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    // Clean up invalid subscriptions
-    const invalidSubscriptions = results
-      .map((result, index) => {
-        if (result.status === 'rejected' && result.reason?.message === 'Subscription expired or invalid') {
-          return subscriptions[index].endpoint
+    // Clean up invalid/expired subscriptions
+    const invalidSubscriptions: string[] = []
+    results.forEach((result, index) => {
+      if (result.status === 'rejected') {
+        const error = result.reason
+        const errorMessage = error?.message || String(error)
+        const statusCode = error?.statusCode
+        
+        // Check for expired or invalid subscriptions (410, 404 status codes)
+        if (
+          statusCode === 410 || 
+          statusCode === 404 || 
+          errorMessage.includes('expired') || 
+          errorMessage.includes('invalid') ||
+          errorMessage.includes('Subscription expired')
+        ) {
+          invalidSubscriptions.push(subscriptions[index].endpoint)
+          console.log('[Push] 🗑️ Marking subscription as invalid:', subscriptions[index].endpoint.substring(0, 50) + '...')
         }
-        return null
-      })
-      .filter((endpoint) => endpoint !== null)
+      }
+    })
 
     if (invalidSubscriptions.length > 0) {
-      await supabase
+      console.log('[Push] 🗑️ Cleaning up', invalidSubscriptions.length, 'invalid subscription(s)')
+      const { error: deleteError } = await supabase
         .from('push_subscriptions')
         .delete()
         .in('endpoint', invalidSubscriptions)
+      
+      if (deleteError) {
+        console.error('[Push] Error deleting invalid subscriptions:', deleteError)
+      } else {
+        console.log('[Push] ✅ Cleaned up', invalidSubscriptions.length, 'invalid subscription(s)')
+      }
     }
 
     const response = {
