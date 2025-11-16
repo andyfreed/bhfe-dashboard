@@ -1,0 +1,7 @@
+# Exclude build directories from Dropbox sync
+.next/
+node_modules/
+.env.local
+.next-cache
+.swc/
+# This file helps prevent Dropbox from syncing build artifacts
