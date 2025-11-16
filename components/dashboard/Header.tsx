@@ -21,16 +21,6 @@ export function Header() {
         month: 'long', 
         day: 'numeric' 
       }))
-      
-      // Update time display
-      const timeElement = document.getElementById('current-time')
-      if (timeElement) {
-        timeElement.textContent = now.toLocaleTimeString('en-US', { 
-          hour: '2-digit', 
-          minute: '2-digit',
-          second: '2-digit'
-        })
-      }
     }
 
     updateDateTime()

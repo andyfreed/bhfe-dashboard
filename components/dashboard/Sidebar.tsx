@@ -13,7 +13,6 @@ import {
   FileText,
   MapPin,
   MessageSquare,
-  Clock,
   ExternalLink,
   X,
   Menu,
@@ -164,19 +163,6 @@ export function Sidebar() {
             )
           })}
         </nav>
-        
-        {/* Time Display */}
-        <div className="border-t-2 border-slate-300 p-4 bg-gradient-to-b from-slate-50 to-white">
-          <div className="flex items-center gap-3 rounded-xl px-4 py-3 bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 shadow-md">
-            <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-500 shadow-md">
-              <Clock className="h-5 w-5 text-white" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Current Time</div>
-              <div className="font-mono text-sm font-bold text-slate-900" id="current-time"></div>
-            </div>
-          </div>
-        </div>
       </div>
     </>
   )
