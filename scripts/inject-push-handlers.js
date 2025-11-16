@@ -32,12 +32,15 @@ if (swContent.includes('[SW] Push event received')) {
   process.exit(0)
 }
 
-// Find where to inject (before the closing of the service worker)
-// We'll inject at the end, before any final closing braces
-const injectionPoint = swContent.lastIndexOf('//')
+// Extract just the push handler code (remove comments about injection)
+const pushHandlerCode = pushHandlerContent
+  .replace(/\/\/ Custom service worker code.*?\n/g, '')
+  .replace(/\/\/ This will be used to add push handlers.*?\n/g, '')
+  .trim()
 
-// Inject our push handlers at the end of the file
-const injectedContent = swContent + '\n\n// Custom push notification handlers\n' + pushHandlerContent
+// Inject our push handlers at the end of the service worker
+// This ensures they're registered when the service worker loads
+const injectedContent = swContent + '\n\n// ===== Custom Push Notification Handlers =====\n' + pushHandlerCode
 
 // Write back the modified service worker
 fs.writeFileSync(swPath, injectedContent, 'utf8')
