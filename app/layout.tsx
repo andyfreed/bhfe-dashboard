@@ -11,6 +11,7 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "BHFE Dashboard - CPE Course Management",
   description: "Manage your CPE course business operations",
+  // Trigger rebuild
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
