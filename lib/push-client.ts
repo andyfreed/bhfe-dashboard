@@ -32,10 +32,20 @@ export async function registerPushSubscription(): Promise<globalThis.PushSubscri
     console.warn('[Push] Push notifications not supported')
     return null
   }
-
   try {
-    // Get service worker registration
-    const registration = await navigator.serviceWorker.ready
+    // Get or register service worker
+    let registration = await navigator.serviceWorker.getRegistration()
+
+    if (!registration) {
+      console.warn('[Push] No existing service worker registration, attempting to register /sw.js')
+      try {
+        registration = await navigator.serviceWorker.register('/sw.js')
+        console.log('[Push] Service worker registered at /sw.js')
+      } catch (swError) {
+        console.error('[Push] Failed to register service worker for push:', swError)
+        return null
+      }
+    }
     
     // Get VAPID public key from server
     const response = await fetch('/api/push/vapid-public-key')

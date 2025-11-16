@@ -48,7 +48,22 @@ export default function PushSubscriptionDebug() {
       }
 
       if ('serviceWorker' in navigator && 'PushManager' in window) {
-        const registration = await navigator.serviceWorker.ready
+        // Try to get existing service worker registration with a timeout,
+        // so we don't hang forever if there is no service worker.
+        const existingRegistration = await navigator.serviceWorker.getRegistration()
+        if (!existingRegistration) {
+          setSubscriptionStatus({
+            hasSubscription: false,
+            endpoint: null,
+            serverSynced: null,
+            error: 'No service worker registration found (open the app from home screen and try again)',
+          })
+          setLoading(false)
+          return
+        }
+
+        // Use the existing registration directly instead of waiting on .ready
+        const registration = existingRegistration
         const subscription = await registration.pushManager.getSubscription()
 
         if (subscription) {
