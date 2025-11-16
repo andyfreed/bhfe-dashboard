@@ -14,6 +14,7 @@ import {
   MapPin,
   MessageSquare,
   ExternalLink,
+  BookOpen,
   X,
   Menu,
 } from 'lucide-react'
@@ -28,6 +29,7 @@ const navigation = [
   { name: 'Projects', href: '/dashboard/projects', icon: FolderKanban },
   { name: 'Contacts', href: '/dashboard/contacts', icon: Users },
   { name: 'Notes', href: '/dashboard/notes', icon: FileText },
+  { name: 'Active Courses', href: '/dashboard/courses', icon: BookOpen },
   { name: 'State Info', href: '/dashboard/states', icon: MapPin },
   { name: 'Chat', href: '/dashboard/chat', icon: MessageSquare },
   { name: 'Links', href: '/dashboard/links', icon: ExternalLink },
