@@ -122,12 +122,15 @@ export default function LoginPage() {
           </form>
           <div className="mt-8 text-center space-y-2 pt-6 border-t-2 border-slate-200">
             <p className="text-sm font-bold text-slate-700 uppercase tracking-wide">Authorized Users</p>
-            <div className="flex items-center justify-center gap-4">
+            <div className="flex items-center justify-center gap-4 flex-wrap">
               <div className="px-4 py-2 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200">
                 <p className="text-sm font-semibold text-blue-700">Andy</p>
               </div>
               <div className="px-4 py-2 rounded-lg bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-purple-200">
                 <p className="text-sm font-semibold text-purple-700">Dave</p>
+              </div>
+              <div className="px-4 py-2 rounded-lg bg-gradient-to-r from-emerald-50 to-teal-50 border-2 border-emerald-200">
+                <p className="text-sm font-semibold text-emerald-700">Diane</p>
               </div>
             </div>
           </div>

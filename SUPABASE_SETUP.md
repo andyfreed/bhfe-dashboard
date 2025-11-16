@@ -21,10 +21,11 @@
 
 3. **Set Up Authentication**
    - Go to Authentication > Users in Supabase Dashboard
-   - Create two users:
+   - Create users:
      - **Andy**: `andy@example.com` (or your actual email)
      - **Dave**: `dave@example.com` (or Dave's actual email)
-   - Set secure passwords for both
+     - **Diane**: `freed.diane@gmail.com`
+   - Set secure passwords for all users
    - Copy the user IDs (UUIDs) for the next step
 
 4. **Create User Profiles**
@@ -41,11 +42,16 @@
    SET name = 'Dave', email = 'dave@example.com'
    WHERE id = 'dave_user_uuid_here';
    
+   UPDATE public.profiles
+   SET name = 'Diane', email = 'freed.diane@gmail.com'
+   WHERE id = 'diane_user_uuid_here';
+   
    -- Or insert if profiles don't exist
    INSERT INTO public.profiles (id, name, email)
    VALUES 
      ('andy_user_uuid_here', 'Andy', 'andy@example.com'),
-     ('dave_user_uuid_here', 'Dave', 'dave@example.com')
+     ('dave_user_uuid_here', 'Dave', 'dave@example.com'),
+     ('diane_user_uuid_here', 'Diane', 'freed.diane@gmail.com')
    ON CONFLICT (id) DO UPDATE
    SET name = EXCLUDED.name, email = EXCLUDED.email;
    ```
@@ -119,6 +125,35 @@ SUPABASE_SERVICE_ROLE_KEY=your_service_role_key_here
 - Verify users exist in Supabase Auth
 - Check that profiles are created for each user
 - Ensure email confirmation is not required (or verify emails)
+
+## Adding Additional Users
+
+To add a new user (e.g., Diane):
+
+1. **Create Auth User**
+   - Go to Authentication > Users in Supabase Dashboard
+   - Click "Add user" → "Create new user"
+   - Enter email: `freed.diane@gmail.com`
+   - Set a secure password
+   - Click "Create user"
+   - Copy the User ID (UUID) that's generated
+
+2. **Create Profile**
+   - Go to SQL Editor in Supabase
+   - Run this query (replace `diane_user_uuid_here` with the actual UUID):
+
+   ```sql
+   INSERT INTO public.profiles (id, name, email)
+   VALUES ('diane_user_uuid_here', 'Diane', 'freed.diane@gmail.com')
+   ON CONFLICT (id) DO UPDATE
+   SET name = EXCLUDED.name, email = EXCLUDED.email;
+   ```
+
+3. **Update Login Page (if needed)**
+   - The login page displays authorized users
+   - Already updated to include Diane with emerald/teal styling
+
+That's it! The new user can now log in and access all features.
 
 ## Additional Configuration
 
