@@ -50,9 +50,10 @@ export async function registerPushSubscription(): Promise<globalThis.PushSubscri
     const applicationServerKey = urlBase64ToUint8Array(vapidPublicKey)
 
     // Subscribe to push notifications
+    // Type assertion needed because TypeScript is strict about BufferSource types
     const subscription = await registration.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey,
+      applicationServerKey: applicationServerKey as BufferSource,
     })
 
     // Send subscription to server
