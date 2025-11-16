@@ -56,10 +56,18 @@ export async function sendPushNotification(
       data: payload.data || {},
     })
 
+    console.log('[Push] Sending notification to endpoint:', subscription.endpoint.substring(0, 50) + '...')
+    console.log('[Push] Notification payload:', { title: payload.title, body: payload.body.substring(0, 50) })
+    
     await webpush.sendNotification(subscription, notificationPayload)
-    console.log('[Push] Notification sent successfully')
+    console.log('[Push] Notification sent successfully to:', subscription.endpoint.substring(0, 50) + '...')
   } catch (error: any) {
     console.error('[Push] Error sending notification:', error)
+    console.error('[Push] Error details:', {
+      statusCode: error.statusCode,
+      message: error.message,
+      endpoint: subscription.endpoint.substring(0, 50) + '...',
+    })
     
     // If subscription is invalid, we might want to remove it
     if (error.statusCode === 410 || error.statusCode === 404) {
