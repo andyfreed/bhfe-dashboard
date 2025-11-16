@@ -8,15 +8,20 @@ const privateKey = process.env.VAPID_PRIVATE_KEY || ''
 const subject = process.env.VAPID_SUBJECT || 'mailto:admin@bhfe.com'
 
 // Set VAPID details if keys are available
+let vapidConfigured = false
 if (publicKey && privateKey) {
   try {
     webpush.setVapidDetails(subject, publicKey, privateKey)
-    console.log('[Push] VAPID keys configured')
+    vapidConfigured = true
+    console.log('[Push] VAPID keys configured successfully')
   } catch (error) {
     console.error('[Push] Error setting VAPID details:', error)
   }
 } else {
-  console.warn('[Push] VAPID keys not configured. Set NEXT_PUBLIC_VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY in environment variables.')
+  console.warn('[Push] ⚠️ VAPID keys not configured!')
+  console.warn('[Push] Public key available:', !!publicKey)
+  console.warn('[Push] Private key available:', !!privateKey)
+  console.warn('[Push] Set NEXT_PUBLIC_VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY in environment variables.')
 }
 
 export interface PushSubscription {
@@ -41,9 +46,10 @@ export async function sendPushNotification(
     data?: any
   }
 ): Promise<void> {
-  if (!publicKey || !privateKey) {
-    console.warn('[Push] VAPID keys not configured')
-    return
+  if (!vapidConfigured || !publicKey || !privateKey) {
+    const error = new Error('VAPID keys not configured. Check Vercel environment variables.')
+    console.error('[Push] ❌', error.message)
+    throw error
   }
 
   try {

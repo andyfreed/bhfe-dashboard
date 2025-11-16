@@ -267,6 +267,32 @@ export default function PushSubscriptionDebug() {
               Register Push
             </Button>
           )}
+          {subscriptionStatus.hasSubscription && subscriptionStatus.serverSynced && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={async () => {
+                setLoading(true)
+                try {
+                  const response = await fetch('/api/push/test', { method: 'POST' })
+                  const result = await response.json()
+                  if (result.success) {
+                    alert(`Test notification sent! Check your device.`)
+                  } else {
+                    alert(`Failed to send test notification: ${result.message || result.error}`)
+                  }
+                } catch (error: any) {
+                  alert(`Error: ${error.message}`)
+                } finally {
+                  setLoading(false)
+                }
+              }}
+              disabled={loading}
+              className="text-xs h-8 px-3"
+            >
+              Send Test Push
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>

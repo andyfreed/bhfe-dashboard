@@ -39,32 +39,48 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('[Push] Sending notification to', subscriptions.length, 'subscription(s) for user:', receiverId)
+    console.log('[Push] Subscription endpoints:', subscriptions.map(s => s.endpoint.substring(0, 50) + '...'))
 
     // Send notification to all subscriptions
     const results = await Promise.allSettled(
-      subscriptions.map((sub) =>
-        sendPushNotification(
-          {
-            endpoint: sub.endpoint,
-            keys: {
-              p256dh: sub.p256dh,
-              auth: sub.auth,
+      subscriptions.map(async (sub) => {
+        try {
+          await sendPushNotification(
+            {
+              endpoint: sub.endpoint,
+              keys: {
+                p256dh: sub.p256dh,
+                auth: sub.auth,
+              },
             },
-          },
-          {
-            title,
-            body,
-            tag: tag || 'notification',
-            icon: icon || '/icon-192x192.png',
-            badge: badge || '/icon-192x192.png',
-            data: data || {},
-          }
-        )
-      )
+            {
+              title,
+              body,
+              tag: tag || 'notification',
+              icon: icon || '/icon-192x192.png',
+              badge: badge || '/icon-192x192.png',
+              data: data || {},
+            }
+          )
+          return { success: true, endpoint: sub.endpoint }
+        } catch (error: any) {
+          console.error('[Push] Failed to send to endpoint:', sub.endpoint.substring(0, 50) + '...', error)
+          throw error
+        }
+      })
     )
 
     const successful = results.filter((r) => r.status === 'fulfilled').length
     const failed = results.filter((r) => r.status === 'rejected').length
+    
+    // Log detailed results
+    results.forEach((result, index) => {
+      if (result.status === 'fulfilled') {
+        console.log('[Push] ✅ Successfully sent to subscription', index + 1)
+      } else {
+        console.error('[Push] ❌ Failed to send to subscription', index + 1, ':', result.reason)
+      }
+    })
 
     // Clean up invalid subscriptions
     const invalidSubscriptions = results
@@ -83,12 +99,17 @@ export async function POST(request: NextRequest) {
         .in('endpoint', invalidSubscriptions)
     }
 
-    return NextResponse.json({
-      success: true,
+    const response = {
+      success: successful > 0,
       sent: successful,
       failed,
       invalidSubscriptions: invalidSubscriptions.length,
-    })
+      totalSubscriptions: subscriptions.length,
+    }
+    
+    console.log('[Push] Send result:', response)
+    
+    return NextResponse.json(response)
   } catch (error) {
     console.error('[Push] Error in send route:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
