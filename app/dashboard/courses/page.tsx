@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { BookOpen, RefreshCw, ExternalLink, DollarSign, Package, CheckCircle2, XCircle, FileText } from 'lucide-react'
+import { BookOpen, RefreshCw, ExternalLink, DollarSign, Package, CheckCircle2, XCircle, FileText, Search } from 'lucide-react'
 import { WordPressCourse } from '@/lib/wordpress-sync'
 
 export default function CoursesPage() {
@@ -16,6 +16,7 @@ export default function CoursesPage() {
   const [sitemapUrls, setSitemapUrls] = useState<Set<string>>(new Set())
   const [checkingSitemap, setCheckingSitemap] = useState(false)
   const [generatingSitemap, setGeneratingSitemap] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
 
   useEffect(() => {
     // Load saved WordPress URL and API key from localStorage
@@ -177,6 +178,17 @@ ${courses.map(course => `  <url>
     return `${baseUrl}/wp-admin/post.php?post=${courseId}&action=edit`
   }
 
+  const filteredCourses = courses.filter((course) => {
+    if (!searchTerm.trim()) return true
+    const search = searchTerm.toLowerCase()
+    return (
+      course.title.toLowerCase().includes(search) ||
+      course.excerpt?.toLowerCase().includes(search) ||
+      course.product_sku?.toLowerCase().includes(search) ||
+      course.slug.toLowerCase().includes(search)
+    )
+  })
+
   if (loading && courses.length === 0) {
     return (
       <div className="space-y-6">
@@ -305,10 +317,33 @@ ${courses.map(course => `  <url>
         </Card>
       )}
 
+      {/* Search */}
+      {courses.length > 0 && (
+        <Card className="border-2 border-slate-300">
+          <CardContent className="pt-6">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search courses by title, SKU, or description..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            {searchTerm && (
+              <p className="mt-2 text-sm text-gray-600">
+                Showing {filteredCourses.length} of {courses.length} courses
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Courses List */}
       {courses.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {courses.map((course) => (
+          {filteredCourses.map((course) => (
             <Card key={course.id} className="flex flex-col border-2 border-slate-300 hover:shadow-lg transition-shadow">
               <CardHeader>
                 <CardTitle className="text-lg font-bold text-gray-900 line-clamp-2">
@@ -403,8 +438,24 @@ ${courses.map(course => `  <url>
       {/* Course Count */}
       {courses.length > 0 && (
         <div className="text-center text-sm text-gray-600">
-          Showing {courses.length} active course{courses.length !== 1 ? 's' : ''}
+          {searchTerm 
+            ? `Showing ${filteredCourses.length} of ${courses.length} active course${courses.length !== 1 ? 's' : ''}`
+            : `Showing ${courses.length} active course${courses.length !== 1 ? 's' : ''}`
+          }
         </div>
+      )}
+
+      {/* No Results */}
+      {courses.length > 0 && filteredCourses.length === 0 && searchTerm && (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <Search className="h-12 w-12 text-gray-400 mb-4" />
+            <p className="text-gray-500 font-semibold mb-2">No courses found</p>
+            <p className="text-sm text-gray-400 text-center">
+              No courses match your search for "{searchTerm}"
+            </p>
+          </CardContent>
+        </Card>
       )}
     </div>
   )
