@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Sparkles, Lock, Mail } from 'lucide-react'
+import { Lock, Mail } from 'lucide-react'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -48,8 +48,8 @@ export default function LoginPage() {
       
       <Card className="w-full max-w-md relative z-10 shadow-2xl border-2 border-white/20 bg-white/95 backdrop-blur-xl">
         <CardHeader className="text-center space-y-4 pb-6 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-t-xl p-8">
-          <div className="mx-auto mb-2 h-20 w-20 rounded-3xl bg-white/20 backdrop-blur-md flex items-center justify-center shadow-2xl border-2 border-white/30">
-            <Sparkles className="h-10 w-10 text-white drop-shadow-lg" />
+          <div className="mx-auto mb-2 h-20 w-20 rounded-3xl bg-white/20 backdrop-blur-md flex items-center justify-center shadow-2xl border-2 border-white/30 overflow-hidden">
+            <img src="/logo.png" alt="BHFE Logo" className="h-full w-full object-contain" />
           </div>
           <CardTitle className="text-4xl font-extrabold text-white tracking-tight drop-shadow-lg">
             BHFE Dashboard
