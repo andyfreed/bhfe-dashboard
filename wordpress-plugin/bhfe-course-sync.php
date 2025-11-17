@@ -3,7 +3,7 @@
  * Plugin Name: BHFE Course Sync
  * Plugin URI: https://github.com/andyfreed/bhfe-dashboard
  * Description: Syncs active courses from WordPress to the BHFE Dashboard app via REST API
- * Version: 1.0.0
+ * Version: 1.0.1
  * Author: BHFE
  * Author URI: https://github.com/andyfreed
  * License: GPL v2 or later
@@ -54,34 +54,52 @@ function bhfe_verify_api_key($request) {
  * Active courses are defined as:
  * - Post type: flms-courses
  * - Post status: publish
- * - NOT archived (bhfe_archived_course meta does NOT exist)
- * - NOT archived from versions (bhfe_archived_from_course_versions meta does NOT exist)
- * - NOT investigation processed (bhfe_course_investigation_processed meta does NOT exist)
+ * - NOT archived (bhfe_archived_course meta does NOT exist or is empty)
+ * - NOT archived from versions (bhfe_archived_from_course_versions meta does NOT exist or is empty)
+ * 
+ * Query parameter: include_all=true to get all published courses (for debugging)
  */
 function bhfe_get_active_courses($request) {
+    // Allow optional parameter to include all courses (for debugging)
+    $include_all = $request->get_param('include_all') === 'true';
+    
     $args = array(
         'post_type'       => 'flms-courses',
         'post_status'     => 'publish',
         'posts_per_page'  => -1, // Get all active courses
-        'meta_query' => array(
+    );
+    
+    // Only apply meta_query filters if not including all courses
+    if (!$include_all) {
+        $args['meta_query'] = array(
             'relation' => 'AND',
             array(
-                'relation' => 'AND',
+                'relation' => 'OR', // Changed to OR - courses should be included if EITHER condition is met
                 array(
                     'key'     => 'bhfe_archived_course',
                     'compare' => 'NOT EXISTS',
                 ),
                 array(
-                    'key'     => 'bhfe_archived_from_course_versions',
-                    'compare' => 'NOT EXISTS',
+                    'key'     => 'bhfe_archived_course',
+                    'value'   => '',
+                    'compare' => '=',
                 ),
             ),
             array(
-                'key'     => 'bhfe_course_investigation_processed',
-                'compare' => 'NOT EXISTS',
+                'relation' => 'OR',
+                array(
+                    'key'     => 'bhfe_archived_from_course_versions',
+                    'compare' => 'NOT EXISTS',
+                ),
+                array(
+                    'key'     => 'bhfe_archived_from_course_versions',
+                    'value'   => '',
+                    'compare' => '=',
+                ),
             ),
-        ),
-    );
+            // Removed bhfe_course_investigation_processed check as it may be excluding too many courses
+        );
+    }
     
     $query = new WP_Query($args);
     $courses = array();
@@ -161,9 +179,20 @@ function bhfe_get_active_courses($request) {
         wp_reset_postdata();
     }
     
+    // Get total count for comparison
+    $total_args = array(
+        'post_type'       => 'flms-courses',
+        'post_status'     => 'publish',
+        'posts_per_page'  => -1,
+    );
+    $total_query = new WP_Query($total_args);
+    $total_count = $total_query->found_posts;
+    wp_reset_postdata();
+    
     return new WP_REST_Response(array(
         'success' => true,
         'count' => count($courses),
+        'total_published' => $total_count,
         'courses' => $courses,
     ), 200);
 }
