@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { BookOpen, RefreshCw, ExternalLink, DollarSign, Package, CheckCircle2, XCircle, FileText, Search, Database, X } from 'lucide-react'
+import { BookOpen, RefreshCw, ExternalLink, DollarSign, Package, CheckCircle2, XCircle, FileText, Search, Database, X, Settings, ChevronDown, ChevronUp } from 'lucide-react'
 import { WordPressCourse } from '@/lib/wordpress-sync'
 
 export default function CoursesPage() {
@@ -20,6 +20,7 @@ export default function CoursesPage() {
   const [metaKeys, setMetaKeys] = useState<any>(null)
   const [loadingMetaKeys, setLoadingMetaKeys] = useState(false)
   const [showMetaKeys, setShowMetaKeys] = useState(false)
+  const [showConfig, setShowConfig] = useState(false)
 
   useEffect(() => {
     // Load saved WordPress URL and API key from localStorage
@@ -266,20 +267,36 @@ ${courses.map(course => `  <url>
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Active Courses</h1>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Active Courses</h1>
           <p className="text-gray-600 mt-1">Courses synced from WordPress</p>
+        </div>
+        <Button
+          onClick={() => setShowConfig(!showConfig)}
+          variant="outline"
+          className="flex items-center gap-2"
+        >
+          <Settings className="h-4 w-4" />
+          {showConfig ? 'Hide' : 'Show'} Configuration
+          {showConfig ? (
+            <ChevronUp className="h-4 w-4" />
+          ) : (
+            <ChevronDown className="h-4 w-4" />
+          )}
+        </Button>
       </div>
 
       {/* WordPress Configuration */}
-      <Card className="border-2 border-slate-300">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <BookOpen className="h-5 w-5" />
-            WordPress Sync Configuration
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      {showConfig && (
+        <Card className="border-2 border-slate-300">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BookOpen className="h-5 w-5" />
+              WordPress Sync Configuration
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
           <div>
             <label htmlFor="wordpress-url" className="block text-sm font-semibold text-gray-700 mb-2">
               WordPress Site URL
@@ -381,6 +398,7 @@ ${courses.map(course => `  <url>
           </div>
         </CardContent>
       </Card>
+      )}
 
       {/* Error Message */}
       {error && (
