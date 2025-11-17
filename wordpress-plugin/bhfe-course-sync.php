@@ -212,6 +212,27 @@ function bhfe_get_active_courses($request) {
                 continue;
             }
             
+            // Get the title to check for retired/inactive courses
+            $course_title = get_the_title();
+            
+            // Skip courses with "Retired" in the title (case-insensitive)
+            if (!$include_all && stripos($course_title, 'retired') !== false) {
+                continue;
+            }
+            
+            // Check for other indicators that a course is inactive
+            // Check if course is marked as inactive/retired in meta
+            $is_retired = get_post_meta($post_id, 'flms_course_retired', true);
+            $is_inactive = get_post_meta($post_id, 'flms_course_inactive', true);
+            $course_status = get_post_meta($post_id, 'flms_course_status', true);
+            
+            // Skip if explicitly marked as retired or inactive
+            if (!$include_all && ($is_retired === '1' || $is_retired === true || 
+                                  $is_inactive === '1' || $is_inactive === true ||
+                                  $course_status === 'retired' || $course_status === 'inactive')) {
+                continue;
+            }
+            
             // Get associated WooCommerce product
             $product_id = null;
             $product_sku = null;
@@ -240,12 +261,34 @@ function bhfe_get_active_courses($request) {
                 }
             }
             
+            // Decode HTML entities properly (including numeric entities like &#8211;)
+            // WordPress has wp_kses_decode_entities which handles both named and numeric entities
+            if (function_exists('wp_kses_decode_entities')) {
+                $decoded_title = wp_kses_decode_entities($course_title);
+            } else {
+                // Fallback: decode numeric entities first, then named entities
+                $decoded_title = preg_replace_callback('/&#(\d+);/', function($matches) {
+                    return mb_convert_encoding('&#' . intval($matches[1]) . ';', 'UTF-8', 'HTML-ENTITIES');
+                }, $course_title);
+                $decoded_title = html_entity_decode($decoded_title, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            }
+            
+            $course_excerpt = get_the_excerpt();
+            if (function_exists('wp_kses_decode_entities')) {
+                $decoded_excerpt = wp_kses_decode_entities($course_excerpt);
+            } else {
+                $decoded_excerpt = preg_replace_callback('/&#(\d+);/', function($matches) {
+                    return mb_convert_encoding('&#' . intval($matches[1]) . ';', 'UTF-8', 'HTML-ENTITIES');
+                }, $course_excerpt);
+                $decoded_excerpt = html_entity_decode($decoded_excerpt, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            }
+            
             $course = array(
                 'id' => $post_id,
-                'title' => html_entity_decode(get_the_title(), ENT_QUOTES | ENT_HTML5, 'UTF-8'),
+                'title' => $decoded_title,
                 'slug' => get_post_field('post_name', $post_id),
                 'permalink' => get_permalink($post_id),
-                'excerpt' => html_entity_decode(get_the_excerpt(), ENT_QUOTES | ENT_HTML5, 'UTF-8'),
+                'excerpt' => $decoded_excerpt,
                 'content' => get_the_content(),
                 'product_id' => $product_id,
                 'product_sku' => $product_sku,
