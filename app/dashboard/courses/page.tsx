@@ -280,8 +280,15 @@ ${courses.map(course => `  <url>
           newValue: courses.length.toString()
         }))
       }
+    } else if (courses.length === 0 && !loading) {
+      // Clear the count if no courses are loaded
+      localStorage.removeItem('bhfe_courses_not_in_sitemap_count')
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: 'bhfe_courses_not_in_sitemap_count',
+        newValue: null
+      }))
     }
-  }, [courses, sitemapUrls])
+  }, [courses, sitemapUrls, loading])
 
   if (loading && courses.length === 0) {
     return (
@@ -567,8 +574,9 @@ ${courses.map(course => `  <url>
 
       {/* Courses List */}
       {courses.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredCourses.map((course) => (
+        filteredCourses.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredCourses.map((course) => (
             <Card key={course.id} className="flex flex-col border-2 border-slate-300 hover:shadow-lg transition-shadow">
               <CardHeader>
                 <CardTitle className="text-lg font-bold text-gray-900 line-clamp-2">
@@ -639,7 +647,20 @@ ${courses.map(course => `  <url>
               </CardContent>
             </Card>
           ))}
-        </div>
+          </div>
+        ) : (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <Search className="h-12 w-12 text-gray-400 mb-4" />
+              <p className="text-gray-500 font-semibold mb-2">No courses to display</p>
+              <p className="text-sm text-gray-400 text-center">
+                {searchTerm 
+                  ? `No courses match "${searchTerm}". Try a different search term.`
+                  : 'No courses available. Please sync courses from WordPress.'}
+              </p>
+            </CardContent>
+          </Card>
+        )
       ) : (
         !loading && !error && (
           <Card>
