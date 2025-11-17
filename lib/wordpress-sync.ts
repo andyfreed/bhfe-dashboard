@@ -58,7 +58,25 @@ export async function fetchActiveCoursesFromWordPress(
   })
   
   if (!response.ok) {
-    throw new Error(`Failed to fetch courses from WordPress: ${response.statusText}`)
+    const errorText = await response.text()
+    let errorMessage = `Failed to fetch courses from WordPress: ${response.status} ${response.statusText}`
+    
+    // Try to parse error message if it's JSON
+    try {
+      const errorData = JSON.parse(errorText)
+      if (errorData.message) {
+        errorMessage = errorData.message
+      } else if (errorData.error) {
+        errorMessage = errorData.error
+      }
+    } catch {
+      // If not JSON, use the text response
+      if (errorText) {
+        errorMessage += ` - ${errorText.substring(0, 200)}`
+      }
+    }
+    
+    throw new Error(errorMessage)
   }
   
   const data = await response.json()

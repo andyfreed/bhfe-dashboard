@@ -34,10 +34,26 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(courses, { status: 200 })
   } catch (error) {
     console.error('[Sync Courses] Error:', error)
+    
+    // Provide more helpful error messages
+    let errorMessage = 'Failed to sync courses'
+    if (error instanceof Error) {
+      errorMessage = error.message
+      
+      // Check for common issues
+      if (error.message.includes('fetch failed') || error.message.includes('ECONNREFUSED')) {
+        errorMessage = 'Cannot connect to WordPress site. Please check the URL and ensure the site is accessible.'
+      } else if (error.message.includes('404')) {
+        errorMessage = 'WordPress endpoint not found. Make sure the BHFE Course Sync plugin is installed and activated on your WordPress site.'
+      } else if (error.message.includes('401') || error.message.includes('403')) {
+        errorMessage = 'Authentication failed. Please check your API key in WordPress Settings > BHFE Course Sync.'
+      }
+    }
+    
     return NextResponse.json(
       { 
-        error: 'Failed to sync courses',
-        message: error instanceof Error ? error.message : 'Unknown error'
+        error: errorMessage,
+        details: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }
     )
