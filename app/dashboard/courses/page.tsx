@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { BookOpen, RefreshCw, ExternalLink, DollarSign, Package, CheckCircle2, XCircle, FileText, Search } from 'lucide-react'
+import { BookOpen, RefreshCw, ExternalLink, DollarSign, Package, CheckCircle2, XCircle, FileText, Search, Database, X } from 'lucide-react'
 import { WordPressCourse } from '@/lib/wordpress-sync'
 
 export default function CoursesPage() {
@@ -17,6 +17,9 @@ export default function CoursesPage() {
   const [checkingSitemap, setCheckingSitemap] = useState(false)
   const [generatingSitemap, setGeneratingSitemap] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
+  const [metaKeys, setMetaKeys] = useState<any>(null)
+  const [loadingMetaKeys, setLoadingMetaKeys] = useState(false)
+  const [showMetaKeys, setShowMetaKeys] = useState(false)
 
   useEffect(() => {
     // Load saved WordPress URL and API key from localStorage
@@ -178,6 +181,41 @@ ${courses.map(course => `  <url>
     return `${baseUrl}/wp-admin/post.php?post=${courseId}&action=edit`
   }
 
+  const fetchMetaKeys = async () => {
+    if (!wordpressUrl.trim()) {
+      setError('Please enter a WordPress URL')
+      return
+    }
+    
+    try {
+      setLoadingMetaKeys(true)
+      setError(null)
+      
+      const endpoint = `${wordpressUrl.replace(/\/$/, '')}/wp-json/bhfe/v1/course-meta-keys`
+      const headers: HeadersInit = {}
+      
+      if (apiKey) {
+        headers['X-BHFE-API-Key'] = apiKey
+      }
+      
+      const response = await fetch(endpoint, { headers })
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: response.statusText }))
+        throw new Error(errorData.error || `Failed to fetch meta keys: ${response.statusText}`)
+      }
+      
+      const data = await response.json()
+      setMetaKeys(data)
+      setShowMetaKeys(true)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch meta keys')
+      console.error('[Courses] Error fetching meta keys:', err)
+    } finally {
+      setLoadingMetaKeys(false)
+    }
+  }
+
   const filteredCourses = courses.filter((course) => {
     if (!searchTerm.trim()) return true
     const search = searchTerm.toLowerCase()
@@ -304,6 +342,24 @@ ${courses.map(course => `  <url>
                 </>
               )}
             </Button>
+            <Button
+              onClick={fetchMetaKeys}
+              disabled={loadingMetaKeys || !wordpressUrl.trim()}
+              variant="outline"
+              className="w-full sm:w-auto"
+            >
+              {loadingMetaKeys ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Loading...
+                </>
+              ) : (
+                <>
+                  <Database className="h-4 w-4 mr-2" />
+                  View Meta Fields
+                </>
+              )}
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -313,6 +369,89 @@ ${courses.map(course => `  <url>
         <Card className="border-2 border-red-300 bg-red-50">
           <CardContent className="pt-6">
             <div className="text-red-700 font-semibold">Error: {error}</div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Meta Keys Display */}
+      {showMetaKeys && metaKeys && (
+        <Card className="border-2 border-slate-300">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <Database className="h-5 w-5" />
+                Available Meta Fields
+              </CardTitle>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowMetaKeys(false)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <p className="text-sm text-gray-600 mt-2">
+              Found {metaKeys.unique_meta_keys} unique meta keys across {metaKeys.total_courses_checked} courses
+            </p>
+          </CardHeader>
+          <CardContent>
+            {metaKeys.taxonomies && metaKeys.taxonomies.length > 0 && (
+              <div className="mb-6">
+                <h3 className="font-semibold text-gray-900 mb-2">Taxonomies:</h3>
+                <div className="flex flex-wrap gap-2">
+                  {metaKeys.taxonomies.map((tax: string) => (
+                    <span key={tax} className="px-3 py-1 bg-blue-100 text-blue-700 rounded-md text-sm font-medium">
+                      {tax}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            <h3 className="font-semibold text-gray-900 mb-4">Meta Keys:</h3>
+            <div className="space-y-3 max-h-[600px] overflow-y-auto">
+              {Object.entries(metaKeys.meta_keys || {}).map(([key, data]: [string, any]) => (
+                <div key={key} className="p-4 border border-gray-200 rounded-lg bg-gray-50">
+                  <div className="flex items-start justify-between mb-2">
+                    <code className="text-sm font-mono font-semibold text-gray-900">{key}</code>
+                    <div className="flex gap-2">
+                      <span className={`px-2 py-1 rounded text-xs font-medium ${
+                        data.type === 'array' || data.type === 'object'
+                          ? 'bg-purple-100 text-purple-700'
+                          : data.type === 'string'
+                          ? 'bg-green-100 text-green-700'
+                          : 'bg-gray-100 text-gray-700'
+                      }`}>
+                        {data.type}
+                      </span>
+                      {data.is_array && (
+                        <span className="px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-700">
+                          Array
+                        </span>
+                      )}
+                      {data.is_object && (
+                        <span className="px-2 py-1 rounded text-xs font-medium bg-indigo-100 text-indigo-700">
+                          Object
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  {data.sample_value && (
+                    <div className="mt-2">
+                      <p className="text-xs text-gray-500 mb-1">Sample value:</p>
+                      <pre className="text-xs bg-white p-2 rounded border border-gray-200 overflow-x-auto">
+                        {typeof data.sample_value === 'string' 
+                          ? data.sample_value 
+                          : JSON.stringify(data.sample_value, null, 2)}
+                      </pre>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+            {metaKeys.note && (
+              <p className="mt-4 text-sm text-gray-600 italic">{metaKeys.note}</p>
+            )}
           </CardContent>
         </Card>
       )}
