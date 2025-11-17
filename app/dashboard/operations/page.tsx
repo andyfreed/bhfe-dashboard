@@ -9,6 +9,9 @@ import { Settings, Plus, Edit, Save, X, Globe, Server, Package, Trash2 } from 'l
 interface DomainWebsite {
   name: string
   cost: string
+  isHosted: 'Yes' | 'No'
+  autoRenew: 'Yes' | 'No'
+  expirationDate: string
 }
 
 interface OperationItem {
@@ -141,15 +144,23 @@ export default function OperationsPage() {
       try {
         const parsed = JSON.parse(item.details)
         if (Array.isArray(parsed) && parsed.length > 0) {
-          setDomainsWebsites(parsed)
+          // Ensure all domains have the new fields with defaults
+          const domainsWithDefaults = parsed.map((d: any) => ({
+            name: d.name || '',
+            cost: d.cost || '',
+            isHosted: d.isHosted || 'No',
+            autoRenew: d.autoRenew || 'No',
+            expirationDate: d.expirationDate || '',
+          }))
+          setDomainsWebsites(domainsWithDefaults)
         } else {
-          setDomainsWebsites([{ name: '', cost: '' }])
+          setDomainsWebsites([{ name: '', cost: '', isHosted: 'No', autoRenew: 'No', expirationDate: '' }])
         }
       } catch {
-        setDomainsWebsites([{ name: '', cost: '' }])
+        setDomainsWebsites([{ name: '', cost: '', isHosted: 'No', autoRenew: 'No', expirationDate: '' }])
       }
     } else {
-      setDomainsWebsites([{ name: '', cost: '' }])
+      setDomainsWebsites([{ name: '', cost: '', isHosted: 'No', autoRenew: 'No', expirationDate: '' }])
     }
 
     if (item.category === 'WordPress Plugins' && item.cost) {
@@ -193,14 +204,14 @@ export default function OperationsPage() {
       cost: '',
       url: '',
     })
-    setDomainsWebsites([{ name: '', cost: '' }])
+    setDomainsWebsites([{ name: '', cost: '', isHosted: 'No', autoRenew: 'No', expirationDate: '' }])
     setCostFrequency('monthly')
     setEditingItem(null)
     setShowForm(false)
   }
 
   const addDomainWebsite = () => {
-    setDomainsWebsites([...domainsWebsites, { name: '', cost: '' }])
+    setDomainsWebsites([...domainsWebsites, { name: '', cost: '', isHosted: 'No', autoRenew: 'No', expirationDate: '' }])
   }
 
   const removeDomainWebsite = (index: number) => {
@@ -209,7 +220,7 @@ export default function OperationsPage() {
     }
   }
 
-  const updateDomainWebsite = (index: number, field: 'name' | 'cost', value: string) => {
+  const updateDomainWebsite = (index: number, field: 'name' | 'cost' | 'isHosted' | 'autoRenew' | 'expirationDate', value: string) => {
     const updated = [...domainsWebsites]
     updated[index] = { ...updated[index], [field]: value }
     setDomainsWebsites(updated)
@@ -287,7 +298,7 @@ export default function OperationsPage() {
                     setFormData({ ...formData, category: e.target.value })
                     // Reset category-specific fields when changing category
                     if (e.target.value !== 'Hosting and Domains') {
-                      setDomainsWebsites([{ name: '', cost: '' }])
+                      setDomainsWebsites([{ name: '', cost: '', isHosted: 'No', autoRenew: 'No', expirationDate: '' }])
                     }
                     if (e.target.value !== 'WordPress Plugins') {
                       setCostFrequency('monthly')
@@ -335,42 +346,93 @@ export default function OperationsPage() {
                 </div>
               )}
 
-              {/* Hosting and Domains - Dynamic domains/websites fields */}
+              {/* Hosting and Domains - Dynamic domains fields */}
               {formData.category === 'Hosting and Domains' && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Domains/Websites Hosted
+                    Domains
                   </label>
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     {domainsWebsites.map((domain, index) => (
-                      <div key={index} className="flex gap-2 items-start">
-                        <div className="flex-1 grid grid-cols-2 gap-2">
-                          <input
-                            type="text"
-                            value={domain.name}
-                            onChange={(e) => updateDomainWebsite(index, 'name', e.target.value)}
-                            className="px-3 py-2 border border-gray-300 rounded-md"
-                            placeholder="Domain or website name"
-                          />
-                          <input
-                            type="text"
-                            value={domain.cost}
-                            onChange={(e) => updateDomainWebsite(index, 'cost', e.target.value)}
-                            className="px-3 py-2 border border-gray-300 rounded-md"
-                            placeholder="Cost (e.g., $99/year)"
-                          />
+                      <div key={index} className="p-4 border-2 border-gray-200 rounded-lg space-y-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-semibold text-gray-700">Domain {index + 1}</span>
+                          {domainsWebsites.length > 1 && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => removeDomainWebsite(index)}
+                              className="text-red-600 hover:text-red-700"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
                         </div>
-                        {domainsWebsites.length > 1 && (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => removeDomainWebsite(index)}
-                            className="text-red-600 hover:text-red-700"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        )}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-xs font-medium text-gray-600 mb-1">
+                              Domain Name *
+                            </label>
+                            <input
+                              type="text"
+                              value={domain.name}
+                              onChange={(e) => updateDomainWebsite(index, 'name', e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                              placeholder="example.com"
+                              required
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-600 mb-1">
+                              Cost
+                            </label>
+                            <input
+                              type="text"
+                              value={domain.cost}
+                              onChange={(e) => updateDomainWebsite(index, 'cost', e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                              placeholder="e.g., $99/year"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-600 mb-1">
+                              Hosted on this Business Item?
+                            </label>
+                            <select
+                              value={domain.isHosted}
+                              onChange={(e) => updateDomainWebsite(index, 'isHosted', e.target.value as 'Yes' | 'No')}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                            >
+                              <option value="Yes">Yes</option>
+                              <option value="No">No</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-600 mb-1">
+                              Auto Renew?
+                            </label>
+                            <select
+                              value={domain.autoRenew}
+                              onChange={(e) => updateDomainWebsite(index, 'autoRenew', e.target.value as 'Yes' | 'No')}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                            >
+                              <option value="Yes">Yes</option>
+                              <option value="No">No</option>
+                            </select>
+                          </div>
+                          <div className="md:col-span-2">
+                            <label className="block text-xs font-medium text-gray-600 mb-1">
+                              Expiration Date
+                            </label>
+                            <input
+                              type="date"
+                              value={domain.expirationDate}
+                              onChange={(e) => updateDomainWebsite(index, 'expirationDate', e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                            />
+                          </div>
+                        </div>
                       </div>
                     ))}
                     <Button
@@ -380,7 +442,7 @@ export default function OperationsPage() {
                       className="w-full"
                     >
                       <Plus className="h-4 w-4 mr-2" />
-                      Add Another Domain/Website
+                      Add Another Domain
                     </Button>
                   </div>
                 </div>
@@ -508,19 +570,57 @@ export default function OperationsPage() {
                 )}
                 {item.category === 'Hosting and Domains' && item.details && (
                   <div>
-                    <p className="text-xs font-medium text-gray-500 mb-2">Domains/Websites:</p>
+                    <p className="text-xs font-medium text-gray-500 mb-2">Domains:</p>
                     {(() => {
                       try {
                         const domains = JSON.parse(item.details)
                         if (Array.isArray(domains)) {
                           return (
-                            <div className="space-y-2">
+                            <div className="space-y-3">
                               {domains.map((domain: DomainWebsite, idx: number) => (
-                                <div key={idx} className="flex justify-between items-center text-sm">
-                                  <span className="text-gray-700">{domain.name}</span>
-                                  {domain.cost && (
-                                    <span className="font-semibold text-gray-900">{domain.cost}</span>
-                                  )}
+                                <div key={idx} className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                                  <div className="flex justify-between items-start mb-2">
+                                    <span className="text-sm font-semibold text-gray-900">{domain.name || 'Unnamed Domain'}</span>
+                                    {domain.cost && (
+                                      <span className="text-xs font-semibold text-gray-700">{domain.cost}</span>
+                                    )}
+                                  </div>
+                                  <div className="grid grid-cols-2 gap-2 text-xs">
+                                    <div>
+                                      <span className="text-gray-500">Hosted: </span>
+                                      <span className={`font-medium ${domain.isHosted === 'Yes' ? 'text-green-600' : 'text-gray-700'}`}>
+                                        {domain.isHosted || 'No'}
+                                      </span>
+                                    </div>
+                                    <div>
+                                      <span className="text-gray-500">Auto Renew: </span>
+                                      <span className={`font-medium ${domain.autoRenew === 'Yes' ? 'text-green-600' : 'text-gray-700'}`}>
+                                        {domain.autoRenew || 'No'}
+                                      </span>
+                                    </div>
+                                    {domain.expirationDate && (
+                                      <div className="col-span-2">
+                                        <span className="text-gray-500">Expires: </span>
+                                        <span className="font-medium text-gray-700">
+                                          {(() => {
+                                            try {
+                                              const date = new Date(domain.expirationDate)
+                                              if (isNaN(date.getTime())) {
+                                                return domain.expirationDate
+                                              }
+                                              return date.toLocaleDateString('en-US', { 
+                                                year: 'numeric', 
+                                                month: 'long', 
+                                                day: 'numeric' 
+                                              })
+                                            } catch {
+                                              return domain.expirationDate
+                                            }
+                                          })()}
+                                        </span>
+                                      </div>
+                                    )}
+                                  </div>
                                 </div>
                               ))}
                             </div>
