@@ -56,7 +56,17 @@ export default function CoursesPage() {
       }
       
       const data = await response.json()
-      setCourses(data.courses || [])
+      console.log('[Courses] API Response:', data)
+      console.log('[Courses] Courses array:', data.courses)
+      console.log('[Courses] Courses count:', data.courses?.length || 0)
+      
+      // Handle different response structures
+      const coursesArray = data.courses || data.data?.courses || []
+      setCourses(coursesArray)
+      
+      if (coursesArray.length === 0 && data.count > 0) {
+        console.warn('[Courses] Response has count but no courses array. Full response:', data)
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load courses')
       console.error('[Courses] Error loading courses:', err)
