@@ -3,9 +3,8 @@
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { BookOpen, RefreshCw, ExternalLink, DollarSign, Package, Calendar } from 'lucide-react'
+import { BookOpen, RefreshCw, ExternalLink, DollarSign, Package, CheckCircle2, XCircle, FileText } from 'lucide-react'
 import { WordPressCourse } from '@/lib/wordpress-sync'
-import { format } from 'date-fns'
 
 export default function CoursesPage() {
   const [courses, setCourses] = useState<WordPressCourse[]>([])
@@ -14,6 +13,9 @@ export default function CoursesPage() {
   const [error, setError] = useState<string | null>(null)
   const [wordpressUrl, setWordpressUrl] = useState('')
   const [apiKey, setApiKey] = useState('')
+  const [sitemapUrls, setSitemapUrls] = useState<Set<string>>(new Set())
+  const [checkingSitemap, setCheckingSitemap] = useState(false)
+  const [generatingSitemap, setGeneratingSitemap] = useState(false)
 
   useEffect(() => {
     // Load saved WordPress URL and API key from localStorage
@@ -24,6 +26,7 @@ export default function CoursesPage() {
     
     if (savedUrl) {
       loadCourses(savedUrl, savedKey)
+      checkSitemap(savedUrl)
     } else {
       setLoading(false)
     }
@@ -72,7 +75,106 @@ export default function CoursesPage() {
     }
     
     await loadCourses(wordpressUrl, apiKey)
+    await checkSitemap(wordpressUrl)
     setSyncing(false)
+  }
+
+  const checkSitemap = async (url: string) => {
+    if (!url.trim()) return
+    
+    try {
+      setCheckingSitemap(true)
+      const sitemapUrl = `${url.replace(/\/$/, '')}/sitemap.xml`
+      const response = await fetch(sitemapUrl)
+      
+      if (!response.ok) {
+        setSitemapUrls(new Set())
+        return
+      }
+      
+      const xmlText = await response.text()
+      const parser = new DOMParser()
+      const xmlDoc = parser.parseFromString(xmlText, 'text/xml')
+      
+      // Extract all URLs from the sitemap
+      const urlElements = xmlDoc.getElementsByTagName('loc')
+      const urls = new Set<string>()
+      
+      for (let i = 0; i < urlElements.length; i++) {
+        const urlText = urlElements[i].textContent
+        if (urlText) {
+          // Normalize URL (remove trailing slashes for comparison)
+          urls.add(urlText.replace(/\/$/, ''))
+        }
+      }
+      
+      setSitemapUrls(urls)
+    } catch (err) {
+      console.error('[Courses] Error checking sitemap:', err)
+      setSitemapUrls(new Set())
+    } finally {
+      setCheckingSitemap(false)
+    }
+  }
+
+  const generateSitemap = async () => {
+    if (!wordpressUrl.trim()) {
+      setError('Please enter a WordPress URL')
+      return
+    }
+    
+    if (courses.length === 0) {
+      setError('No courses available. Please sync courses first.')
+      return
+    }
+    
+    try {
+      setGeneratingSitemap(true)
+      setError(null)
+      
+      // Generate sitemap XML from the course list
+      const baseUrl = wordpressUrl.replace(/\/$/, '')
+      const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${courses.map(course => `  <url>
+    <loc>${course.permalink}</loc>
+    <lastmod>${new Date(course.updated_at).toISOString().split('T')[0]}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>`).join('\n')}
+</urlset>`
+      
+      // Create a blob and download it
+      const blob = new Blob([sitemapXml], { type: 'application/xml' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'sitemap.xml'
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+      
+      // Re-check the sitemap after generation
+      await checkSitemap(wordpressUrl)
+    } catch (err) {
+      console.error('[Courses] Error generating sitemap:', err)
+      setError('Failed to generate sitemap. Please try again.')
+    } finally {
+      setGeneratingSitemap(false)
+    }
+  }
+
+  const isInSitemap = (permalink: string): boolean => {
+    if (sitemapUrls.size === 0) return false
+    // Normalize URL for comparison
+    const normalizedUrl = permalink.replace(/\/$/, '')
+    return sitemapUrls.has(normalizedUrl)
+  }
+
+  const getAdminUrl = (courseId: number): string => {
+    const baseUrl = wordpressUrl.replace(/\/$/, '')
+    return `${baseUrl}/wp-admin/post.php?post=${courseId}&action=edit`
   }
 
   if (loading && courses.length === 0) {
@@ -136,23 +238,61 @@ export default function CoursesPage() {
               className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
-          <Button
-            onClick={handleSync}
-            disabled={syncing || !wordpressUrl.trim()}
-            className="w-full sm:w-auto"
-          >
-            {syncing ? (
-              <>
-                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                Syncing...
-              </>
-            ) : (
-              <>
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Sync Courses
-              </>
-            )}
-          </Button>
+          <div className="flex gap-2 flex-wrap">
+            <Button
+              onClick={handleSync}
+              disabled={syncing || !wordpressUrl.trim()}
+              className="w-full sm:w-auto"
+            >
+              {syncing ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Syncing...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Sync Courses
+                </>
+              )}
+            </Button>
+            <Button
+              onClick={() => checkSitemap(wordpressUrl)}
+              disabled={checkingSitemap || !wordpressUrl.trim()}
+              variant="outline"
+              className="w-full sm:w-auto"
+            >
+              {checkingSitemap ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Checking...
+                </>
+              ) : (
+                <>
+                  <FileText className="h-4 w-4 mr-2" />
+                  Check Sitemap
+                </>
+              )}
+            </Button>
+            <Button
+              onClick={generateSitemap}
+              disabled={generatingSitemap || !wordpressUrl.trim()}
+              variant="outline"
+              className="w-full sm:w-auto"
+            >
+              {generatingSitemap ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <FileText className="h-4 w-4 mr-2" />
+                  Generate Sitemap
+                </>
+              )}
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
@@ -195,26 +335,32 @@ export default function CoursesPage() {
                     </div>
                   )}
                   
-                  <div className="flex items-center gap-2 text-gray-600">
-                    <BookOpen className="h-4 w-4" />
-                    <span>
-                      {course.public_versions_count} public version{course.public_versions_count !== 1 ? 's' : ''}
-                    </span>
-                  </div>
-                  
                   {course.archived_versions_count > 0 && (
                     <div className="flex items-center gap-2 text-gray-500 text-xs">
                       <span>{course.archived_versions_count} archived</span>
                     </div>
                   )}
                   
-                  <div className="flex items-center gap-2 text-gray-500 text-xs">
-                    <Calendar className="h-4 w-4" />
-                    <span>Updated {format(new Date(course.updated_at), 'MMM d, yyyy')}</span>
+                  {/* Sitemap Status */}
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-gray-600">Sitemap:</span>
+                    {checkingSitemap ? (
+                      <span className="text-gray-400">Checking...</span>
+                    ) : isInSitemap(course.permalink) ? (
+                      <div className="flex items-center gap-1 text-green-600">
+                        <CheckCircle2 className="h-4 w-4" />
+                        <span>Included</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1 text-red-600">
+                        <XCircle className="h-4 w-4" />
+                        <span>Not Included</span>
+                      </div>
+                    )}
                   </div>
                 </div>
                 
-                <div className="pt-4 border-t border-gray-200">
+                <div className="pt-4 border-t border-gray-200 space-y-2">
                   <a
                     href={course.permalink}
                     target="_blank"
@@ -222,6 +368,15 @@ export default function CoursesPage() {
                     className="flex items-center gap-2 text-blue-600 hover:text-blue-700 font-semibold text-sm"
                   >
                     <span>View Course</span>
+                    <ExternalLink className="h-4 w-4" />
+                  </a>
+                  <a
+                    href={getAdminUrl(course.id)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700 font-semibold text-sm"
+                  >
+                    <span>View Admin</span>
                     <ExternalLink className="h-4 w-4" />
                   </a>
                 </div>
