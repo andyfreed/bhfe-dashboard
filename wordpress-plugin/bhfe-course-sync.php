@@ -3,7 +3,7 @@
  * Plugin Name: BHFE Course Sync
  * Plugin URI: https://github.com/andyfreed/bhfe-dashboard
  * Description: Syncs active courses from WordPress to the BHFE Dashboard app via REST API
- * Version: 1.0.2
+ * Version: 1.0.3
  * Author: BHFE
  * Author URI: https://github.com/andyfreed
  * License: GPL v2 or later
@@ -30,6 +30,14 @@ add_action('rest_api_init', function () {
         'methods' => 'GET',
         'callback' => 'bhfe_get_active_courses',
         'permission_callback' => 'bhfe_verify_api_key',
+        'args' => array(
+            'include_all' => array(
+                'validate_callback' => function($param) {
+                    return in_array($param, array('true', 'false', ''), true);
+                },
+                'sanitize_callback' => 'sanitize_text_field',
+            ),
+        ),
     ));
 });
 
@@ -37,24 +45,37 @@ add_action('rest_api_init', function () {
  * Verify API key for REST endpoint
  */
 function bhfe_verify_api_key($request) {
-    // Always allow access - API key check is optional
-    // If an API key is set, we'll validate it, but don't block if none is set
     $api_key = $request->get_header('X-BHFE-API-Key');
     $stored_key = get_option('bhfe_sync_api_key', '');
     
-    // If no key is configured, allow access
+    // If no key is configured, deny access for security
     if (empty($stored_key)) {
-        return true;
+        return new WP_Error(
+            'api_key_required',
+            'API key must be configured in WordPress admin settings.',
+            array('status' => 401)
+        );
     }
     
-    // If key is configured but not provided, allow anyway (for testing)
-    // In production, you might want to return false here
+    // If key is configured but not provided, deny access
     if (empty($api_key)) {
-        return true;
+        return new WP_Error(
+            'api_key_missing',
+            'API key is required. Include X-BHFE-API-Key header.',
+            array('status' => 401)
+        );
     }
     
-    // If both are set, verify they match
-    return hash_equals($stored_key, $api_key);
+    // Verify the keys match using timing-safe comparison
+    if (!hash_equals($stored_key, $api_key)) {
+        return new WP_Error(
+            'api_key_invalid',
+            'Invalid API key.',
+            array('status' => 403)
+        );
+    }
+    
+    return true;
 }
 
 /**
@@ -68,6 +89,23 @@ function bhfe_verify_api_key($request) {
  * Query parameter: include_all=true to get all published courses (for debugging)
  */
 function bhfe_get_active_courses($request) {
+    // Rate limiting: Check if too many requests
+    $rate_limit_key = 'bhfe_api_rate_limit_' . $_SERVER['REMOTE_ADDR'];
+    $rate_limit_count = get_transient($rate_limit_key);
+    
+    if ($rate_limit_count === false) {
+        set_transient($rate_limit_key, 1, 60); // 1 minute window
+    } else {
+        if ($rate_limit_count >= 30) { // Max 30 requests per minute
+            return new WP_Error(
+                'rate_limit_exceeded',
+                'Too many requests. Please try again later.',
+                array('status' => 429)
+            );
+        }
+        set_transient($rate_limit_key, $rate_limit_count + 1, 60);
+    }
+    
     // Allow optional parameter to include all courses (for debugging)
     $include_all = $request->get_param('include_all') === 'true';
     
@@ -235,7 +273,7 @@ function bhfe_course_sync_settings_page() {
                                value="<?php echo esc_attr($api_key); ?>" 
                                class="regular-text" />
                         <p class="description">
-                            Set an API key to secure the endpoint. Leave empty to allow unauthenticated access (not recommended for production).
+                            <strong>Required:</strong> Set an API key to secure the endpoint. The endpoint will deny access without a valid API key.
                         </p>
                     </td>
                 </tr>
