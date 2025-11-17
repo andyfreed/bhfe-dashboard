@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { CheckSquare, Calendar, Bell, FolderKanban, MessageSquare, Sparkles, Calendar as CalendarIcon, MapPin } from 'lucide-react'
+import { CheckSquare, Calendar, Bell, FolderKanban, MessageSquare, Sparkles, Calendar as CalendarIcon, MapPin, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
 
 export default function DashboardPage() {
