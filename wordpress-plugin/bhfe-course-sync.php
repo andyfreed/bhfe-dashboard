@@ -243,6 +243,19 @@ function bhfe_get_active_courses($request) {
                 return mb_chr(intval($matches[1]), 'UTF-8');
             }, $decoded_title);
             
+            // Fix common smart quote/apostrophe issues
+            // Replace smart quotes and apostrophes with regular ones
+            $decoded_title = str_replace(
+                array(''', ''', ''', ''', '…', '–', '—'),
+                array("'", "'", '"', '"', '...', '-', '-'),
+                $decoded_title
+            );
+            
+            // Also handle any remaining non-UTF-8 characters by converting to UTF-8
+            if (!mb_check_encoding($decoded_title, 'UTF-8')) {
+                $decoded_title = mb_convert_encoding($decoded_title, 'UTF-8', 'UTF-8');
+            }
+            
             // Only filter out courses that explicitly have "Retired" at the START of the title
             // (not just anywhere in the title, to avoid false positives)
             if (!$include_all && (stripos(trim($course_title), 'retired') === 0 || stripos(trim($decoded_title), 'retired') === 0)) {
@@ -300,6 +313,18 @@ function bhfe_get_active_courses($request) {
             $decoded_excerpt = preg_replace_callback('/&#(\d+);/', function($matches) {
                 return mb_chr(intval($matches[1]), 'UTF-8');
             }, $decoded_excerpt);
+            
+            // Fix common smart quote/apostrophe issues in excerpt too
+            $decoded_excerpt = str_replace(
+                array(''', ''', ''', ''', '…', '–', '—'),
+                array("'", "'", '"', '"', '...', '-', '-'),
+                $decoded_excerpt
+            );
+            
+            // Also handle any remaining non-UTF-8 characters by converting to UTF-8
+            if (!mb_check_encoding($decoded_excerpt, 'UTF-8')) {
+                $decoded_excerpt = mb_convert_encoding($decoded_excerpt, 'UTF-8', 'UTF-8');
+            }
             
             $course = array(
                 'id' => $post_id,
