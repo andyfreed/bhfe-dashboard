@@ -245,8 +245,9 @@ function bhfe_get_active_courses($request) {
             
             // Fix common smart quote/apostrophe issues
             // Replace smart quotes and apostrophes with regular ones
+            // Using Unicode escape sequences to avoid encoding issues
             $decoded_title = str_replace(
-                array(''', ''', ''', ''', '…', '–', '—'),
+                array("\xE2\x80\x98", "\xE2\x80\x99", "\xE2\x80\x9C", "\xE2\x80\x9D", "\xE2\x80\xA6", "\xE2\x80\x93", "\xE2\x80\x94"),
                 array("'", "'", '"', '"', '...', '-', '-'),
                 $decoded_title
             );
@@ -315,8 +316,9 @@ function bhfe_get_active_courses($request) {
             }, $decoded_excerpt);
             
             // Fix common smart quote/apostrophe issues in excerpt too
+            // Using Unicode escape sequences to avoid encoding issues
             $decoded_excerpt = str_replace(
-                array(''', ''', ''', ''', '…', '–', '—'),
+                array("\xE2\x80\x98", "\xE2\x80\x99", "\xE2\x80\x9C", "\xE2\x80\x9D", "\xE2\x80\xA6", "\xE2\x80\x93", "\xE2\x80\x94"),
                 array("'", "'", '"', '"', '...', '-', '-'),
                 $decoded_excerpt
             );
