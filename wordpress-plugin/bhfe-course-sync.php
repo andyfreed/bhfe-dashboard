@@ -172,10 +172,19 @@ function bhfe_get_active_courses($request) {
     $query = new WP_Query($args);
     $courses = array();
     
+    $debug_info = array(
+        'posts_found' => $query->found_posts,
+        'posts_in_loop' => 0,
+        'courses_added' => 0,
+        'courses_skipped' => 0,
+        'skip_reasons' => array(),
+    );
+    
     if ($query->have_posts()) {
         while ($query->have_posts()) {
             $query->the_post();
             $post_id = get_the_ID();
+            $debug_info['posts_in_loop']++;
             
             // Get course versions
             $version_content = get_post_meta($post_id, 'flms_version_content', true);
@@ -207,14 +216,15 @@ function bhfe_get_active_courses($request) {
                 $has_active_public_version = true;
             }
             
-            // Temporarily disable version-based filtering since it's too aggressive
-            // We'll only filter by "Retired" in title and meta fields
-            // TODO: Re-enable version filtering once we understand the version data structure better
-            // if (!$include_all && is_array($version_content) && !empty($version_content) && !$has_active_public_version) {
-            //     continue;
-            // }
+            // Temporarily disable ALL filtering to debug - only exclude if explicitly archived
+            // TODO: Re-enable filtering once we understand what makes courses "active" on the live site
+            // For now, we'll only exclude courses explicitly marked as archived via meta
+            $explicitly_archived = get_post_meta($post_id, 'bhfe_archived_course', true);
+            if (!$include_all && $explicitly_archived === '1') {
+                continue;
+            }
             
-            // Get the title and decode HTML entities first
+            // Get the title and decode HTML entities
             $course_title = get_the_title();
             
             // Decode HTML entities properly (including numeric entities like &#8211;)
@@ -233,21 +243,17 @@ function bhfe_get_active_courses($request) {
                 return mb_chr(intval($matches[1]), 'UTF-8');
             }, $decoded_title);
             
-            // Skip courses with "Retired" in the title (check both raw and decoded)
-            if (!$include_all && (stripos($course_title, 'retired') !== false || stripos($decoded_title, 'retired') !== false)) {
+            // Only filter out courses that explicitly have "Retired" at the START of the title
+            // (not just anywhere in the title, to avoid false positives)
+            if (!$include_all && (stripos(trim($course_title), 'retired') === 0 || stripos(trim($decoded_title), 'retired') === 0)) {
+                $debug_info['courses_skipped']++;
+                $debug_info['skip_reasons']['retired_in_title'] = ($debug_info['skip_reasons']['retired_in_title'] ?? 0) + 1;
                 continue;
             }
             
-            // Check for other indicators that a course is inactive
-            // Check if course is marked as inactive/retired in meta
-            $is_retired = get_post_meta($post_id, 'flms_course_retired', true);
-            $is_inactive = get_post_meta($post_id, 'flms_course_inactive', true);
-            $course_status = get_post_meta($post_id, 'flms_course_status', true);
-            
-            // Skip if explicitly marked as retired or inactive
-            if (!$include_all && ($is_retired === '1' || $is_retired === true || 
-                                  $is_inactive === '1' || $is_inactive === true ||
-                                  $course_status === 'retired' || $course_status === 'inactive')) {
+            if (!$include_all && $explicitly_archived === '1') {
+                $debug_info['courses_skipped']++;
+                $debug_info['skip_reasons']['explicitly_archived'] = ($debug_info['skip_reasons']['explicitly_archived'] ?? 0) + 1;
                 continue;
             }
             
@@ -376,6 +382,7 @@ function bhfe_get_active_courses($request) {
             }
             
             $courses[] = $course;
+            $debug_info['courses_added']++;
         }
         wp_reset_postdata();
     }
@@ -397,6 +404,7 @@ function bhfe_get_active_courses($request) {
         'count' => $filtered_count,
         'total_published' => $total_count,
         'filtered_out' => $total_count - $filtered_count,
+        'debug' => $debug_info,
         'courses' => $courses,
     ), 200);
 }
