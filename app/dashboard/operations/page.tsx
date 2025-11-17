@@ -4,7 +4,12 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Settings, Plus, Edit, Save, X, Globe, Server, Package } from 'lucide-react'
+import { Settings, Plus, Edit, Save, X, Globe, Server, Package, Trash2 } from 'lucide-react'
+
+interface DomainWebsite {
+  name: string
+  cost: string
+}
 
 interface OperationItem {
   id: string
@@ -19,10 +24,9 @@ interface OperationItem {
 }
 
 const CATEGORIES = [
-  'Domain',
-  'Hosting',
-  'WordPress Plugin',
-  'Service',
+  'Hosting and Domains',
+  'WordPress Plugins',
+  'Services',
   'Other',
 ]
 
@@ -32,13 +36,15 @@ export default function OperationsPage() {
   const [showForm, setShowForm] = useState(false)
   const [editingItem, setEditingItem] = useState<OperationItem | null>(null)
   const [formData, setFormData] = useState({
-    category: 'Domain',
+    category: 'Hosting and Domains',
     title: '',
     description: '',
     details: '',
     cost: '',
     url: '',
   })
+  const [domainsWebsites, setDomainsWebsites] = useState<DomainWebsite[]>([{ name: '', cost: '' }])
+  const [costFrequency, setCostFrequency] = useState<'monthly' | 'yearly' | 'paid-in-full'>('monthly')
   const [selectedCategory, setSelectedCategory] = useState<string>('All')
   const supabase = createClient()
 
@@ -67,18 +73,34 @@ export default function OperationsPage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
+    let submitData: any = {
+      category: formData.category,
+      title: formData.title,
+      description: formData.description || null,
+      url: formData.url || null,
+    }
+
+    // Handle category-specific fields
+    if (formData.category === 'Hosting and Domains') {
+      // Store domains/websites as JSON in details field
+      const validDomains = domainsWebsites.filter(d => d.name.trim() !== '')
+      submitData.details = JSON.stringify(validDomains)
+      submitData.cost = null // No single cost field for this category
+    } else if (formData.category === 'WordPress Plugins') {
+      // Store cost with frequency: "amount|frequency"
+      submitData.cost = formData.cost ? `${formData.cost}|${costFrequency}` : null
+      submitData.details = null // No details field for plugins
+    } else {
+      // Other categories use standard fields
+      submitData.details = formData.details || null
+      submitData.cost = formData.cost || null
+    }
+
     if (editingItem) {
       // Update existing item
       const { error } = await supabase
         .from('operations')
-        .update({
-          category: formData.category,
-          title: formData.title,
-          description: formData.description || null,
-          details: formData.details || null,
-          cost: formData.cost || null,
-          url: formData.url || null,
-        })
+        .update(submitData)
         .eq('id', editingItem.id)
 
       if (error) {
@@ -90,14 +112,7 @@ export default function OperationsPage() {
       // Create new item
       const { error } = await supabase
         .from('operations')
-        .insert({
-          category: formData.category,
-          title: formData.title,
-          description: formData.description || null,
-          details: formData.details || null,
-          cost: formData.cost || null,
-          url: formData.url || null,
-        })
+        .insert(submitData)
 
       if (error) {
         console.error('Error creating operation:', error)
@@ -120,6 +135,35 @@ export default function OperationsPage() {
       cost: item.cost || '',
       url: item.url || '',
     })
+
+    // Parse category-specific data
+    if (item.category === 'Hosting and Domains' && item.details) {
+      try {
+        const parsed = JSON.parse(item.details)
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setDomainsWebsites(parsed)
+        } else {
+          setDomainsWebsites([{ name: '', cost: '' }])
+        }
+      } catch {
+        setDomainsWebsites([{ name: '', cost: '' }])
+      }
+    } else {
+      setDomainsWebsites([{ name: '', cost: '' }])
+    }
+
+    if (item.category === 'WordPress Plugins' && item.cost) {
+      const parts = item.cost.split('|')
+      if (parts.length === 2) {
+        setFormData(prev => ({ ...prev, cost: parts[0] }))
+        setCostFrequency(parts[1] as 'monthly' | 'yearly' | 'paid-in-full')
+      } else {
+        setCostFrequency('monthly')
+      }
+    } else {
+      setCostFrequency('monthly')
+    }
+
     setShowForm(true)
   }
 
@@ -142,24 +186,40 @@ export default function OperationsPage() {
 
   const resetForm = () => {
     setFormData({
-      category: 'Domain',
+      category: 'Hosting and Domains',
       title: '',
       description: '',
       details: '',
       cost: '',
       url: '',
     })
+    setDomainsWebsites([{ name: '', cost: '' }])
+    setCostFrequency('monthly')
     setEditingItem(null)
     setShowForm(false)
   }
 
+  const addDomainWebsite = () => {
+    setDomainsWebsites([...domainsWebsites, { name: '', cost: '' }])
+  }
+
+  const removeDomainWebsite = (index: number) => {
+    if (domainsWebsites.length > 1) {
+      setDomainsWebsites(domainsWebsites.filter((_, i) => i !== index))
+    }
+  }
+
+  const updateDomainWebsite = (index: number, field: 'name' | 'cost', value: string) => {
+    const updated = [...domainsWebsites]
+    updated[index] = { ...updated[index], [field]: value }
+    setDomainsWebsites(updated)
+  }
+
   const getCategoryIcon = (category: string) => {
     switch (category) {
-      case 'Domain':
-        return Globe
-      case 'Hosting':
+      case 'Hosting and Domains':
         return Server
-      case 'WordPress Plugin':
+      case 'WordPress Plugins':
         return Package
       default:
         return Settings
@@ -223,7 +283,16 @@ export default function OperationsPage() {
                 </label>
                 <select
                   value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                  onChange={(e) => {
+                    setFormData({ ...formData, category: e.target.value })
+                    // Reset category-specific fields when changing category
+                    if (e.target.value !== 'Hosting and Domains') {
+                      setDomainsWebsites([{ name: '', cost: '' }])
+                    }
+                    if (e.target.value !== 'WordPress Plugins') {
+                      setCostFrequency('monthly')
+                    }
+                  }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   required
                 >
@@ -234,9 +303,11 @@ export default function OperationsPage() {
                   ))}
                 </select>
               </div>
+
+              {/* Title field - different label for WordPress Plugins */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Title *
+                  {formData.category === 'WordPress Plugins' ? 'Name of Plugin *' : 'Title *'}
                 </label>
                 <input
                   type="text"
@@ -244,45 +315,130 @@ export default function OperationsPage() {
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   required
-                  placeholder="e.g., example.com domain"
+                  placeholder={formData.category === 'WordPress Plugins' ? 'e.g., WooCommerce' : 'e.g., example.com domain'}
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Description
-                </label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  placeholder="Brief description"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Details
-                </label>
-                <textarea
-                  value={formData.details}
-                  onChange={(e) => setFormData({ ...formData, details: e.target.value })}
-                  rows={4}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  placeholder="Additional details, notes, configuration info, etc."
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Cost
-                </label>
-                <input
-                  type="text"
-                  value={formData.cost}
-                  onChange={(e) => setFormData({ ...formData, cost: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  placeholder="e.g., $99/year or $9.99/month"
-                />
-              </div>
+
+              {/* Description field - different label for WordPress Plugins */}
+              {formData.category !== 'Hosting and Domains' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {formData.category === 'WordPress Plugins' ? 'Plugin Functionality' : 'Description'}
+                  </label>
+                  <textarea
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    placeholder={formData.category === 'WordPress Plugins' ? 'What this plugin does' : 'Brief description'}
+                  />
+                </div>
+              )}
+
+              {/* Hosting and Domains - Dynamic domains/websites fields */}
+              {formData.category === 'Hosting and Domains' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Domains/Websites Hosted
+                  </label>
+                  <div className="space-y-3">
+                    {domainsWebsites.map((domain, index) => (
+                      <div key={index} className="flex gap-2 items-start">
+                        <div className="flex-1 grid grid-cols-2 gap-2">
+                          <input
+                            type="text"
+                            value={domain.name}
+                            onChange={(e) => updateDomainWebsite(index, 'name', e.target.value)}
+                            className="px-3 py-2 border border-gray-300 rounded-md"
+                            placeholder="Domain or website name"
+                          />
+                          <input
+                            type="text"
+                            value={domain.cost}
+                            onChange={(e) => updateDomainWebsite(index, 'cost', e.target.value)}
+                            className="px-3 py-2 border border-gray-300 rounded-md"
+                            placeholder="Cost (e.g., $99/year)"
+                          />
+                        </div>
+                        {domainsWebsites.length > 1 && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => removeDomainWebsite(index)}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={addDomainWebsite}
+                      className="w-full"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Another Domain/Website
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Details field - only for categories other than Hosting and Domains and WordPress Plugins */}
+              {formData.category !== 'Hosting and Domains' && formData.category !== 'WordPress Plugins' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Details
+                  </label>
+                  <textarea
+                    value={formData.details}
+                    onChange={(e) => setFormData({ ...formData, details: e.target.value })}
+                    rows={4}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    placeholder="Additional details, notes, configuration info, etc."
+                  />
+                </div>
+              )}
+
+              {/* Cost field - different for WordPress Plugins */}
+              {formData.category !== 'Hosting and Domains' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Cost
+                  </label>
+                  {formData.category === 'WordPress Plugins' ? (
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={formData.cost}
+                        onChange={(e) => setFormData({ ...formData, cost: e.target.value })}
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md"
+                        placeholder="e.g., $99"
+                      />
+                      <select
+                        value={costFrequency}
+                        onChange={(e) => setCostFrequency(e.target.value as 'monthly' | 'yearly' | 'paid-in-full')}
+                        className="px-3 py-2 border border-gray-300 rounded-md"
+                      >
+                        <option value="monthly">Monthly</option>
+                        <option value="yearly">Yearly</option>
+                        <option value="paid-in-full">Paid in Full</option>
+                      </select>
+                    </div>
+                  ) : (
+                    <input
+                      type="text"
+                      value={formData.cost}
+                      onChange={(e) => setFormData({ ...formData, cost: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      placeholder="e.g., $99/year or $9.99/month"
+                    />
+                  )}
+                </div>
+              )}
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   URL
@@ -350,16 +506,46 @@ export default function OperationsPage() {
                 {item.description && (
                   <p className="text-sm text-gray-700">{item.description}</p>
                 )}
-                {item.details && (
+                {item.category === 'Hosting and Domains' && item.details && (
+                  <div>
+                    <p className="text-xs font-medium text-gray-500 mb-2">Domains/Websites:</p>
+                    {(() => {
+                      try {
+                        const domains = JSON.parse(item.details)
+                        if (Array.isArray(domains)) {
+                          return (
+                            <div className="space-y-2">
+                              {domains.map((domain: DomainWebsite, idx: number) => (
+                                <div key={idx} className="flex justify-between items-center text-sm">
+                                  <span className="text-gray-700">{domain.name}</span>
+                                  {domain.cost && (
+                                    <span className="font-semibold text-gray-900">{domain.cost}</span>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )
+                        }
+                      } catch {
+                        return null
+                      }
+                    })()}
+                  </div>
+                )}
+                {item.category !== 'Hosting and Domains' && item.details && (
                   <div>
                     <p className="text-xs font-medium text-gray-500 mb-1">Details:</p>
                     <p className="text-sm text-gray-700 whitespace-pre-wrap">{item.details}</p>
                   </div>
                 )}
-                {item.cost && (
+                {item.cost && item.category !== 'Hosting and Domains' && (
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-medium text-gray-500">Cost:</span>
-                    <span className="text-sm font-semibold text-gray-900">{item.cost}</span>
+                    <span className="text-sm font-semibold text-gray-900">
+                      {item.category === 'WordPress Plugins' && item.cost.includes('|')
+                        ? item.cost.replace('|', ' ').replace('-', ' ')
+                        : item.cost}
+                    </span>
                   </div>
                 )}
                 {item.url && (
