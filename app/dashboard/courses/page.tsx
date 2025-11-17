@@ -589,9 +589,14 @@ ${courses.map(course => `  <url>
             {filteredCourses.map((course) => (
             <Card key={course.id} className="flex flex-col border-2 border-slate-300 hover:shadow-lg transition-shadow">
               <CardHeader>
-                <CardTitle className="text-lg font-bold text-gray-900 line-clamp-2">
-                  {course.title}
-                </CardTitle>
+                <div className="flex items-start justify-between gap-2">
+                  <CardTitle className="text-lg font-bold text-gray-900 line-clamp-2 flex-1">
+                    {course.title}
+                  </CardTitle>
+                  <span className="text-xs text-gray-500 font-mono bg-gray-100 px-2 py-1 rounded whitespace-nowrap">
+                    ID: {course.id}
+                  </span>
+                </div>
               </CardHeader>
               <CardContent className="flex-1 flex flex-col space-y-4">
                 <div className="space-y-2 text-sm">
