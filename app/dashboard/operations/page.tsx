@@ -12,6 +12,7 @@ interface DomainWebsite {
   isHosted: 'Yes' | 'No'
   autoRenew: 'Yes' | 'No'
   expirationDate: string
+  notes: string
 }
 
 interface OperationItem {
@@ -46,7 +47,7 @@ export default function OperationsPage() {
     cost: '',
     url: '',
   })
-  const [domainsWebsites, setDomainsWebsites] = useState<DomainWebsite[]>([{ name: '', cost: '', isHosted: 'No', autoRenew: 'No', expirationDate: '' }])
+  const [domainsWebsites, setDomainsWebsites] = useState<DomainWebsite[]>([{ name: '', cost: '', isHosted: 'No', autoRenew: 'No', expirationDate: '', notes: '' }])
   const [costFrequency, setCostFrequency] = useState<'monthly' | 'yearly' | 'paid-in-full'>('monthly')
   const [selectedCategory, setSelectedCategory] = useState<string>('All')
   const supabase = createClient()
@@ -151,16 +152,17 @@ export default function OperationsPage() {
             isHosted: d.isHosted || 'No',
             autoRenew: d.autoRenew || 'No',
             expirationDate: d.expirationDate || '',
+            notes: d.notes || '',
           }))
           setDomainsWebsites(domainsWithDefaults)
         } else {
-          setDomainsWebsites([{ name: '', cost: '', isHosted: 'No', autoRenew: 'No', expirationDate: '' }])
+          setDomainsWebsites([{ name: '', cost: '', isHosted: 'No', autoRenew: 'No', expirationDate: '', notes: '' }])
         }
       } catch {
-        setDomainsWebsites([{ name: '', cost: '', isHosted: 'No', autoRenew: 'No', expirationDate: '' }])
+        setDomainsWebsites([{ name: '', cost: '', isHosted: 'No', autoRenew: 'No', expirationDate: '', notes: '' }])
       }
     } else {
-      setDomainsWebsites([{ name: '', cost: '', isHosted: 'No', autoRenew: 'No', expirationDate: '' }])
+      setDomainsWebsites([{ name: '', cost: '', isHosted: 'No', autoRenew: 'No', expirationDate: '', notes: '' }])
     }
 
     if (item.category === 'WordPress Plugins' && item.cost) {
@@ -204,14 +206,14 @@ export default function OperationsPage() {
       cost: '',
       url: '',
     })
-    setDomainsWebsites([{ name: '', cost: '', isHosted: 'No', autoRenew: 'No', expirationDate: '' }])
+    setDomainsWebsites([{ name: '', cost: '', isHosted: 'No', autoRenew: 'No', expirationDate: '', notes: '' }])
     setCostFrequency('monthly')
     setEditingItem(null)
     setShowForm(false)
   }
 
   const addDomainWebsite = () => {
-    setDomainsWebsites([...domainsWebsites, { name: '', cost: '', isHosted: 'No', autoRenew: 'No', expirationDate: '' }])
+    setDomainsWebsites([...domainsWebsites, { name: '', cost: '', isHosted: 'No', autoRenew: 'No', expirationDate: '', notes: '' }])
   }
 
   const removeDomainWebsite = (index: number) => {
@@ -220,7 +222,7 @@ export default function OperationsPage() {
     }
   }
 
-  const updateDomainWebsite = (index: number, field: 'name' | 'cost' | 'isHosted' | 'autoRenew' | 'expirationDate', value: string) => {
+  const updateDomainWebsite = (index: number, field: 'name' | 'cost' | 'isHosted' | 'autoRenew' | 'expirationDate' | 'notes', value: string) => {
     const updated = [...domainsWebsites]
     updated[index] = { ...updated[index], [field]: value }
     setDomainsWebsites(updated)
@@ -298,7 +300,7 @@ export default function OperationsPage() {
                     setFormData({ ...formData, category: e.target.value })
                     // Reset category-specific fields when changing category
                     if (e.target.value !== 'Hosting and Domains') {
-                      setDomainsWebsites([{ name: '', cost: '', isHosted: 'No', autoRenew: 'No', expirationDate: '' }])
+                      setDomainsWebsites([{ name: '', cost: '', isHosted: 'No', autoRenew: 'No', expirationDate: '', notes: '' }])
                     }
                     if (e.target.value !== 'WordPress Plugins') {
                       setCostFrequency('monthly')
@@ -397,7 +399,7 @@ export default function OperationsPage() {
                           </div>
                           <div>
                             <label className="block text-xs font-medium text-gray-600 mb-1">
-                              Hosted on this Business Item?
+                              Hosted
                             </label>
                             <select
                               value={domain.isHosted}
@@ -430,6 +432,18 @@ export default function OperationsPage() {
                               value={domain.expirationDate}
                               onChange={(e) => updateDomainWebsite(index, 'expirationDate', e.target.value)}
                               className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                            />
+                          </div>
+                          <div className="md:col-span-2">
+                            <label className="block text-xs font-medium text-gray-600 mb-1">
+                              Notes
+                            </label>
+                            <textarea
+                              value={domain.notes}
+                              onChange={(e) => updateDomainWebsite(index, 'notes', e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                              rows={2}
+                              placeholder="Additional notes about this domain..."
                             />
                           </div>
                         </div>
@@ -618,6 +632,12 @@ export default function OperationsPage() {
                                             }
                                           })()}
                                         </span>
+                                      </div>
+                                    )}
+                                    {domain.notes && (
+                                      <div className="col-span-2 pt-2 border-t border-gray-200">
+                                        <span className="text-gray-500 text-xs">Notes: </span>
+                                        <p className="text-xs text-gray-700 mt-1 whitespace-pre-wrap">{domain.notes}</p>
                                       </div>
                                     )}
                                   </div>
