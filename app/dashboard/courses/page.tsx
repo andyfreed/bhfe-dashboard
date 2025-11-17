@@ -88,15 +88,31 @@ export default function CoursesPage() {
     
     try {
       setCheckingSitemap(true)
-      const sitemapUrl = `${url.replace(/\/$/, '')}/sitemap.xml`
-      const response = await fetch(sitemapUrl)
+      
+      // Route through Next.js API to avoid CORS issues
+      const params = new URLSearchParams({ 
+        wordpress_url: url,
+        endpoint: 'sitemap'
+      })
+      if (apiKey) {
+        params.append('api_key', apiKey)
+      }
+      
+      const response = await fetch(`/api/sync/courses?${params.toString()}`)
       
       if (!response.ok) {
         setSitemapUrls(new Set())
         return
       }
       
-      const xmlText = await response.text()
+      const data = await response.json()
+      const xmlText = data.xml
+      
+      if (!xmlText) {
+        setSitemapUrls(new Set())
+        return
+      }
+      
       const parser = new DOMParser()
       const xmlDoc = parser.parseFromString(xmlText, 'text/xml')
       
@@ -191,14 +207,16 @@ ${courses.map(course => `  <url>
       setLoadingMetaKeys(true)
       setError(null)
       
-      const endpoint = `${wordpressUrl.replace(/\/$/, '')}/wp-json/bhfe/v1/course-meta-keys`
-      const headers: HeadersInit = {}
-      
+      // Route through Next.js API to avoid CORS issues
+      const params = new URLSearchParams({ 
+        wordpress_url: wordpressUrl,
+        endpoint: 'course-meta-keys'
+      })
       if (apiKey) {
-        headers['X-BHFE-API-Key'] = apiKey
+        params.append('api_key', apiKey)
       }
       
-      const response = await fetch(endpoint, { headers })
+      const response = await fetch(`/api/sync/courses?${params.toString()}`)
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: response.statusText }))

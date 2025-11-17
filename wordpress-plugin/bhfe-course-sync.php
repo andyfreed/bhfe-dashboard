@@ -23,6 +23,26 @@ if (!defined('ABSPATH')) {
 }
 
 /**
+ * Add CORS headers to allow requests from dashboard app
+ */
+add_action('rest_api_init', function() {
+    remove_filter('rest_pre_serve_request', 'rest_send_cors_headers');
+    add_filter('rest_pre_serve_request', function($value) {
+        header('Access-Control-Allow-Origin: *');
+        header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+        header('Access-Control-Allow-Credentials: true');
+        header('Access-Control-Allow-Headers: Content-Type, Authorization, X-BHFE-API-Key');
+        
+        if ('OPTIONS' == $_SERVER['REQUEST_METHOD']) {
+            status_header(200);
+            exit();
+        }
+        
+        return $value;
+    });
+}, 15);
+
+/**
  * Register REST API endpoint for active courses
  */
 add_action('rest_api_init', function () {

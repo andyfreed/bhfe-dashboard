@@ -5,12 +5,14 @@ import { fetchActiveCoursesFromWordPress } from '@/lib/wordpress-sync'
  * API route to sync courses from WordPress
  * 
  * GET /api/sync/courses?wordpress_url=...&api_key=...
+ * GET /api/sync/courses?wordpress_url=...&api_key=...&endpoint=course-meta-keys (for meta keys)
  */
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
     const wordpressUrl = searchParams.get('wordpress_url')
     const apiKey = searchParams.get('api_key') || undefined
+    const endpoint = searchParams.get('endpoint') // Optional: 'course-meta-keys' or 'sitemap'
     
     if (!wordpressUrl) {
       return NextResponse.json(
@@ -29,6 +31,39 @@ export async function GET(request: NextRequest) {
       )
     }
     
+    // Handle different endpoints
+    if (endpoint === 'course-meta-keys') {
+      // Fetch meta keys endpoint
+      const metaKeysUrl = `${wordpressUrl.replace(/\/$/, '')}/wp-json/bhfe/v1/course-meta-keys`
+      const headers: HeadersInit = {}
+      if (apiKey) {
+        headers['X-BHFE-API-Key'] = apiKey
+      }
+      
+      const response = await fetch(metaKeysUrl, { headers })
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: response.statusText }))
+        throw new Error(errorData.error || `Failed to fetch meta keys: ${response.statusText}`)
+      }
+      
+      const data = await response.json()
+      return NextResponse.json(data, { status: 200 })
+    }
+    
+    if (endpoint === 'sitemap') {
+      // Fetch sitemap
+      const sitemapUrl = `${wordpressUrl.replace(/\/$/, '')}/sitemap.xml`
+      const response = await fetch(sitemapUrl)
+      
+      if (!response.ok) {
+        return NextResponse.json({ urls: [] }, { status: 200 })
+      }
+      
+      const xmlText = await response.text()
+      return NextResponse.json({ xml: xmlText }, { status: 200 })
+    }
+    
+    // Default: fetch courses
     const courses = await fetchActiveCoursesFromWordPress(wordpressUrl, apiKey)
     
     return NextResponse.json(courses, { status: 200 })
