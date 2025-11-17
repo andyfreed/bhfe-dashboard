@@ -182,7 +182,7 @@ function bhfe_get_active_courses($request) {
             $versions = array();
             $has_active_public_version = false;
             
-            if (is_array($version_content)) {
+            if (is_array($version_content) && !empty($version_content)) {
                 foreach ($version_content as $version_key => $version_data) {
                     // Check if this version is archived
                     $is_archived = isset($version_data['archived']) && $version_data['archived'] === true;
@@ -203,14 +203,16 @@ function bhfe_get_active_courses($request) {
                 }
             } else {
                 // If no version data exists, assume the course is active (for backward compatibility)
+                // This handles courses that might not use the version system
                 $has_active_public_version = true;
             }
             
-            // Skip courses that don't have at least one active public version
-            // (unless include_all is true for debugging)
-            if (!$include_all && !$has_active_public_version) {
-                continue;
-            }
+            // Temporarily disable version-based filtering since it's too aggressive
+            // We'll only filter by "Retired" in title and meta fields
+            // TODO: Re-enable version filtering once we understand the version data structure better
+            // if (!$include_all && is_array($version_content) && !empty($version_content) && !$has_active_public_version) {
+            //     continue;
+            // }
             
             // Get the title and decode HTML entities first
             $course_title = get_the_title();
@@ -388,10 +390,13 @@ function bhfe_get_active_courses($request) {
     $total_count = $total_query->found_posts;
     wp_reset_postdata();
     
+    $filtered_count = count($courses);
+    
     return new WP_REST_Response(array(
         'success' => true,
-        'count' => count($courses),
+        'count' => $filtered_count,
         'total_published' => $total_count,
+        'filtered_out' => $total_count - $filtered_count,
         'courses' => $courses,
     ), 200);
 }
