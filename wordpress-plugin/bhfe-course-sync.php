@@ -212,11 +212,27 @@ function bhfe_get_active_courses($request) {
                 continue;
             }
             
-            // Get the title to check for retired/inactive courses
+            // Get the title and decode HTML entities first
             $course_title = get_the_title();
             
-            // Skip courses with "Retired" in the title (case-insensitive)
-            if (!$include_all && stripos($course_title, 'retired') !== false) {
+            // Decode HTML entities properly (including numeric entities like &#8211;)
+            // Use WordPress function first, then handle numeric entities
+            $decoded_title = $course_title;
+            if (function_exists('wp_kses_decode_entities')) {
+                $decoded_title = wp_kses_decode_entities($decoded_title);
+            } else {
+                $decoded_title = html_entity_decode($decoded_title, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            }
+            // Handle numeric entities that might not be decoded (hex and decimal)
+            $decoded_title = preg_replace_callback('/&#x([0-9a-fA-F]+);/i', function($matches) {
+                return mb_chr(hexdec($matches[1]), 'UTF-8');
+            }, $decoded_title);
+            $decoded_title = preg_replace_callback('/&#(\d+);/', function($matches) {
+                return mb_chr(intval($matches[1]), 'UTF-8');
+            }, $decoded_title);
+            
+            // Skip courses with "Retired" in the title (check both raw and decoded)
+            if (!$include_all && (stripos($course_title, 'retired') !== false || stripos($decoded_title, 'retired') !== false)) {
                 continue;
             }
             
@@ -261,27 +277,21 @@ function bhfe_get_active_courses($request) {
                 }
             }
             
-            // Decode HTML entities properly (including numeric entities like &#8211;)
-            // WordPress has wp_kses_decode_entities which handles both named and numeric entities
-            if (function_exists('wp_kses_decode_entities')) {
-                $decoded_title = wp_kses_decode_entities($course_title);
-            } else {
-                // Fallback: decode numeric entities first, then named entities
-                $decoded_title = preg_replace_callback('/&#(\d+);/', function($matches) {
-                    return mb_convert_encoding('&#' . intval($matches[1]) . ';', 'UTF-8', 'HTML-ENTITIES');
-                }, $course_title);
-                $decoded_title = html_entity_decode($decoded_title, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-            }
-            
+            // Decode excerpt HTML entities (title already decoded above)
             $course_excerpt = get_the_excerpt();
+            $decoded_excerpt = $course_excerpt;
             if (function_exists('wp_kses_decode_entities')) {
-                $decoded_excerpt = wp_kses_decode_entities($course_excerpt);
+                $decoded_excerpt = wp_kses_decode_entities($decoded_excerpt);
             } else {
-                $decoded_excerpt = preg_replace_callback('/&#(\d+);/', function($matches) {
-                    return mb_convert_encoding('&#' . intval($matches[1]) . ';', 'UTF-8', 'HTML-ENTITIES');
-                }, $course_excerpt);
                 $decoded_excerpt = html_entity_decode($decoded_excerpt, ENT_QUOTES | ENT_HTML5, 'UTF-8');
             }
+            // Handle numeric entities that might not be decoded (hex and decimal)
+            $decoded_excerpt = preg_replace_callback('/&#x([0-9a-fA-F]+);/i', function($matches) {
+                return mb_chr(hexdec($matches[1]), 'UTF-8');
+            }, $decoded_excerpt);
+            $decoded_excerpt = preg_replace_callback('/&#(\d+);/', function($matches) {
+                return mb_chr(intval($matches[1]), 'UTF-8');
+            }, $decoded_excerpt);
             
             $course = array(
                 'id' => $post_id,
