@@ -37,7 +37,20 @@ add_action('rest_api_init', function () {
                 },
                 'sanitize_callback' => 'sanitize_text_field',
             ),
+            'list_meta' => array(
+                'validate_callback' => function($param) {
+                    return in_array($param, array('true', 'false', ''), true);
+                },
+                'sanitize_callback' => 'sanitize_text_field',
+            ),
         ),
+    ));
+    
+    // Endpoint to list all available meta keys
+    register_rest_route('bhfe/v1', '/course-meta-keys', array(
+        'methods' => 'GET',
+        'callback' => 'bhfe_list_course_meta_keys',
+        'permission_callback' => 'bhfe_verify_api_key',
     ));
 });
 
@@ -108,6 +121,7 @@ function bhfe_get_active_courses($request) {
     
     // Allow optional parameter to include all courses (for debugging)
     $include_all = $request->get_param('include_all') === 'true';
+    $list_meta = $request->get_param('list_meta') === 'true';
     
     $args = array(
         'post_type'       => 'flms-courses',
@@ -208,6 +222,69 @@ function bhfe_get_active_courses($request) {
                 'created_at' => get_post_time('c', false, $post_id),
             );
             
+            // If list_meta is true, include all custom meta fields
+            if ($list_meta) {
+                $all_meta = get_post_meta($post_id);
+                $course['all_meta_fields'] = array();
+                
+                foreach ($all_meta as $meta_key => $meta_values) {
+                    // Skip WordPress internal meta keys (they start with _)
+                    // But include some useful ones
+                    if (strpos($meta_key, '_edit_') === 0 || 
+                        strpos($meta_key, '_wp_') === 0 ||
+                        $meta_key === '_thumbnail_id') {
+                        continue;
+                    }
+                    
+                    // Get the meta value (handle arrays)
+                    $meta_value = get_post_meta($post_id, $meta_key, true);
+                    
+                    // Store the meta key and value
+                    $course['all_meta_fields'][$meta_key] = array(
+                        'value' => $meta_value,
+                        'is_array' => is_array($meta_value),
+                        'is_object' => is_object($meta_value),
+                        'type' => gettype($meta_value),
+                    );
+                }
+                
+                // Also include standard post fields
+                $post = get_post($post_id);
+                $course['standard_fields'] = array(
+                    'post_author' => $post->post_author,
+                    'post_status' => $post->post_status,
+                    'comment_status' => $post->comment_status,
+                    'ping_status' => $post->ping_status,
+                    'post_parent' => $post->post_parent,
+                    'menu_order' => $post->menu_order,
+                    'post_type' => $post->post_type,
+                );
+                
+                // Featured image
+                $thumbnail_id = get_post_thumbnail_id($post_id);
+                if ($thumbnail_id) {
+                    $course['featured_image'] = array(
+                        'id' => $thumbnail_id,
+                        'url' => wp_get_attachment_image_url($thumbnail_id, 'full'),
+                        'thumbnail_url' => wp_get_attachment_image_url($thumbnail_id, 'thumbnail'),
+                    );
+                }
+                
+                // Taxonomies
+                $taxonomies = get_object_taxonomies('flms-courses');
+                $course['taxonomies'] = array();
+                foreach ($taxonomies as $taxonomy) {
+                    $terms = wp_get_post_terms($post_id, $taxonomy);
+                    $course['taxonomies'][$taxonomy] = array_map(function($term) {
+                        return array(
+                            'id' => $term->term_id,
+                            'name' => $term->name,
+                            'slug' => $term->slug,
+                        );
+                    }, $terms);
+                }
+            }
+            
             $courses[] = $course;
         }
         wp_reset_postdata();
@@ -228,6 +305,67 @@ function bhfe_get_active_courses($request) {
         'count' => count($courses),
         'total_published' => $total_count,
         'courses' => $courses,
+    ), 200);
+}
+
+/**
+ * List all unique meta keys used by courses
+ */
+function bhfe_list_course_meta_keys($request) {
+    $args = array(
+        'post_type'       => 'flms-courses',
+        'post_status'     => 'publish',
+        'posts_per_page'  => -1,
+    );
+    
+    $query = new WP_Query($args);
+    $all_meta_keys = array();
+    $meta_keys_with_samples = array();
+    
+    if ($query->have_posts()) {
+        while ($query->have_posts()) {
+            $query->the_post();
+            $post_id = get_the_ID();
+            $meta = get_post_meta($post_id);
+            
+            foreach ($meta as $meta_key => $meta_values) {
+                // Skip WordPress internal meta keys
+                if (strpos($meta_key, '_edit_') === 0 || 
+                    strpos($meta_key, '_wp_') === 0) {
+                    continue;
+                }
+                
+                if (!in_array($meta_key, $all_meta_keys)) {
+                    $all_meta_keys[] = $meta_key;
+                    
+                    // Get a sample value
+                    $sample_value = get_post_meta($post_id, $meta_key, true);
+                    $meta_keys_with_samples[$meta_key] = array(
+                        'type' => gettype($sample_value),
+                        'is_array' => is_array($sample_value),
+                        'is_object' => is_object($sample_value),
+                        'sample_value' => is_array($sample_value) || is_object($sample_value) 
+                            ? 'Array/Object (see full data with list_meta=true)' 
+                            : (is_string($sample_value) && strlen($sample_value) > 100 
+                                ? substr($sample_value, 0, 100) . '...' 
+                                : $sample_value),
+                    );
+                }
+            }
+        }
+        wp_reset_postdata();
+    }
+    
+    // Get taxonomies
+    $taxonomies = get_object_taxonomies('flms-courses');
+    
+    return new WP_REST_Response(array(
+        'success' => true,
+        'total_courses_checked' => $query->found_posts,
+        'unique_meta_keys' => count($all_meta_keys),
+        'meta_keys' => $meta_keys_with_samples,
+        'taxonomies' => $taxonomies,
+        'note' => 'Use ?list_meta=true on /active-courses endpoint to see full values for all fields',
     ), 200);
 }
 
