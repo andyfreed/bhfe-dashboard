@@ -72,6 +72,18 @@ add_action('rest_api_init', function () {
         'callback' => 'bhfe_list_course_meta_keys',
         'permission_callback' => 'bhfe_verify_api_key',
     ));
+    
+    register_rest_route('bhfe/v1', '/inspect-courses', array(
+        'methods' => 'GET',
+        'callback' => 'bhfe_inspect_courses',
+        'permission_callback' => 'bhfe_verify_api_key',
+        'args' => array(
+            'ids' => array(
+                'required' => true,
+                'sanitize_callback' => 'sanitize_text_field',
+            ),
+        ),
+    ));
 });
 
 /**
@@ -216,11 +228,20 @@ function bhfe_get_active_courses($request) {
                 $has_active_public_version = true;
             }
             
-            // Temporarily disable ALL filtering to debug - only exclude if explicitly archived
-            // TODO: Re-enable filtering once we understand what makes courses "active" on the live site
-            // For now, we'll only exclude courses explicitly marked as archived via meta
+            // Temporarily exclude specific course IDs that shouldn't be active
+            // TODO: Replace this with proper filtering once we identify common characteristics
+            $excluded_ids = array(48753, 50728, 50727, 48594, 48528, 49453, 48855, 35568, 48390, 50513, 50511, 50512, 48754, 48752, 48674, 50385, 48553);
+            if (!$include_all && in_array($post_id, $excluded_ids)) {
+                $debug_info['courses_skipped']++;
+                $debug_info['skip_reasons']['excluded_id'] = ($debug_info['skip_reasons']['excluded_id'] ?? 0) + 1;
+                continue;
+            }
+            
+            // Exclude if explicitly archived via meta
             $explicitly_archived = get_post_meta($post_id, 'bhfe_archived_course', true);
             if (!$include_all && $explicitly_archived === '1') {
+                $debug_info['courses_skipped']++;
+                $debug_info['skip_reasons']['explicitly_archived'] = ($debug_info['skip_reasons']['explicitly_archived'] ?? 0) + 1;
                 continue;
             }
             
@@ -494,6 +515,73 @@ function bhfe_list_course_meta_keys($request) {
         'meta_keys' => $meta_keys_with_samples,
         'taxonomies' => $taxonomies,
         'note' => 'Use ?list_meta=true on /active-courses endpoint to see full values for all fields',
+    ), 200);
+}
+
+/**
+ * Inspect specific courses to find common characteristics
+ */
+function bhfe_inspect_courses($request) {
+    $ids_param = $request->get_param('ids');
+    $ids = array_map('intval', explode(',', $ids_param));
+    
+    $courses_data = array();
+    $common_meta = array();
+    $all_meta_keys = array();
+    
+    foreach ($ids as $post_id) {
+        $post = get_post($post_id);
+        if (!$post || $post->post_type !== 'flms-courses') {
+            continue;
+        }
+        
+        $all_meta = get_post_meta($post_id);
+        $course_meta = array();
+        
+        foreach ($all_meta as $meta_key => $meta_values) {
+            $meta_value = get_post_meta($post_id, $meta_key, true);
+            $course_meta[$meta_key] = $meta_value;
+            
+            if (!in_array($meta_key, $all_meta_keys)) {
+                $all_meta_keys[] = $meta_key;
+            }
+        }
+        
+        $version_content = get_post_meta($post_id, 'flms_version_content', true);
+        
+        $courses_data[] = array(
+            'id' => $post_id,
+            'title' => get_the_title($post_id),
+            'post_status' => $post->post_status,
+            'version_content' => $version_content,
+            'all_meta' => $course_meta,
+        );
+    }
+    
+    // Find common meta keys and values
+    if (!empty($courses_data)) {
+        $first_course_meta = $courses_data[0]['all_meta'];
+        foreach ($first_course_meta as $key => $value) {
+            $common = true;
+            $common_value = $value;
+            foreach ($courses_data as $course) {
+                if (!isset($course['all_meta'][$key]) || $course['all_meta'][$key] !== $value) {
+                    $common = false;
+                    break;
+                }
+            }
+            if ($common) {
+                $common_meta[$key] = $common_value;
+            }
+        }
+    }
+    
+    return new WP_REST_Response(array(
+        'success' => true,
+        'courses_inspected' => count($courses_data),
+        'courses' => $courses_data,
+        'common_meta' => $common_meta,
+        'all_meta_keys_found' => $all_meta_keys,
     ), 200);
 }
 
