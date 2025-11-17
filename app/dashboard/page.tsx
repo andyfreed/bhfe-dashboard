@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { CheckSquare, Calendar, Bell, MessageSquare, Calendar as CalendarIcon, MapPin, ArrowRight } from 'lucide-react'
+import { CheckSquare, Calendar, Bell, MessageSquare, Calendar as CalendarIcon, MapPin, ArrowRight, Zap } from 'lucide-react'
 import Link from 'next/link'
 
 export default function DashboardPage() {
@@ -27,7 +27,6 @@ export default function DashboardPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      // Get all stats (excluding projects)
       const [todos, events, reminders, messages] = await Promise.all([
         supabase.from('todos').select('id', { count: 'exact', head: true }),
         supabase.from('calendar_events').select('id', { count: 'exact', head: true }),
@@ -45,9 +44,8 @@ export default function DashboardPage() {
         unreadMessages: messages.count || 0,
       })
 
-      // Get upcoming CPA renewals (current month, next month, 3rd month)
       const now = new Date()
-      const currentMonth = now.getMonth() // 0-11
+      const currentMonth = now.getMonth()
       const currentMonthName = now.toLocaleString('default', { month: 'long' })
       const nextMonthName = new Date(now.getFullYear(), currentMonth + 1, 1).toLocaleString('default', { month: 'long' })
       const thirdMonthName = new Date(now.getFullYear(), currentMonth + 2, 1).toLocaleString('default', { month: 'long' })
@@ -57,7 +55,7 @@ export default function DashboardPage() {
         .select('state_name, state_code, renewal_month')
         .not('renewal_month', 'is', null)
         .neq('renewal_month', '')
-        .neq('renewal_month', 'Varies') // Exclude "Varies"
+        .neq('renewal_month', 'Varies')
 
       if (statesData) {
         const renewals = statesData
@@ -87,48 +85,28 @@ export default function DashboardPage() {
       value: stats.todos,
       icon: CheckSquare,
       href: '/dashboard/todos',
-      gradient: 'bg-gradient-to-br from-teal-500 via-teal-600 to-emerald-500',
-      bgGradient: 'bg-gradient-to-br from-teal-50 via-emerald-50 to-teal-50',
-      borderColor: 'border-teal-400',
-      iconBg: 'bg-teal-500',
-      textColor: 'text-teal-700',
-      valueGradient: 'bg-gradient-to-r from-teal-600 to-emerald-600',
+      color: 'yellow',
     },
     {
       title: 'Calendar Events',
       value: stats.events,
       icon: Calendar,
       href: '/dashboard/calendar',
-      gradient: 'bg-gradient-to-br from-emerald-500 via-green-600 to-teal-500',
-      bgGradient: 'bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50',
-      borderColor: 'border-emerald-400',
-      iconBg: 'bg-emerald-500',
-      textColor: 'text-emerald-700',
-      valueGradient: 'bg-gradient-to-r from-emerald-600 to-teal-600',
+      color: 'amber',
     },
     {
       title: 'Reminders',
       value: stats.reminders,
       icon: Bell,
       href: '/dashboard/reminders',
-      gradient: 'bg-gradient-to-br from-amber-500 via-orange-500 to-amber-600',
-      bgGradient: 'bg-gradient-to-br from-amber-50 via-orange-50 to-amber-50',
-      borderColor: 'border-amber-400',
-      iconBg: 'bg-amber-500',
-      textColor: 'text-amber-700',
-      valueGradient: 'bg-gradient-to-r from-amber-600 to-orange-600',
+      color: 'yellow',
     },
     {
       title: 'Unread Messages',
       value: stats.unreadMessages,
       icon: MessageSquare,
       href: '/dashboard/chat',
-      gradient: 'bg-gradient-to-br from-red-500 via-rose-600 to-red-600',
-      bgGradient: 'bg-gradient-to-br from-red-50 via-rose-50 to-red-50',
-      borderColor: 'border-red-400',
-      iconBg: 'bg-red-500',
-      textColor: 'text-red-700',
-      valueGradient: 'bg-gradient-to-r from-red-600 to-rose-600',
+      color: 'amber',
     },
   ]
 
@@ -136,8 +114,8 @@ export default function DashboardPage() {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="flex items-center gap-3">
-          <div className="h-5 w-5 border-2 border-teal-600 border-t-transparent rounded-full animate-spin" />
-          <div className="text-slate-600 font-medium">Loading...</div>
+          <div className="h-5 w-5 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin" />
+          <div className="text-gray-400 font-medium">Loading...</div>
         </div>
       </div>
     )
@@ -145,22 +123,28 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8 animate-in">
-      {/* Welcome Header with Gradient */}
-      <div className="relative overflow-hidden rounded-2xl lg:rounded-3xl bg-gradient-to-r from-teal-600 via-emerald-600 to-teal-700 p-6 sm:p-8 lg:p-10 shadow-2xl">
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0icmdiYSgyNTUsMjU1LDI1NSwwLjE1KSIgc3Ryb2tlLXdpZHRoPSIxIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2dyaWQpIi8+PC9zdmc+')] opacity-30" />
+      {/* Hero Header */}
+      <div className="relative overflow-hidden rounded-3xl glass border-yellow-500/30 p-8 lg:p-12 shadow-2xl">
+        <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/5 via-transparent to-transparent" />
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-yellow-500/50 to-transparent" />
+        
         <div className="relative z-10">
-          <div className="flex items-center gap-2 sm:gap-4 mb-3 sm:mb-4">
-            <div className="p-2 sm:p-3 rounded-xl sm:rounded-2xl bg-white/20 backdrop-blur-sm h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center overflow-hidden">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="p-3 rounded-2xl glass-light border-yellow-500/30 h-14 w-14 flex items-center justify-center overflow-hidden">
               <img src="/logo.png" alt="BHFE Logo" className="h-full w-full object-contain" />
             </div>
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight drop-shadow-lg">Dashboard</h1>
+            <div>
+              <h1 className="text-4xl lg:text-6xl font-black text-white tracking-tight neon-yellow mb-2">
+                Dashboard
+              </h1>
+              <p className="text-yellow-400/80 text-lg font-semibold">Welcome back! Here's your business overview.</p>
+            </div>
           </div>
-          <p className="text-base sm:text-lg lg:text-xl text-teal-100 font-semibold drop-shadow">Welcome back! Here's an overview of your business.</p>
         </div>
       </div>
 
-      {/* Stats Grid with Vibrant Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      {/* Stats Grid - Modern Dark Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {statsCards.map((card, index) => {
           const Icon = card.icon
           return (
@@ -170,50 +154,55 @@ export default function DashboardPage() {
               style={{ animationDelay: `${index * 50}ms` }} 
               className="animate-in block group"
             >
-              <Card className={`hover-lift cursor-pointer border-3 ${card.borderColor} transition-all duration-300 hover:shadow-2xl relative overflow-hidden bg-white`}>
-                {/* Gradient background overlay */}
-                <div className={`absolute inset-0 ${card.bgGradient} opacity-40 group-hover:opacity-70 transition-opacity duration-300`} />
+              <Card className="glass border-yellow-500/20 hover:border-yellow-500/40 transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl cursor-pointer relative overflow-hidden group">
+                {/* Shimmer effect */}
+                <div className="absolute inset-0 shimmer opacity-0 group-hover:opacity-30 transition-opacity duration-500" />
+                
+                {/* Yellow accent line */}
+                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-yellow-500 via-amber-500 to-yellow-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 
                 <CardHeader className="flex flex-row items-center justify-between pb-4 relative z-10">
-                  <CardTitle className="text-sm font-bold text-slate-800 uppercase tracking-wide group-hover:text-slate-900">
+                  <CardTitle className="text-xs font-black text-gray-400 uppercase tracking-widest group-hover:text-yellow-400 transition-colors">
                     {card.title}
                   </CardTitle>
-                  <div className={`${card.gradient} p-4 rounded-2xl shadow-xl group-hover:scale-110 group-hover:rotate-3 transition-all duration-300`}>
-                    <Icon className="h-7 w-7 text-white drop-shadow-md" />
+                  <div className="p-3 rounded-xl bg-gradient-to-br from-yellow-500/20 to-amber-500/20 border border-yellow-500/30 group-hover:from-yellow-500/30 group-hover:to-amber-500/30 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 glow-yellow">
+                    <Icon className="h-6 w-6 text-yellow-400" />
                   </div>
                 </CardHeader>
                 <CardContent className="relative z-10">
-                  <div className={`text-6xl font-black ${card.valueGradient} bg-clip-text text-transparent mb-3 drop-shadow-sm`}>
+                  <div className="text-6xl font-black text-yellow-400 mb-3 neon-yellow">
                     {card.value}
                   </div>
-                  <div className="flex items-center gap-2 text-sm font-bold text-slate-600 group-hover:text-slate-900">
+                  <div className="flex items-center gap-2 text-sm font-bold text-gray-500 group-hover:text-yellow-400 transition-colors">
                     <span>View details</span>
                     <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
                   </div>
                 </CardContent>
-                {/* Decorative corner accent */}
-                <div className={`absolute top-0 right-0 w-20 h-20 ${card.gradient} opacity-10 rounded-bl-full`} />
+                
+                {/* Corner accent */}
+                <div className="absolute bottom-0 right-0 w-24 h-24 bg-gradient-to-tl from-yellow-500/10 to-transparent rounded-tl-full opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               </Card>
             </Link>
           )
         })}
       </div>
 
-      {/* CPA Renewals Coming Up */}
+      {/* CPA Renewals - Dark Modern Card */}
       {upcomingRenewals.length > 0 && (
-        <Card className="border-2 border-slate-300 shadow-xl overflow-hidden bg-gradient-to-br from-white to-slate-50">
-          <CardHeader className="bg-gradient-to-r from-teal-600 to-emerald-600 p-6">
-            <div className="flex items-center gap-4">
-              <div className="p-3 rounded-xl bg-white/20 backdrop-blur-sm">
-                <CalendarIcon className="h-6 w-6 text-white" />
+        <Card className="glass border-yellow-500/30 shadow-2xl overflow-hidden">
+          <CardHeader className="glass-light border-b border-yellow-500/20 p-6 relative">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-yellow-500 via-amber-500 to-yellow-500" />
+            <div className="flex items-center gap-4 relative z-10">
+              <div className="p-3 rounded-xl glass border-yellow-500/30">
+                <CalendarIcon className="h-6 w-6 text-yellow-400" />
               </div>
               <div>
-                <CardTitle className="text-2xl text-white font-bold">CPA Renewals Coming Up</CardTitle>
-                <CardDescription className="text-teal-100 mt-1 font-medium">States with renewals in the next 3 months</CardDescription>
+                <CardTitle className="text-2xl text-white font-black neon-yellow">CPA Renewals Coming Up</CardTitle>
+                <CardDescription className="text-yellow-400/70 mt-1 font-semibold">States with renewals in the next 3 months</CardDescription>
               </div>
             </div>
           </CardHeader>
-          <CardContent className="p-6 bg-white">
+          <CardContent className="p-6 glass-light">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {(() => {
                 const now = new Date()
@@ -232,17 +221,19 @@ export default function DashboardPage() {
                   { month: thirdMonthName, states: thirdMonthStates },
                 ].map((column, colIndex) => (
                   <div key={colIndex} className="space-y-2">
-                    <h3 className="font-bold text-lg text-slate-900 mb-3">{column.month}</h3>
+                    <h3 className="font-black text-lg text-yellow-400 mb-3 uppercase tracking-wider border-b border-yellow-500/20 pb-2">
+                      {column.month}
+                    </h3>
                     {column.states.length > 0 ? (
                       column.states.map((renewal, index) => (
                         <div
                           key={index}
-                          className="flex items-center gap-3 p-3 rounded-lg bg-gradient-to-r from-teal-50 to-emerald-50 border-2 border-teal-200 hover:border-teal-400 transition-colors"
+                          className="flex items-center gap-3 p-3 rounded-lg glass-light border border-yellow-500/20 hover:border-yellow-500/40 hover:bg-yellow-500/5 transition-all group"
                         >
-                          <MapPin className="h-4 w-4 text-teal-600 flex-shrink-0" />
+                          <MapPin className="h-4 w-4 text-yellow-400 flex-shrink-0 group-hover:scale-110 transition-transform" />
                           <div className="flex-1 min-w-0">
-                            <div className="font-bold text-slate-900 truncate">{renewal.state_name}</div>
-                            <div className="text-xs text-slate-600">Renewal: {renewal.renewal_month}</div>
+                            <div className="font-bold text-white truncate">{renewal.state_name}</div>
+                            <div className="text-xs text-gray-400">Renewal: {renewal.renewal_month}</div>
                           </div>
                         </div>
                       ))
