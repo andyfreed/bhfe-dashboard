@@ -136,7 +136,7 @@ export function Sidebar() {
         isMobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
       )}>
         {/* Header with Gradient */}
-        <div className="flex h-20 items-center justify-center border-b-2 border-slate-300 px-4 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 shadow-lg">
+        <div className="flex h-20 items-center justify-center border-b-2 border-slate-300 px-4 bg-gradient-to-r from-teal-600 via-emerald-600 to-teal-700 shadow-lg">
           <h1 className="text-xl lg:text-2xl font-extrabold text-white tracking-tight drop-shadow-lg">BHFE Dashboard</h1>
         </div>
         
@@ -162,7 +162,7 @@ export function Sidebar() {
                     className={cn(
                       'group w-full flex items-center gap-3 rounded-xl px-4 py-3.5 text-sm font-bold transition-all duration-200 shadow-sm relative',
                       isActive
-                        ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/40 scale-[1.02]'
+                        ? 'bg-gradient-to-r from-teal-600 to-emerald-600 text-white shadow-lg shadow-teal-500/40 scale-[1.02]'
                         : 'text-slate-700 bg-white border-2 border-slate-200 hover:bg-slate-100 hover:text-slate-900 hover:scale-[1.01] hover:shadow-md'
                     )}
                   >
@@ -190,7 +190,7 @@ export function Sidebar() {
                             className={cn(
                               'group flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-medium transition-all duration-200',
                               subIsActive
-                                ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                                ? 'bg-teal-50 text-teal-700 border border-teal-200'
                                 : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                             )}
                           >
@@ -212,12 +212,12 @@ export function Sidebar() {
                 className={cn(
                   'group flex items-center gap-3 rounded-xl px-4 py-3.5 text-sm font-bold transition-all duration-200 shadow-sm relative',
                   isActive
-                    ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/40 scale-[1.02]'
+                    ? 'bg-gradient-to-r from-teal-600 to-emerald-600 text-white shadow-lg shadow-teal-500/40 scale-[1.02]'
                     : 'text-slate-700 bg-white border-2 border-slate-200 hover:bg-slate-100 hover:text-slate-900 hover:scale-[1.01] hover:shadow-md',
-                  showGlow && 'shadow-lg shadow-blue-400/60 ring-2 ring-blue-400/40 ring-opacity-50 animate-pulse'
+                  showGlow && 'shadow-lg shadow-teal-400/60 ring-2 ring-teal-400/40 ring-opacity-50 animate-pulse'
                 )}
                 style={showGlow ? {
-                  boxShadow: '0 0 20px rgba(96, 165, 250, 0.6), 0 0 40px rgba(96, 165, 250, 0.4)',
+                  boxShadow: '0 0 20px rgba(20, 184, 166, 0.6), 0 0 40px rgba(20, 184, 166, 0.4)',
                 } : {}}
               >
                 <item.icon className={cn(
@@ -230,7 +230,7 @@ export function Sidebar() {
                   <div className="ml-auto h-2 w-2 rounded-full bg-white/90 animate-pulse shadow-sm" />
                 )}
                 {showGlow && (
-                  <div className="absolute inset-0 rounded-xl bg-blue-400/10 animate-ping opacity-75" />
+                  <div className="absolute inset-0 rounded-xl bg-teal-400/10 animate-ping opacity-75" />
                 )}
               </Link>
             )

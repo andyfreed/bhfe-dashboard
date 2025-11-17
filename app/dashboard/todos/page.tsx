@@ -206,7 +206,7 @@ export default function TodosPage() {
                     }}
                     className="w-full px-4 py-3 text-left hover:bg-gray-100 flex items-center gap-3 transition-colors"
                   >
-                    <User className="h-5 w-5 text-blue-600" />
+                    <User className="h-5 w-5 text-teal-600" />
                     <div>
                       <div className="font-medium text-gray-900">Personal Todo</div>
                       <div className="text-sm text-gray-500">Create a personal task</div>
@@ -220,7 +220,7 @@ export default function TodosPage() {
                     }}
                     className="w-full px-4 py-3 text-left hover:bg-gray-100 flex items-center gap-3 transition-colors border-t border-gray-200"
                   >
-                    <Building className="h-5 w-5 text-purple-600" />
+                    <Building className="h-5 w-5 text-teal-600" />
                     <div>
                       <div className="font-medium text-gray-900">Company Todo</div>
                       <div className="text-sm text-gray-500">Create a company task</div>
@@ -345,13 +345,13 @@ export default function TodosPage() {
                       </div>
                     )}
                     {todo.is_recurring && (
-                      <div className="text-xs text-blue-600 mt-1">
+                      <div className="text-xs text-teal-600 mt-1">
                         Recurring: {todo.recurring_pattern}
                       </div>
                     )}
                   </div>
                   <div className="flex gap-2">
-                    <button onClick={() => handleEdit(todo)} className="text-blue-600">
+                    <button onClick={() => handleEdit(todo)} className="text-teal-600">
                       <Edit className="h-4 w-4" />
                     </button>
                     <button onClick={() => handleDelete(todo.id)} className="text-red-600">
@@ -397,13 +397,13 @@ export default function TodosPage() {
                       </div>
                     )}
                     {todo.is_recurring && (
-                      <div className="text-xs text-blue-600 mt-1">
+                      <div className="text-xs text-teal-600 mt-1">
                         Recurring: {todo.recurring_pattern}
                       </div>
                     )}
                   </div>
                   <div className="flex gap-2">
-                    <button onClick={() => handleEdit(todo)} className="text-blue-600">
+                    <button onClick={() => handleEdit(todo)} className="text-teal-600">
                       <Edit className="h-4 w-4" />
                     </button>
                     <button onClick={() => handleDelete(todo.id)} className="text-red-600">

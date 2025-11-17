@@ -77,8 +77,8 @@ export default function NotificationPrompt() {
   return (
     <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-4 sm:max-w-md z-50 animate-in slide-in-from-bottom-5 duration-300">
       <div className="bg-white rounded-xl shadow-2xl border border-slate-200 p-4 flex items-start gap-3">
-        <div className="flex-shrink-0 p-2 bg-blue-100 rounded-lg">
-          <Bell className="h-5 w-5 text-blue-600" />
+        <div className="flex-shrink-0 p-2 bg-teal-100 rounded-lg">
+          <Bell className="h-5 w-5 text-teal-600" />
         </div>
         <div className="flex-1 min-w-0">
           <h3 className="text-sm font-semibold text-slate-900 mb-1">

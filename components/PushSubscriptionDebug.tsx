@@ -156,10 +156,10 @@ export default function PushSubscriptionDebug() {
   const permission = getNotificationPermission()
 
   return (
-    <Card className="mb-4 border-blue-200 bg-blue-50/50">
+    <Card className="mb-4 border-teal-200 bg-teal-50/50">
       <CardHeader>
         <CardTitle className="text-sm font-semibold text-slate-900 flex items-center gap-2">
-          <AlertCircle className="h-4 w-4 text-blue-600" />
+          <AlertCircle className="h-4 w-4 text-teal-600" />
           Push Subscription Debug
         </CardTitle>
         <CardDescription className="text-xs text-slate-600">

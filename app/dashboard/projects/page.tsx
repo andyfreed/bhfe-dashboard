@@ -170,7 +170,7 @@ export default function ProjectsPage() {
       case 'active':
         return 'bg-green-100 text-green-700'
       case 'completed':
-        return 'bg-blue-100 text-blue-700'
+        return 'bg-blue-100 text-teal-700'
       case 'on_hold':
         return 'bg-yellow-100 text-yellow-700'
       default:
@@ -296,11 +296,11 @@ export default function ProjectsPage() {
             <CardHeader>
               <div className="flex items-start justify-between">
                 <CardTitle className="flex items-center gap-2">
-                  <FolderKanban className="h-5 w-5 text-purple-600" />
+                  <FolderKanban className="h-5 w-5 text-teal-600" />
                   {project.name}
                 </CardTitle>
                 <div className="flex gap-2">
-                  <button onClick={() => handleEdit(project)} className="text-blue-600">
+                  <button onClick={() => handleEdit(project)} className="text-teal-600">
                     <Edit className="h-4 w-4" />
                   </button>
                   <button onClick={() => handleDelete(project.id)} className="text-red-600">

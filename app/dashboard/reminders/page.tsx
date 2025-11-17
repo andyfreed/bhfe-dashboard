@@ -278,7 +278,7 @@ export default function RemindersPage() {
                 >
                   <button
                     onClick={() => handleToggleComplete(reminder)}
-                    className="mt-1 h-5 w-5 rounded border-2 border-gray-300 flex items-center justify-center hover:border-blue-500"
+                    className="mt-1 h-5 w-5 rounded border-2 border-gray-300 flex items-center justify-center hover:border-teal-500"
                   >
                     <Check className="h-3 w-3 text-white" />
                   </button>
@@ -298,14 +298,14 @@ export default function RemindersPage() {
                     <div className="text-xs text-gray-500 mt-2">
                       {format(new Date(reminder.reminder_date), 'MMM d, yyyy h:mm a')}
                       {reminder.is_recurring && (
-                        <span className="ml-2 text-blue-600">
+                        <span className="ml-2 text-teal-600">
                           (Recurring: {reminder.recurring_pattern})
                         </span>
                       )}
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <button onClick={() => handleEdit(reminder)} className="text-blue-600">
+                    <button onClick={() => handleEdit(reminder)} className="text-teal-600">
                       <Edit className="h-4 w-4" />
                     </button>
                     <button onClick={() => handleDelete(reminder.id)} className="text-red-600">

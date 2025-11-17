@@ -360,7 +360,7 @@ export default function StatesPage() {
                   href={selectedState.website_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-blue-600 hover:underline"
+                  className="text-teal-600 hover:underline"
                 >
                   {selectedState.website_url}
                 </a>
@@ -437,7 +437,7 @@ export default function StatesPage() {
             <div className="flex items-start justify-between">
               <div>
                 <CardTitle className="flex items-center gap-2">
-                  <MapPin className="h-5 w-5 text-blue-600" />
+                  <MapPin className="h-5 w-5 text-teal-600" />
                   {selectedState.state_name} ({selectedState.state_code})
                 </CardTitle>
                 <CardDescription>
@@ -461,7 +461,7 @@ export default function StatesPage() {
                   onClick={() => setActiveTab(tab)}
                   className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
                     activeTab === tab
-                      ? 'border-blue-600 text-blue-600'
+                      ? 'border-teal-600 text-teal-600'
                       : 'border-transparent text-gray-500 hover:text-gray-700'
                   }`}
                 >

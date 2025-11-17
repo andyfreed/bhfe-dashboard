@@ -89,8 +89,8 @@ export default function NotificationTest() {
   return (
     <div className="fixed bottom-20 right-4 bg-white rounded-xl shadow-2xl border border-slate-200 p-4 max-w-sm z-40">
       <div className="flex items-start gap-3 mb-4">
-        <div className="p-2 bg-blue-100 rounded-lg">
-          <Bell className="h-5 w-5 text-blue-600" />
+        <div className="p-2 bg-teal-100 rounded-lg">
+          <Bell className="h-5 w-5 text-teal-600" />
         </div>
         <div className="flex-1">
           <h3 className="text-sm font-semibold text-slate-900 mb-1">Notification Test</h3>

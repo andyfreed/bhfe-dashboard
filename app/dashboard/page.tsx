@@ -87,12 +87,12 @@ export default function DashboardPage() {
       value: stats.todos,
       icon: CheckSquare,
       href: '/dashboard/todos',
-      gradient: 'bg-gradient-to-br from-blue-500 via-blue-600 to-cyan-500',
-      bgGradient: 'bg-gradient-to-br from-blue-50 via-cyan-50 to-blue-50',
-      borderColor: 'border-blue-400',
-      iconBg: 'bg-blue-500',
-      textColor: 'text-blue-700',
-      valueGradient: 'bg-gradient-to-r from-blue-600 to-cyan-600',
+      gradient: 'bg-gradient-to-br from-teal-500 via-teal-600 to-emerald-500',
+      bgGradient: 'bg-gradient-to-br from-teal-50 via-emerald-50 to-teal-50',
+      borderColor: 'border-teal-400',
+      iconBg: 'bg-teal-500',
+      textColor: 'text-teal-700',
+      valueGradient: 'bg-gradient-to-r from-teal-600 to-emerald-600',
     },
     {
       title: 'Calendar Events',
@@ -136,7 +136,7 @@ export default function DashboardPage() {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="flex items-center gap-3">
-          <div className="h-5 w-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+          <div className="h-5 w-5 border-2 border-teal-600 border-t-transparent rounded-full animate-spin" />
           <div className="text-slate-600 font-medium">Loading...</div>
         </div>
       </div>
@@ -146,7 +146,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-8 animate-in">
       {/* Welcome Header with Gradient */}
-      <div className="relative overflow-hidden rounded-2xl lg:rounded-3xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 p-6 sm:p-8 lg:p-10 shadow-2xl">
+      <div className="relative overflow-hidden rounded-2xl lg:rounded-3xl bg-gradient-to-r from-teal-600 via-emerald-600 to-teal-700 p-6 sm:p-8 lg:p-10 shadow-2xl">
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0icmdiYSgyNTUsMjU1LDI1NSwwLjE1KSIgc3Ryb2tlLXdpZHRoPSIxIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2dyaWQpIi8+PC9zdmc+')] opacity-30" />
         <div className="relative z-10">
           <div className="flex items-center gap-2 sm:gap-4 mb-3 sm:mb-4">
@@ -155,7 +155,7 @@ export default function DashboardPage() {
             </div>
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight drop-shadow-lg">Dashboard</h1>
           </div>
-          <p className="text-base sm:text-lg lg:text-xl text-blue-100 font-semibold drop-shadow">Welcome back! Here's an overview of your business.</p>
+          <p className="text-base sm:text-lg lg:text-xl text-teal-100 font-semibold drop-shadow">Welcome back! Here's an overview of your business.</p>
         </div>
       </div>
 
@@ -202,14 +202,14 @@ export default function DashboardPage() {
       {/* CPA Renewals Coming Up */}
       {upcomingRenewals.length > 0 && (
         <Card className="border-2 border-slate-300 shadow-xl overflow-hidden bg-gradient-to-br from-white to-slate-50">
-          <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6">
+          <CardHeader className="bg-gradient-to-r from-teal-600 to-emerald-600 p-6">
             <div className="flex items-center gap-4">
               <div className="p-3 rounded-xl bg-white/20 backdrop-blur-sm">
                 <CalendarIcon className="h-6 w-6 text-white" />
               </div>
               <div>
                 <CardTitle className="text-2xl text-white font-bold">CPA Renewals Coming Up</CardTitle>
-                <CardDescription className="text-blue-100 mt-1 font-medium">States with renewals in the next 3 months</CardDescription>
+                <CardDescription className="text-teal-100 mt-1 font-medium">States with renewals in the next 3 months</CardDescription>
               </div>
             </div>
           </CardHeader>
@@ -237,9 +237,9 @@ export default function DashboardPage() {
                       column.states.map((renewal, index) => (
                         <div
                           key={index}
-                          className="flex items-center gap-3 p-3 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 hover:border-blue-400 transition-colors"
+                          className="flex items-center gap-3 p-3 rounded-lg bg-gradient-to-r from-teal-50 to-emerald-50 border-2 border-teal-200 hover:border-teal-400 transition-colors"
                         >
-                          <MapPin className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                          <MapPin className="h-4 w-4 text-teal-600 flex-shrink-0" />
                           <div className="flex-1 min-w-0">
                             <div className="font-bold text-slate-900 truncate">{renewal.state_name}</div>
                             <div className="text-xs text-slate-600">Renewal: {renewal.renewal_month}</div>

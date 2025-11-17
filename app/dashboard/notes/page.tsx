@@ -283,7 +283,7 @@ export default function NotesPage() {
                 </CardDescription>
               </div>
               <div className="flex gap-2">
-                <button onClick={() => handleEdit(selectedNote)} className="text-blue-600">
+                <button onClick={() => handleEdit(selectedNote)} className="text-teal-600">
                   <Edit className="h-4 w-4" />
                 </button>
                 <button onClick={() => handleDelete(selectedNote.id)} className="text-red-600">
@@ -298,7 +298,7 @@ export default function NotesPage() {
                 {selectedNote.tags.map((tag, index) => (
                   <span
                     key={index}
-                    className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded"
+                    className="text-xs px-2 py-1 bg-blue-100 text-teal-700 rounded"
                   >
                     {tag}
                   </span>
@@ -351,7 +351,7 @@ export default function NotesPage() {
                       {note.tags.slice(0, 3).map((tag, index) => (
                         <span
                           key={index}
-                          className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded"
+                          className="text-xs px-2 py-0.5 bg-blue-100 text-teal-700 rounded"
                         >
                           {tag}
                         </span>
@@ -403,7 +403,7 @@ export default function NotesPage() {
                     {note.tags.slice(0, 3).map((tag, index) => (
                       <span
                         key={index}
-                        className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded"
+                        className="text-xs px-2 py-0.5 bg-blue-100 text-teal-700 rounded"
                       >
                         {tag}
                       </span>

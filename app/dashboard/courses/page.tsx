@@ -256,7 +256,7 @@ ${courses.map(course => `  <url>
         <Card>
           <CardContent className="flex items-center justify-center py-12">
             <div className="flex items-center gap-3">
-              <div className="h-5 w-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+              <div className="h-5 w-5 border-2 border-teal-600 border-t-transparent rounded-full animate-spin" />
               <div className="text-slate-600 font-medium">Loading courses...</div>
             </div>
           </CardContent>
@@ -307,7 +307,7 @@ ${courses.map(course => `  <url>
               value={wordpressUrl}
               onChange={(e) => setWordpressUrl(e.target.value)}
               placeholder="https://yoursite.com"
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
             />
           </div>
           <div>
@@ -320,7 +320,7 @@ ${courses.map(course => `  <url>
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
               placeholder="Leave empty if not configured"
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
             />
           </div>
           <div className="flex gap-2 flex-wrap">
@@ -436,7 +436,7 @@ ${courses.map(course => `  <url>
                 <h3 className="font-semibold text-gray-900 mb-2">Taxonomies:</h3>
                 <div className="flex flex-wrap gap-2">
                   {metaKeys.taxonomies.map((tax: string) => (
-                    <span key={tax} className="px-3 py-1 bg-blue-100 text-blue-700 rounded-md text-sm font-medium">
+                    <span key={tax} className="px-3 py-1 bg-blue-100 text-teal-700 rounded-md text-sm font-medium">
                       {tax}
                     </span>
                   ))}
@@ -461,7 +461,7 @@ ${courses.map(course => `  <url>
                         {data.type}
                       </span>
                       {data.is_array && (
-                        <span className="px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-700">
+                        <span className="px-2 py-1 rounded text-xs font-medium bg-blue-100 text-teal-700">
                           Array
                         </span>
                       )}
@@ -503,7 +503,7 @@ ${courses.map(course => `  <url>
                 placeholder="Search courses by title, SKU, or description..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
               />
             </div>
             {searchTerm && (
@@ -575,7 +575,7 @@ ${courses.map(course => `  <url>
                     href={course.permalink}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-blue-600 hover:text-blue-700 font-semibold text-sm"
+                    className="flex items-center gap-2 text-teal-600 hover:text-teal-700 font-semibold text-sm"
                   >
                     <span>View Course</span>
                     <ExternalLink className="h-4 w-4" />
@@ -584,7 +584,7 @@ ${courses.map(course => `  <url>
                     href={getAdminUrl(course.id)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700 font-semibold text-sm"
+                    className="flex items-center gap-2 text-teal-600 hover:text-teal-700 font-semibold text-sm"
                   >
                     <span>View Admin</span>
                     <ExternalLink className="h-4 w-4" />

@@ -246,7 +246,7 @@ export default function ContactsPage() {
                 onClick={() => setSelectedTag(null)}
                 className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
                   selectedTag === null
-                    ? 'bg-blue-600 text-white'
+                    ? 'bg-teal-600 text-white'
                     : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                 }`}
               >
@@ -258,7 +258,7 @@ export default function ContactsPage() {
                   onClick={() => setSelectedTag(tag)}
                   className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
                     selectedTag === tag
-                      ? 'bg-blue-600 text-white'
+                      ? 'bg-teal-600 text-white'
                       : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                   }`}
                 >
@@ -439,7 +439,7 @@ export default function ContactsPage() {
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <CardTitle className="flex items-center gap-2">
-                    <Users className="h-5 w-5 text-indigo-600" />
+                    <Users className="h-5 w-5 text-teal-600" />
                     {contact.name}
                   </CardTitle>
                   {contact.title && (
@@ -447,7 +447,7 @@ export default function ContactsPage() {
                   )}
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={() => handleEdit(contact)} className="text-blue-600">
+                  <button onClick={() => handleEdit(contact)} className="text-teal-600">
                     <Edit className="h-4 w-4" />
                   </button>
                   <button onClick={() => handleDelete(contact.id)} className="text-red-600">
@@ -466,7 +466,7 @@ export default function ContactsPage() {
               {contact.email && (
                 <div className="flex items-center gap-2 text-sm text-gray-600">
                   <Mail className="h-4 w-4" />
-                  <a href={`mailto:${contact.email}`} className="hover:text-blue-600">
+                  <a href={`mailto:${contact.email}`} className="hover:text-teal-600">
                     {contact.email}
                   </a>
                 </div>
@@ -474,7 +474,7 @@ export default function ContactsPage() {
               {contact.email_2 && (
                 <div className="flex items-center gap-2 text-sm text-gray-600">
                   <Mail className="h-4 w-4" />
-                  <a href={`mailto:${contact.email_2}`} className="hover:text-blue-600">
+                  <a href={`mailto:${contact.email_2}`} className="hover:text-teal-600">
                     {contact.email_2}
                   </a>
                 </div>
@@ -482,7 +482,7 @@ export default function ContactsPage() {
               {contact.phone && (
                 <div className="flex items-center gap-2 text-sm text-gray-600">
                   <Phone className="h-4 w-4" />
-                  <a href={`tel:${contact.phone}`} className="hover:text-blue-600">
+                  <a href={`tel:${contact.phone}`} className="hover:text-teal-600">
                     {contact.phone}
                   </a>
                 </div>
@@ -490,7 +490,7 @@ export default function ContactsPage() {
               {contact.phone_2 && (
                 <div className="flex items-center gap-2 text-sm text-gray-600">
                   <Phone className="h-4 w-4" />
-                  <a href={`tel:${contact.phone_2}`} className="hover:text-blue-600">
+                  <a href={`tel:${contact.phone_2}`} className="hover:text-teal-600">
                     {contact.phone_2}
                   </a>
                 </div>
@@ -502,7 +502,7 @@ export default function ContactsPage() {
                     href={contact.website.startsWith('http') ? contact.website : `https://${contact.website}`} 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className="hover:text-blue-600"
+                    className="hover:text-teal-600"
                   >
                     {contact.website}
                   </a>
@@ -525,7 +525,7 @@ export default function ContactsPage() {
                   {contact.tags.map((tag, index) => (
                     <span
                       key={index}
-                      className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded"
+                      className="text-xs px-2 py-1 bg-blue-100 text-teal-700 rounded"
                     >
                       {tag}
                     </span>

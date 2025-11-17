@@ -390,7 +390,7 @@ export default function ChatPage() {
                   <div
                     className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
                       isOwnMessage
-                        ? 'bg-blue-600 text-white'
+                        ? 'bg-teal-600 text-white'
                         : 'bg-gray-200 text-gray-900'
                     }`}
                   >
@@ -402,7 +402,7 @@ export default function ChatPage() {
                     <p className="text-sm">{message.message}</p>
                     <p
                       className={`text-xs mt-1 ${
-                        isOwnMessage ? 'text-blue-100' : 'text-gray-500'
+                        isOwnMessage ? 'text-teal-100' : 'text-gray-500'
                       }`}
                     >
                       {format(new Date(message.created_at), 'MMM d, yyyy h:mm a')}
@@ -421,7 +421,7 @@ export default function ChatPage() {
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
               placeholder="Type a message..."
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
             />
             <Button type="submit" disabled={!newMessage.trim()}>
               <Send className="h-4 w-4 mr-2" />

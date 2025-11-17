@@ -37,17 +37,17 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-gradient-to-br from-blue-600 via-indigo-700 to-purple-700">
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-gradient-to-br from-teal-700 via-emerald-800 to-teal-900">
       {/* Animated background pattern */}
       <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0icmdiYSgyNTUsMjU1LDI1NSwwLjA1KSIgc3Ryb2tlLXdpZHRoPSIxIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2dyaWQpIi8+PC9zdmc+')] opacity-30" />
       
       {/* Decorative gradient orbs */}
-      <div className="absolute top-0 left-0 w-96 h-96 bg-blue-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob" />
-      <div className="absolute top-0 right-0 w-96 h-96 bg-purple-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000" />
-      <div className="absolute -bottom-8 left-1/2 w-96 h-96 bg-indigo-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000" />
+      <div className="absolute top-0 left-0 w-96 h-96 bg-teal-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob" />
+      <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000" />
+      <div className="absolute -bottom-8 left-1/2 w-96 h-96 bg-teal-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000" />
       
       <Card className="w-full max-w-md relative z-10 shadow-2xl border-2 border-white/20 bg-white/95 backdrop-blur-xl">
-        <CardHeader className="text-center space-y-4 pb-6 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-t-xl p-8">
+        <CardHeader className="text-center space-y-4 pb-6 bg-gradient-to-r from-teal-600 via-emerald-600 to-teal-700 rounded-t-xl p-8">
           <div className="mx-auto mb-2 h-20 w-20 rounded-3xl bg-white/20 backdrop-blur-md flex items-center justify-center shadow-2xl border-2 border-white/30 overflow-hidden">
             <img src="/logo.png" alt="BHFE Logo" className="h-full w-full object-contain" />
           </div>
@@ -60,7 +60,7 @@ export default function LoginPage() {
             <div className="space-y-2">
               <label htmlFor="email" className="block text-sm font-bold text-slate-700 uppercase tracking-wide">
                 <div className="flex items-center gap-2 mb-1">
-                  <Mail className="h-4 w-4 text-blue-600" />
+                  <Mail className="h-4 w-4 text-teal-600" />
                   Email Address
                 </div>
               </label>
@@ -70,14 +70,14 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full px-4 py-3.5 border-2 border-slate-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white font-medium text-slate-900 hover:border-slate-400"
+                className="w-full px-4 py-3.5 border-2 border-slate-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all duration-200 bg-white font-medium text-slate-900 hover:border-slate-400"
                 placeholder="you@example.com"
               />
             </div>
             <div className="space-y-2">
               <label htmlFor="password" className="block text-sm font-bold text-slate-700 uppercase tracking-wide">
                 <div className="flex items-center gap-2 mb-1">
-                  <Lock className="h-4 w-4 text-blue-600" />
+                  <Lock className="h-4 w-4 text-teal-600" />
                   Password
                 </div>
               </label>
@@ -87,7 +87,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="w-full px-4 py-3.5 border-2 border-slate-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white font-medium text-slate-900 hover:border-slate-400"
+                className="w-full px-4 py-3.5 border-2 border-slate-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all duration-200 bg-white font-medium text-slate-900 hover:border-slate-400"
                 placeholder="••••••••"
               />
             </div>
@@ -120,14 +120,14 @@ export default function LoginPage() {
           <div className="mt-8 text-center space-y-2 pt-6 border-t-2 border-slate-200">
             <p className="text-sm font-bold text-slate-700 uppercase tracking-wide">Authorized Users</p>
             <div className="flex items-center justify-center gap-4 flex-wrap">
-              <div className="px-4 py-2 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200">
-                <p className="text-sm font-semibold text-blue-700">Andy</p>
-              </div>
-              <div className="px-4 py-2 rounded-lg bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-purple-200">
-                <p className="text-sm font-semibold text-purple-700">Dave</p>
+              <div className="px-4 py-2 rounded-lg bg-gradient-to-r from-teal-50 to-emerald-50 border-2 border-teal-200">
+                <p className="text-sm font-semibold text-teal-700">Andy</p>
               </div>
               <div className="px-4 py-2 rounded-lg bg-gradient-to-r from-emerald-50 to-teal-50 border-2 border-emerald-200">
-                <p className="text-sm font-semibold text-emerald-700">Diane</p>
+                <p className="text-sm font-semibold text-emerald-700">Dave</p>
+              </div>
+              <div className="px-4 py-2 rounded-lg bg-gradient-to-r from-teal-50 to-cyan-50 border-2 border-teal-200">
+                <p className="text-sm font-semibold text-teal-700">Diane</p>
               </div>
             </div>
           </div>

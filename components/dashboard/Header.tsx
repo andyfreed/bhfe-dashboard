@@ -50,7 +50,7 @@ export function Header() {
       <div className="flex items-center gap-2 sm:gap-4">
         {user && (
           <div className="hidden sm:flex items-center gap-2 lg:gap-3 px-3 lg:px-4 py-2 rounded-lg bg-slate-50 border border-slate-200/80">
-            <div className="flex items-center justify-center h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-500">
+            <div className="flex items-center justify-center h-8 w-8 rounded-full bg-gradient-to-br from-teal-500 to-emerald-500">
               <User className="h-4 w-4 text-white" />
             </div>
             <div className="flex flex-col min-w-0">

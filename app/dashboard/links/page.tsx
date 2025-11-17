@@ -278,7 +278,7 @@ export default function LinksPage() {
                     <div className="flex gap-1">
                       <button
                         onClick={() => handleEdit(link)}
-                        className="text-blue-600 hover:text-blue-700 p-1"
+                        className="text-teal-600 hover:text-teal-700 p-1"
                       >
                         <Edit className="h-4 w-4" />
                       </button>
@@ -296,7 +296,7 @@ export default function LinksPage() {
                     href={link.url.startsWith('http') ? link.url : `https://${link.url}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 hover:underline"
+                    className="inline-flex items-center gap-2 text-teal-600 hover:text-teal-700 hover:underline"
                   >
                     <span className="text-sm truncate max-w-[200px]">
                       {getDomainFromUrl(link.url)}

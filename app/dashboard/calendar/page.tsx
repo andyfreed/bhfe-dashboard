@@ -338,10 +338,10 @@ export default function CalendarPage() {
                     setFormData({ ...formData, start_date: defaultDate })
                   }}
                   className={`p-2 min-h-[80px] border border-gray-200 rounded hover:bg-gray-50 text-left ${
-                    isToday ? 'bg-blue-50 border-blue-300' : ''
-                  } ${isSelected ? 'ring-2 ring-blue-500' : ''}`}
+                    isToday ? 'bg-teal-50 border-blue-300' : ''
+                  } ${isSelected ? 'ring-2 ring-teal-500' : ''}`}
                 >
-                  <div className={`text-sm font-medium mb-1 ${isToday ? 'text-blue-600' : 'text-gray-900'}`}>
+                  <div className={`text-sm font-medium mb-1 ${isToday ? 'text-teal-600' : 'text-gray-900'}`}>
                     {format(day, 'd')}
                   </div>
                   <div className="space-y-1">
@@ -416,7 +416,7 @@ export default function CalendarPage() {
                             })
                             setShowForm(true)
                           }}
-                          className="text-blue-600"
+                          className="text-teal-600"
                         >
                           <Edit className="h-4 w-4" />
                         </button>

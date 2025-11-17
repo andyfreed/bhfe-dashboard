@@ -257,7 +257,7 @@ export default function OperationsPage() {
             onClick={() => setSelectedCategory(category)}
             className={`px-4 py-2 rounded-lg font-medium transition-colors ${
               selectedCategory === category
-                ? 'bg-blue-600 text-white'
+                ? 'bg-teal-600 text-white'
                 : 'bg-white text-slate-700 border-2 border-slate-200 hover:bg-slate-50'
             }`}
           >
@@ -476,7 +476,7 @@ export default function OperationsPage() {
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
                     <div className="p-2 rounded-lg bg-blue-100">
-                      <Icon className="h-5 w-5 text-blue-600" />
+                      <Icon className="h-5 w-5 text-teal-600" />
                     </div>
                     <div>
                       <CardTitle className="text-lg">{item.title}</CardTitle>
@@ -554,7 +554,7 @@ export default function OperationsPage() {
                       href={item.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-sm text-blue-600 hover:underline flex items-center gap-1"
+                      className="text-sm text-teal-600 hover:underline flex items-center gap-1"
                     >
                       <Globe className="h-3 w-3" />
                       Visit URL
