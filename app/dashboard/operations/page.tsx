@@ -46,7 +46,7 @@ export default function OperationsPage() {
     cost: '',
     url: '',
   })
-  const [domainsWebsites, setDomainsWebsites] = useState<DomainWebsite[]>([{ name: '', cost: '' }])
+  const [domainsWebsites, setDomainsWebsites] = useState<DomainWebsite[]>([{ name: '', cost: '', isHosted: 'No', autoRenew: 'No', expirationDate: '' }])
   const [costFrequency, setCostFrequency] = useState<'monthly' | 'yearly' | 'paid-in-full'>('monthly')
   const [selectedCategory, setSelectedCategory] = useState<string>('All')
   const supabase = createClient()
