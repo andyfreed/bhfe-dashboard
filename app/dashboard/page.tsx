@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { CheckSquare, Calendar, Bell, FolderKanban, Users, FileText, MessageSquare, Sparkles, TrendingUp, ArrowRight } from 'lucide-react'
+import { CheckSquare, Calendar, Bell, FolderKanban, MessageSquare, Sparkles, Calendar as CalendarIcon, MapPin } from 'lucide-react'
 import Link from 'next/link'
 
 export default function DashboardPage() {
@@ -12,10 +12,13 @@ export default function DashboardPage() {
     events: 0,
     reminders: 0,
     projects: 0,
-    contacts: 0,
-    notes: 0,
     unreadMessages: 0,
   })
+  const [upcomingRenewals, setUpcomingRenewals] = useState<Array<{
+    state_name: string
+    state_code: string
+    renewal_month: string
+  }>>([])
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
 
@@ -25,13 +28,11 @@ export default function DashboardPage() {
       if (!user) return
 
       // Get all stats
-      const [todos, events, reminders, projects, contacts, notes, messages] = await Promise.all([
+      const [todos, events, reminders, projects, messages] = await Promise.all([
         supabase.from('todos').select('id', { count: 'exact', head: true }),
         supabase.from('calendar_events').select('id', { count: 'exact', head: true }),
         supabase.from('reminders').select('id', { count: 'exact', head: true }),
         supabase.from('projects').select('id', { count: 'exact', head: true }),
-        supabase.from('contacts').select('id', { count: 'exact', head: true }),
-        supabase.from('notes').select('id', { count: 'exact', head: true }),
         supabase.from('chat_messages').select('id', { count: 'exact', head: true })
           .eq('receiver_id', user.id)
           .eq('is_read', false),
@@ -42,10 +43,47 @@ export default function DashboardPage() {
         events: events.count || 0,
         reminders: reminders.count || 0,
         projects: projects.count || 0,
-        contacts: contacts.count || 0,
-        notes: notes.count || 0,
         unreadMessages: messages.count || 0,
       })
+
+      // Get upcoming CPA renewals (next 3 months)
+      const now = new Date()
+      const currentMonth = now.getMonth() // 0-11
+      const next3Months = [
+        now.toLocaleString('default', { month: 'long' }),
+        new Date(now.getFullYear(), currentMonth + 1, 1).toLocaleString('default', { month: 'long' }),
+        new Date(now.getFullYear(), currentMonth + 2, 1).toLocaleString('default', { month: 'long' }),
+      ]
+
+      const { data: statesData } = await supabase
+        .from('state_info')
+        .select('state_name, state_code, renewal_month')
+        .not('renewal_month', 'is', null)
+        .neq('renewal_month', '')
+
+      if (statesData) {
+        const renewals = statesData
+          .filter(state => 
+            state.renewal_month && 
+            (next3Months.includes(state.renewal_month) || state.renewal_month === 'Varies')
+          )
+          .map(state => ({
+            state_name: state.state_name,
+            state_code: state.state_code,
+            renewal_month: state.renewal_month || '',
+          }))
+          .sort((a, b) => {
+            const monthOrder = ['January', 'February', 'March', 'April', 'May', 'June', 
+              'July', 'August', 'September', 'October', 'November', 'December', 'Varies']
+            const aIndex = monthOrder.indexOf(a.renewal_month)
+            const bIndex = monthOrder.indexOf(b.renewal_month)
+            if (aIndex === -1) return 1
+            if (bIndex === -1) return -1
+            return aIndex - bIndex
+          })
+        
+        setUpcomingRenewals(renewals)
+      }
       setLoading(false)
     }
 
@@ -100,30 +138,6 @@ export default function DashboardPage() {
       iconBg: 'bg-purple-500',
       textColor: 'text-purple-700',
       valueGradient: 'bg-gradient-to-r from-purple-600 to-pink-600',
-    },
-    {
-      title: 'Contacts',
-      value: stats.contacts,
-      icon: Users,
-      href: '/dashboard/contacts',
-      gradient: 'bg-gradient-to-br from-indigo-500 via-blue-600 to-indigo-600',
-      bgGradient: 'bg-gradient-to-br from-indigo-50 via-blue-50 to-indigo-50',
-      borderColor: 'border-indigo-400',
-      iconBg: 'bg-indigo-500',
-      textColor: 'text-indigo-700',
-      valueGradient: 'bg-gradient-to-r from-indigo-600 to-blue-600',
-    },
-    {
-      title: 'Notes',
-      value: stats.notes,
-      icon: FileText,
-      href: '/dashboard/notes',
-      gradient: 'bg-gradient-to-br from-rose-500 via-pink-600 to-rose-600',
-      bgGradient: 'bg-gradient-to-br from-rose-50 via-pink-50 to-rose-50',
-      borderColor: 'border-rose-400',
-      iconBg: 'bg-rose-500',
-      textColor: 'text-rose-700',
-      valueGradient: 'bg-gradient-to-r from-rose-600 to-pink-600',
     },
     {
       title: 'Unread Messages',
@@ -206,80 +220,40 @@ export default function DashboardPage() {
         })}
       </div>
 
-      {/* Quick Actions & Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* CPA Renewals Coming Up */}
+      {upcomingRenewals.length > 0 && (
         <Card className="border-2 border-slate-300 shadow-xl overflow-hidden bg-gradient-to-br from-white to-slate-50">
           <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6">
             <div className="flex items-center gap-4">
               <div className="p-3 rounded-xl bg-white/20 backdrop-blur-sm">
-                <TrendingUp className="h-6 w-6 text-white" />
+                <CalendarIcon className="h-6 w-6 text-white" />
               </div>
               <div>
-                <CardTitle className="text-2xl text-white font-bold">Quick Actions</CardTitle>
-                <CardDescription className="text-blue-100 mt-1 font-medium">Common tasks you might want to perform</CardDescription>
+                <CardTitle className="text-2xl text-white font-bold">CPA Renewals Coming Up</CardTitle>
+                <CardDescription className="text-blue-100 mt-1 font-medium">States with renewals in the next 3 months</CardDescription>
               </div>
             </div>
           </CardHeader>
-          <CardContent className="p-6 space-y-3 bg-white">
-            <Link href="/dashboard/todos" className="flex items-center gap-4 p-5 rounded-2xl bg-gradient-to-r from-blue-50 to-cyan-50 hover:from-blue-100 hover:to-cyan-100 transition-all duration-200 border-2 border-blue-300 hover:border-blue-500 hover:shadow-lg group">
-              <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 shadow-md group-hover:scale-110 transition-transform">
-                <CheckSquare className="h-6 w-6 text-white" />
-              </div>
-              <div className="flex-1">
-                <div className="font-bold text-lg text-slate-900 group-hover:text-blue-700">Create New To-Do</div>
-                <div className="text-sm text-slate-600 mt-1">Add a task to your list</div>
-              </div>
-              <ArrowRight className="h-5 w-5 text-blue-600 group-hover:translate-x-1 transition-transform" />
-            </Link>
-            <Link href="/dashboard/calendar" className="flex items-center gap-4 p-5 rounded-2xl bg-gradient-to-r from-emerald-50 to-teal-50 hover:from-emerald-100 hover:to-teal-100 transition-all duration-200 border-2 border-emerald-300 hover:border-emerald-500 hover:shadow-lg group">
-              <div className="p-3 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 shadow-md group-hover:scale-110 transition-transform">
-                <Calendar className="h-6 w-6 text-white" />
-              </div>
-              <div className="flex-1">
-                <div className="font-bold text-lg text-slate-900 group-hover:text-emerald-700">Add Calendar Event</div>
-                <div className="text-sm text-slate-600 mt-1">Schedule something new</div>
-              </div>
-              <ArrowRight className="h-5 w-5 text-emerald-600 group-hover:translate-x-1 transition-transform" />
-            </Link>
-            <Link href="/dashboard/contacts" className="flex items-center gap-4 p-5 rounded-2xl bg-gradient-to-r from-purple-50 to-pink-50 hover:from-purple-100 hover:to-pink-100 transition-all duration-200 border-2 border-purple-300 hover:border-purple-500 hover:shadow-lg group">
-              <div className="p-3 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 shadow-md group-hover:scale-110 transition-transform">
-                <Users className="h-6 w-6 text-white" />
-              </div>
-              <div className="flex-1">
-                <div className="font-bold text-lg text-slate-900 group-hover:text-purple-700">Add Contact</div>
-                <div className="text-sm text-slate-600 mt-1">Save a new business contact</div>
-              </div>
-              <ArrowRight className="h-5 w-5 text-purple-600 group-hover:translate-x-1 transition-transform" />
-            </Link>
-          </CardContent>
-        </Card>
-
-        <Card className="border-2 border-slate-300 shadow-xl overflow-hidden bg-gradient-to-br from-white to-slate-50">
-          <CardHeader className="bg-gradient-to-r from-indigo-600 to-purple-600 p-6">
-            <div className="flex items-center gap-4">
-              <div className="p-3 rounded-xl bg-white/20 backdrop-blur-sm">
-                <MessageSquare className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <CardTitle className="text-2xl text-white font-bold">Recent Activity</CardTitle>
-                <CardDescription className="text-indigo-100 mt-1 font-medium">Your latest updates and changes</CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="p-8 bg-white">
-            <div className="flex flex-col items-center justify-center text-center py-12">
-              <div className="relative mb-6">
-                <div className="h-20 w-20 rounded-full bg-gradient-to-br from-indigo-100 via-purple-100 to-pink-100 flex items-center justify-center shadow-lg">
-                  <MessageSquare className="h-10 w-10 text-indigo-500" />
+          <CardContent className="p-6 bg-white">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {upcomingRenewals.map((renewal, index) => (
+                <div
+                  key={index}
+                  className="flex items-center gap-3 p-4 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 hover:border-blue-400 transition-colors"
+                >
+                  <MapPin className="h-5 w-5 text-blue-600" />
+                  <div className="flex-1">
+                    <div className="font-bold text-slate-900">{renewal.state_name}</div>
+                    <div className="text-sm text-slate-600">
+                      {renewal.renewal_month === 'Varies' ? 'Varies' : `Renewal: ${renewal.renewal_month}`}
+                    </div>
+                  </div>
                 </div>
-                <div className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 border-3 border-white shadow-lg animate-pulse" />
-              </div>
-              <p className="text-lg font-bold text-slate-700 mb-2">Activity feed coming soon...</p>
-              <p className="text-sm text-slate-500">Track your recent actions here</p>
+              ))}
             </div>
           </CardContent>
         </Card>
-      </div>
+      )}
     </div>
   )
 }

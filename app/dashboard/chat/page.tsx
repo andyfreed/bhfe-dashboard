@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Send, MessageSquare, User } from 'lucide-react'
+import { Send, MessageSquare, User, Trash2 } from 'lucide-react'
 import { format } from 'date-fns'
 import { useNotifications } from '@/hooks/useNotifications'
 
@@ -304,6 +304,29 @@ export default function ChatPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
 
+  const handleDeleteHistory = async () => {
+    if (!currentUser) return
+    if (!confirm('Are you sure you want to delete all chat history? This action cannot be undone.')) return
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+
+    // Delete all messages where current user is sender or receiver
+    const { error } = await supabase
+      .from('chat_messages')
+      .delete()
+      .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
+
+    if (error) {
+      console.error('Error deleting chat history:', error)
+      alert('Failed to delete chat history. Please try again.')
+      return
+    }
+
+    setMessages([])
+    loadAllMessages()
+  }
+
   if (loading) {
     return <div className="text-center py-12">Loading...</div>
   }
@@ -326,10 +349,21 @@ export default function ChatPage() {
 
       <Card className="flex flex-col h-[calc(100vh-250px)]">
         <CardHeader className="border-b border-gray-200">
-          <CardTitle className="flex items-center gap-2">
-            <MessageSquare className="h-5 w-5" />
-            Team Chat
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <MessageSquare className="h-5 w-5" />
+              Team Chat
+            </CardTitle>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleDeleteHistory}
+              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete History
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="flex-1 overflow-y-auto p-4 space-y-4">
           {messages.length === 0 ? (
@@ -365,7 +399,7 @@ export default function ChatPage() {
                         isOwnMessage ? 'text-blue-100' : 'text-gray-500'
                       }`}
                     >
-                      {format(new Date(message.created_at), 'h:mm a')}
+                      {format(new Date(message.created_at), 'MMM d, yyyy h:mm a')}
                     </p>
                   </div>
                 </div>

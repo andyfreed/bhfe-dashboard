@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard,
   CheckSquare,
@@ -17,6 +17,9 @@ import {
   BookOpen,
   X,
   Menu,
+  ChevronDown,
+  ChevronRight,
+  Settings,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
@@ -30,15 +33,26 @@ const navigation = [
   { name: 'Contacts', href: '/dashboard/contacts', icon: Users },
   { name: 'Notes', href: '/dashboard/notes', icon: FileText },
   { name: 'Active Courses', href: '/dashboard/courses', icon: BookOpen },
-  { name: 'State Info', href: '/dashboard/states', icon: MapPin },
+  { name: 'Regulatory Info', href: '/dashboard/states', icon: MapPin, hasSubmenu: true },
   { name: 'Chat', href: '/dashboard/chat', icon: MessageSquare },
+  { name: 'Operations', href: '/dashboard/operations', icon: Settings },
   { name: 'Links', href: '/dashboard/links', icon: ExternalLink },
+]
+
+const regulatorySubmenu = [
+  { name: 'CPA', href: '/dashboard/states?tab=CPA' },
+  { name: 'CFP', href: '/dashboard/states?tab=CFP' },
+  { name: 'EA/OTRP/ERPA', href: '/dashboard/states?tab=EA/OTRP/ERPA' },
+  { name: 'CDFA', href: '/dashboard/states?tab=CDFA' },
+  { name: 'IAR', href: '/dashboard/states?tab=IAR' },
 ]
 
 export function Sidebar() {
   const pathname = usePathname()
+  const router = useRouter()
   const [hasUnreadMessages, setHasUnreadMessages] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isRegulatoryExpanded, setIsRegulatoryExpanded] = useState(false)
   const supabase = createClient()
 
   useEffect(() => {
@@ -129,9 +143,66 @@ export function Sidebar() {
         {/* Navigation */}
         <nav className="flex-1 space-y-2 px-3 py-6 overflow-y-auto bg-gradient-to-b from-slate-50 to-white">
           {navigation.map((item) => {
-            const isActive = pathname === item.href
+            const isActive = pathname === item.href || (item.href === '/dashboard/states' && pathname.startsWith('/dashboard/states'))
             const isChat = item.name === 'Chat'
             const showGlow = isChat && hasUnreadMessages && !isActive
+            const isRegulatory = item.name === 'Regulatory Info'
+            
+            if (isRegulatory && item.hasSubmenu) {
+              return (
+                <div key={item.name}>
+                  <button
+                    onClick={() => {
+                      setIsRegulatoryExpanded(!isRegulatoryExpanded)
+                      if (!isRegulatoryExpanded && !pathname.startsWith('/dashboard/states')) {
+                        // Navigate to states page when expanding
+                        router.push('/dashboard/states')
+                      }
+                    }}
+                    className={cn(
+                      'group w-full flex items-center gap-3 rounded-xl px-4 py-3.5 text-sm font-bold transition-all duration-200 shadow-sm relative',
+                      isActive
+                        ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/40 scale-[1.02]'
+                        : 'text-slate-700 bg-white border-2 border-slate-200 hover:bg-slate-100 hover:text-slate-900 hover:scale-[1.01] hover:shadow-md'
+                    )}
+                  >
+                    <item.icon className={cn(
+                      "h-5 w-5 transition-transform duration-200",
+                      isActive ? "text-white drop-shadow-md" : "text-slate-500 group-hover:text-slate-700",
+                      !isActive && "group-hover:scale-110"
+                    )} />
+                    <span className="flex-1 text-left">{item.name}</span>
+                    {isRegulatoryExpanded ? (
+                      <ChevronDown className="h-4 w-4" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4" />
+                    )}
+                  </button>
+                  {isRegulatoryExpanded && (
+                    <div className="ml-4 mt-2 space-y-1">
+                      {regulatorySubmenu.map((subItem) => {
+                        const subIsActive = pathname.startsWith('/dashboard/states')
+                        return (
+                          <Link
+                            key={subItem.name}
+                            href={subItem.href}
+                            onClick={() => setIsMobileMenuOpen(false)}
+                            className={cn(
+                              'group flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-medium transition-all duration-200',
+                              subIsActive
+                                ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                            )}
+                          >
+                            <span>{subItem.name}</span>
+                          </Link>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )
+            }
             
             return (
               <Link

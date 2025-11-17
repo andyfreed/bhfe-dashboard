@@ -54,9 +54,6 @@ export default function LoginPage() {
           <CardTitle className="text-4xl font-extrabold text-white tracking-tight drop-shadow-lg">
             BHFE Dashboard
           </CardTitle>
-          <CardDescription className="text-xl text-blue-100 font-semibold">
-            Sign in to manage your CPE course business
-          </CardDescription>
         </CardHeader>
         <CardContent className="p-8 bg-white">
           <form onSubmit={handleLogin} className="space-y-6">
