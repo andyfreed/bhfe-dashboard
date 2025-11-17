@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { BookOpen, RefreshCw, ExternalLink, DollarSign, Package, CheckCircle2, XCircle, FileText, Search, Database, X, Settings, ChevronDown, ChevronUp } from 'lucide-react'
+import { BookOpen, RefreshCw, ExternalLink, DollarSign, Package, CheckCircle2, XCircle, FileText, Search, Database, X, Settings, ChevronDown, ChevronUp, ArrowUpDown } from 'lucide-react'
 import { WordPressCourse } from '@/lib/wordpress-sync'
 
 export default function CoursesPage() {
@@ -21,6 +21,7 @@ export default function CoursesPage() {
   const [loadingMetaKeys, setLoadingMetaKeys] = useState(false)
   const [showMetaKeys, setShowMetaKeys] = useState(false)
   const [showConfig, setShowConfig] = useState(false)
+  const [sortBy, setSortBy] = useState<'sitemap' | 'alphabetical'>('sitemap')
 
   useEffect(() => {
     // Load saved WordPress URL and API key from localStorage
@@ -245,11 +246,19 @@ ${courses.map(course => `  <url>
       course.slug.toLowerCase().includes(search)
     )
   }).sort((a, b) => {
-    // Sort: courses not in sitemap first
-    const aInSitemap = isInSitemap(a.permalink)
-    const bInSitemap = isInSitemap(b.permalink)
-    if (aInSitemap === bInSitemap) return 0
-    return aInSitemap ? 1 : -1
+    if (sortBy === 'alphabetical') {
+      // Sort alphabetically by title
+      return a.title.localeCompare(b.title, undefined, { sensitivity: 'base' })
+    } else {
+      // Sort: courses not in sitemap first, then alphabetically within each group
+      const aInSitemap = isInSitemap(a.permalink)
+      const bInSitemap = isInSitemap(b.permalink)
+      if (aInSitemap !== bInSitemap) {
+        return aInSitemap ? 1 : -1
+      }
+      // If both in same sitemap status, sort alphabetically
+      return a.title.localeCompare(b.title, undefined, { sensitivity: 'base' })
+    }
   })
 
   // Calculate count of courses not in sitemap and store in localStorage
@@ -520,19 +529,32 @@ ${courses.map(course => `  <url>
         </Card>
       )}
 
-      {/* Search */}
+      {/* Search and Sort */}
       {courses.length > 0 && (
         <Card className="border-2 border-slate-300">
           <CardContent className="pt-6">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search courses by title, SKU, or description..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+            <div className="flex gap-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search courses by title, SKU, or description..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <ArrowUpDown className="h-5 w-5 text-gray-400" />
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as 'sitemap' | 'alphabetical')}
+                  className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                >
+                  <option value="sitemap">Sitemap Priority</option>
+                  <option value="alphabetical">Alphabetical</option>
+                </select>
+              </div>
             </div>
             {searchTerm && (
               <p className="mt-2 text-sm text-gray-600">
