@@ -180,12 +180,18 @@ function bhfe_get_active_courses($request) {
             // Get course versions
             $version_content = get_post_meta($post_id, 'flms_version_content', true);
             $versions = array();
+            $has_active_public_version = false;
             
             if (is_array($version_content)) {
                 foreach ($version_content as $version_key => $version_data) {
                     // Check if this version is archived
                     $is_archived = isset($version_data['archived']) && $version_data['archived'] === true;
                     $is_public = isset($version_data['public']) && $version_data['public'] === true;
+                    
+                    // Track if we have at least one active public version
+                    if ($is_public && !$is_archived) {
+                        $has_active_public_version = true;
+                    }
                     
                     $versions[] = array(
                         'version_key' => $version_key,
@@ -195,6 +201,15 @@ function bhfe_get_active_courses($request) {
                         'created_at' => isset($version_data['date']) ? $version_data['date'] : null,
                     );
                 }
+            } else {
+                // If no version data exists, assume the course is active (for backward compatibility)
+                $has_active_public_version = true;
+            }
+            
+            // Skip courses that don't have at least one active public version
+            // (unless include_all is true for debugging)
+            if (!$include_all && !$has_active_public_version) {
+                continue;
             }
             
             // Get associated WooCommerce product
@@ -227,10 +242,10 @@ function bhfe_get_active_courses($request) {
             
             $course = array(
                 'id' => $post_id,
-                'title' => get_the_title(),
+                'title' => html_entity_decode(get_the_title(), ENT_QUOTES | ENT_HTML5, 'UTF-8'),
                 'slug' => get_post_field('post_name', $post_id),
                 'permalink' => get_permalink($post_id),
-                'excerpt' => get_the_excerpt(),
+                'excerpt' => html_entity_decode(get_the_excerpt(), ENT_QUOTES | ENT_HTML5, 'UTF-8'),
                 'content' => get_the_content(),
                 'product_id' => $product_id,
                 'product_sku' => $product_sku,
