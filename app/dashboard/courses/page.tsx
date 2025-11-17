@@ -244,7 +244,35 @@ ${courses.map(course => `  <url>
       course.product_sku?.toLowerCase().includes(search) ||
       course.slug.toLowerCase().includes(search)
     )
+  }).sort((a, b) => {
+    // Sort: courses not in sitemap first
+    const aInSitemap = isInSitemap(a.permalink)
+    const bInSitemap = isInSitemap(b.permalink)
+    if (aInSitemap === bInSitemap) return 0
+    return aInSitemap ? 1 : -1
   })
+
+  // Calculate count of courses not in sitemap and store in localStorage
+  useEffect(() => {
+    if (courses.length > 0) {
+      if (sitemapUrls.size > 0) {
+        const notInSitemapCount = courses.filter(course => !isInSitemap(course.permalink)).length
+        localStorage.setItem('bhfe_courses_not_in_sitemap_count', notInSitemapCount.toString())
+        // Trigger storage event for same-window listeners
+        window.dispatchEvent(new StorageEvent('storage', {
+          key: 'bhfe_courses_not_in_sitemap_count',
+          newValue: notInSitemapCount.toString()
+        }))
+      } else {
+        // If sitemap hasn't been checked yet, assume all are not in sitemap
+        localStorage.setItem('bhfe_courses_not_in_sitemap_count', courses.length.toString())
+        window.dispatchEvent(new StorageEvent('storage', {
+          key: 'bhfe_courses_not_in_sitemap_count',
+          newValue: courses.length.toString()
+        }))
+      }
+    }
+  }, [courses, sitemapUrls])
 
   if (loading && courses.length === 0) {
     return (
@@ -526,10 +554,6 @@ ${courses.map(course => `  <url>
                 </CardTitle>
               </CardHeader>
               <CardContent className="flex-1 flex flex-col space-y-4">
-                {course.excerpt && (
-                  <p className="text-sm text-gray-600 line-clamp-3">{course.excerpt}</p>
-                )}
-                
                 <div className="space-y-2 text-sm">
                   {course.product_sku && (
                     <div className="flex items-center gap-2 text-gray-600">

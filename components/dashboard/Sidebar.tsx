@@ -53,6 +53,7 @@ export function Sidebar() {
   const [hasUnreadMessages, setHasUnreadMessages] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isRegulatoryExpanded, setIsRegulatoryExpanded] = useState(false)
+  const [coursesNotInSitemapCount, setCoursesNotInSitemapCount] = useState<number | null>(null)
   const supabase = createClient()
 
   useEffect(() => {
@@ -61,8 +62,28 @@ export function Sidebar() {
     // Close mobile menu when navigating
     setIsMobileMenuOpen(false)
     
+    // Load courses not in sitemap count from localStorage
+    const count = localStorage.getItem('bhfe_courses_not_in_sitemap_count')
+    setCoursesNotInSitemapCount(count ? parseInt(count, 10) : null)
+    
+    // Listen for storage changes (when courses page updates the count)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'bhfe_courses_not_in_sitemap_count') {
+        setCoursesNotInSitemapCount(e.newValue ? parseInt(e.newValue, 10) : null)
+      }
+    }
+    window.addEventListener('storage', handleStorageChange)
+    
+    // Also check periodically in case localStorage is updated in same window
+    const interval = setInterval(() => {
+      const count = localStorage.getItem('bhfe_courses_not_in_sitemap_count')
+      setCoursesNotInSitemapCount(count ? parseInt(count, 10) : null)
+    }, 1000)
+    
     return () => {
       if (unsubscribe) unsubscribe()
+      window.removeEventListener('storage', handleStorageChange)
+      clearInterval(interval)
     }
   }, [pathname])
 
@@ -204,6 +225,9 @@ export function Sidebar() {
               )
             }
             
+            // Special handling for Active Courses to show count
+            const isActiveCourses = item.name === 'Active Courses'
+            
             return (
               <Link
                 key={item.name}
@@ -225,7 +249,17 @@ export function Sidebar() {
                   isActive ? "text-white drop-shadow-md" : "text-slate-500 group-hover:text-slate-700",
                   !isActive && "group-hover:scale-110"
                 )} />
-                <span>{item.name}</span>
+                <span className="flex-1">{item.name}</span>
+                {isActiveCourses && coursesNotInSitemapCount !== null && coursesNotInSitemapCount > 0 && (
+                  <span className={cn(
+                    "px-2 py-0.5 rounded-full text-xs font-bold",
+                    isActive 
+                      ? "bg-white/20 text-white" 
+                      : "bg-red-500 text-white"
+                  )}>
+                    {coursesNotInSitemapCount}
+                  </span>
+                )}
                 {isActive && (
                   <div className="ml-auto h-2 w-2 rounded-full bg-white/90 animate-pulse shadow-sm" />
                 )}
