@@ -312,13 +312,19 @@ export default function ChatPage() {
     if (!user) return
 
     // Delete all messages where current user is sender or receiver
-    const { error } = await supabase
+    // Use separate queries for sender and receiver to avoid OR clause issues
+    const { error: senderError } = await supabase
       .from('chat_messages')
       .delete()
-      .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
+      .eq('sender_id', user.id)
 
-    if (error) {
-      console.error('Error deleting chat history:', error)
+    const { error: receiverError } = await supabase
+      .from('chat_messages')
+      .delete()
+      .eq('receiver_id', user.id)
+
+    if (senderError || receiverError) {
+      console.error('Error deleting chat history:', senderError || receiverError)
       alert('Failed to delete chat history. Please try again.')
       return
     }

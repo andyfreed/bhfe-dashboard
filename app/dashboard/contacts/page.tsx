@@ -31,6 +31,7 @@ export default function ContactsPage() {
   const [showForm, setShowForm] = useState(false)
   const [editingContact, setEditingContact] = useState<Contact | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
+  const [selectedTag, setSelectedTag] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -190,11 +191,25 @@ export default function ContactsPage() {
     setShowForm(false)
   }
 
-  const filteredContacts = contacts.filter((contact) =>
-    contact.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    contact.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    contact.company?.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  // Get all unique tags from contacts
+  const allTags = Array.from(
+    new Set(
+      contacts
+        .flatMap(contact => contact.tags || [])
+        .filter(Boolean)
+    )
+  ).sort()
+
+  const filteredContacts = contacts.filter((contact) => {
+    const matchesSearch = 
+      contact.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      contact.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      contact.company?.toLowerCase().includes(searchTerm.toLowerCase())
+    
+    const matchesTag = selectedTag === null || (contact.tags && contact.tags.includes(selectedTag))
+    
+    return matchesSearch && matchesTag
+  })
 
   if (loading) {
     return <div className="text-center py-12">Loading...</div>
@@ -213,14 +228,46 @@ export default function ContactsPage() {
         </Button>
       </div>
 
-      <div>
-        <input
-          type="text"
-          placeholder="Search contacts..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full max-w-md px-4 py-2 border border-gray-300 rounded-md"
-        />
+      <div className="space-y-4">
+        <div>
+          <input
+            type="text"
+            placeholder="Search contacts..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full max-w-md px-4 py-2 border border-gray-300 rounded-md"
+          />
+        </div>
+        {allTags.length > 0 && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Filter by Tag:</label>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => setSelectedTag(null)}
+                className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                  selectedTag === null
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                All
+              </button>
+              {allTags.map((tag) => (
+                <button
+                  key={tag}
+                  onClick={() => setSelectedTag(tag)}
+                  className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                    selectedTag === tag
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  {tag}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {showForm && (

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { CheckSquare, Calendar, Bell, FolderKanban, MessageSquare, Sparkles, Calendar as CalendarIcon, MapPin, ArrowRight } from 'lucide-react'
+import { CheckSquare, Calendar, Bell, MessageSquare, Calendar as CalendarIcon, MapPin, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
 
 export default function DashboardPage() {
@@ -27,12 +27,11 @@ export default function DashboardPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      // Get all stats
-      const [todos, events, reminders, projects, messages] = await Promise.all([
+      // Get all stats (excluding projects)
+      const [todos, events, reminders, messages] = await Promise.all([
         supabase.from('todos').select('id', { count: 'exact', head: true }),
         supabase.from('calendar_events').select('id', { count: 'exact', head: true }),
         supabase.from('reminders').select('id', { count: 'exact', head: true }),
-        supabase.from('projects').select('id', { count: 'exact', head: true }),
         supabase.from('chat_messages').select('id', { count: 'exact', head: true })
           .eq('receiver_id', user.id)
           .eq('is_read', false),
@@ -42,45 +41,37 @@ export default function DashboardPage() {
         todos: todos.count || 0,
         events: events.count || 0,
         reminders: reminders.count || 0,
-        projects: projects.count || 0,
+        projects: 0,
         unreadMessages: messages.count || 0,
       })
 
-      // Get upcoming CPA renewals (next 3 months)
+      // Get upcoming CPA renewals (current month, next month, 3rd month)
       const now = new Date()
       const currentMonth = now.getMonth() // 0-11
-      const next3Months = [
-        now.toLocaleString('default', { month: 'long' }),
-        new Date(now.getFullYear(), currentMonth + 1, 1).toLocaleString('default', { month: 'long' }),
-        new Date(now.getFullYear(), currentMonth + 2, 1).toLocaleString('default', { month: 'long' }),
-      ]
+      const currentMonthName = now.toLocaleString('default', { month: 'long' })
+      const nextMonthName = new Date(now.getFullYear(), currentMonth + 1, 1).toLocaleString('default', { month: 'long' })
+      const thirdMonthName = new Date(now.getFullYear(), currentMonth + 2, 1).toLocaleString('default', { month: 'long' })
 
       const { data: statesData } = await supabase
         .from('state_info')
         .select('state_name, state_code, renewal_month')
         .not('renewal_month', 'is', null)
         .neq('renewal_month', '')
+        .neq('renewal_month', 'Varies') // Exclude "Varies"
 
       if (statesData) {
         const renewals = statesData
           .filter(state => 
             state.renewal_month && 
-            (next3Months.includes(state.renewal_month) || state.renewal_month === 'Varies')
+            (state.renewal_month === currentMonthName || 
+             state.renewal_month === nextMonthName || 
+             state.renewal_month === thirdMonthName)
           )
           .map(state => ({
             state_name: state.state_name,
             state_code: state.state_code,
             renewal_month: state.renewal_month || '',
           }))
-          .sort((a, b) => {
-            const monthOrder = ['January', 'February', 'March', 'April', 'May', 'June', 
-              'July', 'August', 'September', 'October', 'November', 'December', 'Varies']
-            const aIndex = monthOrder.indexOf(a.renewal_month)
-            const bIndex = monthOrder.indexOf(b.renewal_month)
-            if (aIndex === -1) return 1
-            if (bIndex === -1) return -1
-            return aIndex - bIndex
-          })
         
         setUpcomingRenewals(renewals)
       }
@@ -128,18 +119,6 @@ export default function DashboardPage() {
       valueGradient: 'bg-gradient-to-r from-amber-600 to-orange-600',
     },
     {
-      title: 'Projects',
-      value: stats.projects,
-      icon: FolderKanban,
-      href: '/dashboard/projects',
-      gradient: 'bg-gradient-to-br from-purple-500 via-indigo-600 to-pink-500',
-      bgGradient: 'bg-gradient-to-br from-purple-50 via-pink-50 to-purple-50',
-      borderColor: 'border-purple-400',
-      iconBg: 'bg-purple-500',
-      textColor: 'text-purple-700',
-      valueGradient: 'bg-gradient-to-r from-purple-600 to-pink-600',
-    },
-    {
       title: 'Unread Messages',
       value: stats.unreadMessages,
       icon: MessageSquare,
@@ -171,8 +150,8 @@ export default function DashboardPage() {
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0icmdiYSgyNTUsMjU1LDI1NSwwLjE1KSIgc3Ryb2tlLXdpZHRoPSIxIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2dyaWQpIi8+PC9zdmc+')] opacity-30" />
         <div className="relative z-10">
           <div className="flex items-center gap-2 sm:gap-4 mb-3 sm:mb-4">
-            <div className="p-2 sm:p-3 rounded-xl sm:rounded-2xl bg-white/20 backdrop-blur-sm">
-              <Sparkles className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
+            <div className="p-2 sm:p-3 rounded-xl sm:rounded-2xl bg-white/20 backdrop-blur-sm h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center overflow-hidden">
+              <img src="/logo.png" alt="BHFE Logo" className="h-full w-full object-contain" />
             </div>
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight drop-shadow-lg">Dashboard</h1>
           </div>
@@ -235,21 +214,44 @@ export default function DashboardPage() {
             </div>
           </CardHeader>
           <CardContent className="p-6 bg-white">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {upcomingRenewals.map((renewal, index) => (
-                <div
-                  key={index}
-                  className="flex items-center gap-3 p-4 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 hover:border-blue-400 transition-colors"
-                >
-                  <MapPin className="h-5 w-5 text-blue-600" />
-                  <div className="flex-1">
-                    <div className="font-bold text-slate-900">{renewal.state_name}</div>
-                    <div className="text-sm text-slate-600">
-                      {renewal.renewal_month === 'Varies' ? 'Varies' : `Renewal: ${renewal.renewal_month}`}
-                    </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {(() => {
+                const now = new Date()
+                const currentMonth = now.getMonth()
+                const currentMonthName = now.toLocaleString('default', { month: 'long' })
+                const nextMonthName = new Date(now.getFullYear(), currentMonth + 1, 1).toLocaleString('default', { month: 'long' })
+                const thirdMonthName = new Date(now.getFullYear(), currentMonth + 2, 1).toLocaleString('default', { month: 'long' })
+                
+                const currentMonthStates = upcomingRenewals.filter(r => r.renewal_month === currentMonthName)
+                const nextMonthStates = upcomingRenewals.filter(r => r.renewal_month === nextMonthName)
+                const thirdMonthStates = upcomingRenewals.filter(r => r.renewal_month === thirdMonthName)
+                
+                return [
+                  { month: currentMonthName, states: currentMonthStates },
+                  { month: nextMonthName, states: nextMonthStates },
+                  { month: thirdMonthName, states: thirdMonthStates },
+                ].map((column, colIndex) => (
+                  <div key={colIndex} className="space-y-2">
+                    <h3 className="font-bold text-lg text-slate-900 mb-3">{column.month}</h3>
+                    {column.states.length > 0 ? (
+                      column.states.map((renewal, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center gap-3 p-3 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 hover:border-blue-400 transition-colors"
+                        >
+                          <MapPin className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <div className="font-bold text-slate-900 truncate">{renewal.state_name}</div>
+                            <div className="text-xs text-slate-600">Renewal: {renewal.renewal_month}</div>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-sm text-gray-500 italic">No renewals</p>
+                    )}
                   </div>
-                </div>
-              ))}
+                ))
+              })()}
             </div>
           </CardContent>
         </Card>
