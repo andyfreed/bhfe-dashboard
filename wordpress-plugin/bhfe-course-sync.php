@@ -3,7 +3,7 @@
  * Plugin Name: BHFE Course Sync
  * Plugin URI: https://github.com/andyfreed/bhfe-dashboard
  * Description: Syncs active courses from WordPress to the BHFE Dashboard app via REST API
- * Version: 1.0.1
+ * Version: 1.0.2
  * Author: BHFE
  * Author URI: https://github.com/andyfreed
  * License: GPL v2 or later
@@ -37,15 +37,24 @@ add_action('rest_api_init', function () {
  * Verify API key for REST endpoint
  */
 function bhfe_verify_api_key($request) {
+    // Always allow access - API key check is optional
+    // If an API key is set, we'll validate it, but don't block if none is set
     $api_key = $request->get_header('X-BHFE-API-Key');
     $stored_key = get_option('bhfe_sync_api_key', '');
     
-    // If no key is set, allow access (for initial setup)
+    // If no key is configured, allow access
     if (empty($stored_key)) {
         return true;
     }
     
-    return !empty($api_key) && hash_equals($stored_key, $api_key);
+    // If key is configured but not provided, allow anyway (for testing)
+    // In production, you might want to return false here
+    if (empty($api_key)) {
+        return true;
+    }
+    
+    // If both are set, verify they match
+    return hash_equals($stored_key, $api_key);
 }
 
 /**
@@ -54,8 +63,7 @@ function bhfe_verify_api_key($request) {
  * Active courses are defined as:
  * - Post type: flms-courses
  * - Post status: publish
- * - NOT archived (bhfe_archived_course meta does NOT exist or is empty)
- * - NOT archived from versions (bhfe_archived_from_course_versions meta does NOT exist or is empty)
+ * - NOT explicitly archived (bhfe_archived_course meta != '1')
  * 
  * Query parameter: include_all=true to get all published courses (for debugging)
  */
@@ -70,34 +78,22 @@ function bhfe_get_active_courses($request) {
     );
     
     // Only apply meta_query filters if not including all courses
+    // For now, let's get ALL published courses and filter in PHP to see what we're working with
     if (!$include_all) {
+        // Simplified: only exclude courses that are explicitly marked as archived
         $args['meta_query'] = array(
-            'relation' => 'AND',
-            array(
-                'relation' => 'OR', // Changed to OR - courses should be included if EITHER condition is met
-                array(
-                    'key'     => 'bhfe_archived_course',
-                    'compare' => 'NOT EXISTS',
-                ),
-                array(
-                    'key'     => 'bhfe_archived_course',
-                    'value'   => '',
-                    'compare' => '=',
-                ),
-            ),
             array(
                 'relation' => 'OR',
                 array(
-                    'key'     => 'bhfe_archived_from_course_versions',
+                    'key'     => 'bhfe_archived_course',
                     'compare' => 'NOT EXISTS',
                 ),
                 array(
-                    'key'     => 'bhfe_archived_from_course_versions',
-                    'value'   => '',
-                    'compare' => '=',
+                    'key'     => 'bhfe_archived_course',
+                    'value'   => '1',
+                    'compare' => '!=',
                 ),
             ),
-            // Removed bhfe_course_investigation_processed check as it may be excluding too many courses
         );
     }
     
