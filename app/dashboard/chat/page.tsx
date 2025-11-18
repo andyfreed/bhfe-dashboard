@@ -353,14 +353,14 @@ export default function ChatPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Chat</h1>
-        <p className="text-gray-600 mt-1">Real-time messaging</p>
+        <h1 className="text-3xl font-extrabold text-red-500 tracking-widest uppercase drop-shadow-sm">Chat</h1>
+        <p className="text-zinc-400 mt-1 tracking-wide">Real-time messaging</p>
       </div>
 
-      <Card className="flex flex-col h-[calc(100vh-250px)]">
-        <CardHeader className="border-b border-gray-200">
+      <Card className="flex flex-col h-[calc(100vh-250px)] border-zinc-800 bg-black/60">
+        <CardHeader className="border-b border-zinc-800">
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-red-500">
               <MessageSquare className="h-5 w-5" />
               Team Chat
             </CardTitle>
@@ -368,16 +368,16 @@ export default function ChatPage() {
               variant="outline"
               size="sm"
               onClick={handleDeleteHistory}
-              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+              className="text-red-500 hover:text-red-400 hover:bg-red-950/30 border-red-900/50"
             >
               <Trash2 className="h-4 w-4 mr-2" />
               Delete History
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="flex-1 overflow-y-auto p-4 space-y-4">
+        <CardContent className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
           {messages.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">
+            <div className="text-center py-12 text-zinc-500 font-mono">
               No messages yet. Start the conversation!
             </div>
           ) : (
@@ -392,21 +392,21 @@ export default function ChatPage() {
                   className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}
                 >
                   <div
-                    className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                    className={`max-w-xs lg:max-w-md px-4 py-2 rounded ${
                       isOwnMessage
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-200 text-gray-900'
+                        ? 'bg-gradient-to-br from-red-700 to-red-900 text-white shadow-lg shadow-red-900/20 border border-red-600/50'
+                        : 'bg-zinc-800 text-zinc-100 border border-zinc-700 shadow-lg'
                     }`}
                   >
                     {!isOwnMessage && (
-                      <p className="text-xs font-semibold mb-1 text-gray-700">
+                      <p className="text-xs font-bold mb-1 text-red-400 uppercase tracking-wider">
                         {senderName}
                       </p>
                     )}
                     <p className="text-sm">{message.message}</p>
                     <p
                       className={`text-xs mt-1 ${
-                        isOwnMessage ? 'text-blue-100' : 'text-gray-500'
+                        isOwnMessage ? 'text-red-200' : 'text-zinc-500'
                       }`}
                     >
                       {format(new Date(message.created_at), 'MMM d, yyyy h:mm a')}
@@ -418,16 +418,16 @@ export default function ChatPage() {
           )}
           <div ref={messagesEndRef} />
         </CardContent>
-        <div className="border-t border-gray-200 p-4">
+        <div className="border-t border-zinc-800 p-4 bg-black/40">
           <form onSubmit={handleSend} className="flex gap-2">
             <input
               type="text"
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
               placeholder="Type a message..."
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 px-4 py-2 bg-zinc-900 border border-zinc-700 rounded text-zinc-100 focus:outline-none focus:ring-2 focus:ring-red-600 placeholder:text-zinc-600"
             />
-            <Button type="submit" disabled={!newMessage.trim()}>
+            <Button type="submit" disabled={!newMessage.trim()} className="bg-red-700 hover:bg-red-600 text-white border-none">
               <Send className="h-4 w-4 mr-2" />
               Send
             </Button>
