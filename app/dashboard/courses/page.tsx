@@ -77,6 +77,42 @@ export default function CoursesPage() {
     }
   }
 
+  const normalizeUrl = (url: string, baseUrl?: string): string[] => {
+    if (!url) return ['']
+    
+    const variations: string[] = []
+    
+    // Remove trailing slash
+    let normalized = url.trim().replace(/\/$/, '')
+    
+    // If it's a relative URL and we have a base URL, make it absolute
+    if (normalized.startsWith('/') && baseUrl) {
+      const base = baseUrl.replace(/\/$/, '')
+      normalized = `${base}${normalized}`
+    }
+    
+    // Try to parse as URL
+    try {
+      const urlObj = new URL(normalized)
+      // Add full URL without trailing slash
+      variations.push(urlObj.href.replace(/\/$/, ''))
+      // Add pathname without trailing slash
+      variations.push(urlObj.pathname.replace(/\/$/, ''))
+      // Add URL without protocol
+      variations.push(urlObj.href.replace(/^https?:\/\//, '').replace(/\/$/, ''))
+    } catch {
+      // If URL parsing fails, just use the normalized version
+      variations.push(normalized)
+    }
+    
+    // Also add the original normalized version
+    if (!variations.includes(normalized)) {
+      variations.push(normalized)
+    }
+    
+    return variations
+  }
+
   const handleSync = async () => {
     if (!wordpressUrl.trim()) {
       setError('Please enter a WordPress URL')
@@ -104,9 +140,11 @@ export default function CoursesPage() {
       setCheckingSitemap(true)
       
       // Route through Next.js API to avoid CORS issues
+      // Add cache-busting timestamp to ensure we get fresh sitemap
       const params = new URLSearchParams({ 
         wordpress_url: url,
-        endpoint: 'sitemap'
+        endpoint: 'sitemap',
+        _t: Date.now().toString() // Cache busting
       })
       if (apiKey) {
         params.append('api_key', apiKey)
@@ -115,6 +153,7 @@ export default function CoursesPage() {
       const response = await fetch(`/api/sync/courses?${params.toString()}`)
       
       if (!response.ok) {
+        console.warn('[Courses] Failed to fetch sitemap:', response.status, response.statusText)
         setSitemapUrls(new Set())
         return
       }
@@ -123,6 +162,7 @@ export default function CoursesPage() {
       const xmlText = data.xml
       
       if (!xmlText) {
+        console.warn('[Courses] Sitemap XML is empty')
         setSitemapUrls(new Set())
         return
       }
@@ -130,18 +170,33 @@ export default function CoursesPage() {
       const parser = new DOMParser()
       const xmlDoc = parser.parseFromString(xmlText, 'text/xml')
       
+      // Check for parsing errors
+      const parserError = xmlDoc.querySelector('parsererror')
+      if (parserError) {
+        console.error('[Courses] XML parsing error:', parserError.textContent)
+        setSitemapUrls(new Set())
+        return
+      }
+      
       // Extract all URLs from the sitemap
       const urlElements = xmlDoc.getElementsByTagName('loc')
       const urls = new Set<string>()
       
       for (let i = 0; i < urlElements.length; i++) {
-        const urlText = urlElements[i].textContent
+        const urlText = urlElements[i].textContent?.trim()
         if (urlText) {
-          // Normalize URL (remove trailing slashes for comparison)
-          urls.add(urlText.replace(/\/$/, ''))
+          // Get all variations of this URL and add them all
+          const variations = normalizeUrl(urlText, url)
+          variations.forEach(variation => {
+            if (variation) {
+              urls.add(variation)
+            }
+          })
         }
       }
       
+      console.log('[Courses] Loaded', urls.size, 'URL variations from sitemap')
+      console.log('[Courses] Sample sitemap URLs:', Array.from(urls).slice(0, 5))
       setSitemapUrls(urls)
     } catch (err) {
       console.error('[Courses] Error checking sitemap:', err)
@@ -201,9 +256,36 @@ ${courses.map(course => `  <url>
 
   const isInSitemap = (permalink: string): boolean => {
     if (sitemapUrls.size === 0) return false
-    // Normalize URL for comparison
-    const normalizedUrl = permalink.replace(/\/$/, '')
-    return sitemapUrls.has(normalizedUrl)
+    if (!permalink) return false
+    
+    // Get all variations of the permalink
+    const permalinkVariations = normalizeUrl(permalink, wordpressUrl)
+    
+    // Check each variation against sitemap URLs
+    for (const permalinkVar of permalinkVariations) {
+      // Direct match
+      if (sitemapUrls.has(permalinkVar)) {
+        console.log('[Courses] Found match:', permalinkVar)
+        return true
+      }
+      
+      // Check if any sitemap URL matches this variation
+      for (const sitemapUrl of sitemapUrls) {
+        const sitemapVariations = normalizeUrl(sitemapUrl)
+        
+        // Check if any variation matches
+        for (const sitemapVar of sitemapVariations) {
+          if (permalinkVar === sitemapVar || 
+              permalinkVar.endsWith(sitemapVar) || 
+              sitemapVar.endsWith(permalinkVar)) {
+            console.log('[Courses] Found match:', permalinkVar, '===', sitemapVar)
+            return true
+          }
+        }
+      }
+    }
+    
+    return false
   }
 
   const getAdminUrl = (courseId: number): string => {
