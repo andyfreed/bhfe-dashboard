@@ -110,13 +110,13 @@ export function Sidebar() {
       {/* Mobile Menu Button */}
       <button
         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 p-3 rounded-xl glass border-yellow-500/30 shadow-lg hover:border-yellow-500/50 transition-all"
+        className="lg:hidden fixed top-4 left-4 z-50 p-3 rounded-xl glass border-fuchsia-500/40 shadow-lg hover:border-fuchsia-500/60 transition-all glow-pink"
         aria-label="Toggle menu"
       >
         {isMobileMenuOpen ? (
-          <X className="h-6 w-6 text-yellow-400" />
+          <X className="h-6 w-6 text-fuchsia-400 neon-pink" />
         ) : (
-          <Menu className="h-6 w-6 text-yellow-400" />
+          <Menu className="h-6 w-6 text-cyan-400 neon-cyan" />
         )}
       </button>
 
@@ -130,22 +130,22 @@ export function Sidebar() {
 
       {/* Sidebar */}
       <div className={cn(
-        "fixed lg:static inset-y-0 left-0 z-50 flex h-screen w-72 flex-col shiny-black border-r border-yellow-500/20 transform transition-transform duration-300 ease-in-out",
+        "fixed lg:static inset-y-0 left-0 z-50 flex h-screen w-72 flex-col shiny-black border-r border-fuchsia-500/30 transform transition-transform duration-300 ease-in-out laser-beam",
         isMobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
       )}>
         {/* Header */}
-        <div className="flex h-24 items-center justify-between px-6 border-b border-yellow-500/20 relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/5 via-transparent to-transparent" />
+        <div className="flex h-24 items-center justify-between px-6 border-b border-fuchsia-500/30 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-fuchsia-500/10 via-cyan-500/5 to-transparent" />
           <div className="flex items-center gap-3 relative z-10">
-            <div className="h-10 w-10 rounded-xl glass-light border-yellow-500/30 flex items-center justify-center overflow-hidden">
+            <div className="h-10 w-10 rounded-xl glass-light border-fuchsia-500/40 flex items-center justify-center overflow-hidden glow-pink">
               <img src="/logo.png" alt="BHFE Logo" className="h-full w-full object-contain" />
             </div>
             <div>
-              <h1 className="text-lg font-black text-white tracking-tight">BHFE</h1>
-              <p className="text-xs text-yellow-400/60 font-semibold uppercase tracking-wider">Dashboard</p>
+              <h1 className="text-lg font-black text-white tracking-tight neon-pink">BHFE</h1>
+              <p className="text-xs text-cyan-400/70 font-semibold uppercase tracking-wider neon-cyan">Dashboard</p>
             </div>
           </div>
-          <div className="h-1 w-12 bg-gradient-to-r from-yellow-500 to-transparent rounded-full" />
+          <div className="h-1 w-12 bg-gradient-to-r from-fuchsia-500 via-cyan-500 to-transparent rounded-full animate-pulse" />
         </div>
         
         {/* Navigation */}
@@ -169,27 +169,27 @@ export function Sidebar() {
                     className={cn(
                       'group w-full flex items-center gap-3 rounded-xl px-4 py-3.5 text-sm font-bold transition-all duration-300 relative',
                       isActive
-                        ? 'bg-gradient-to-r from-yellow-500/20 to-amber-500/20 text-yellow-400 border border-yellow-500/40 glow-yellow'
-                        : 'text-gray-400 glass-light border border-transparent hover:border-yellow-500/20 hover:text-yellow-400 hover:bg-yellow-500/5'
+                        ? 'bg-gradient-to-r from-fuchsia-500/30 to-pink-500/20 text-fuchsia-300 border border-fuchsia-500/50 glow-pink'
+                        : 'text-gray-400 glass-light border border-transparent hover:border-fuchsia-500/30 hover:text-fuchsia-400 hover:bg-fuchsia-500/10'
                     )}
                   >
                     <item.icon className={cn(
                       "h-5 w-5 transition-all duration-300",
-                      isActive ? "text-yellow-400" : "text-gray-500 group-hover:text-yellow-400",
+                      isActive ? "text-fuchsia-400 neon-pink" : "text-gray-500 group-hover:text-fuchsia-400",
                       !isActive && "group-hover:scale-110"
                     )} />
                     <span className="flex-1 text-left">{item.name}</span>
                     {isRegulatoryExpanded ? (
-                      <ChevronDown className="h-4 w-4 text-yellow-400/60" />
+                      <ChevronDown className="h-4 w-4 text-fuchsia-400/70" />
                     ) : (
                       <ChevronRight className="h-4 w-4 text-gray-500" />
                     )}
                     {isActive && (
-                      <div className="absolute right-2 h-2 w-2 rounded-full bg-yellow-400 animate-pulse shadow-lg shadow-yellow-400/50" />
+                      <div className="absolute right-2 h-2 w-2 rounded-full bg-fuchsia-400 animate-pulse shadow-lg shadow-fuchsia-400/70 glow-pink" />
                     )}
                   </button>
                   {isRegulatoryExpanded && (
-                    <div className="ml-4 mt-1 space-y-1 border-l border-yellow-500/20 pl-4">
+                    <div className="ml-4 mt-1 space-y-1 border-l border-fuchsia-500/30 pl-4">
                       {regulatorySubmenu.map((subItem) => {
                         const subIsActive = pathname.startsWith('/dashboard/states')
                         return (
@@ -200,8 +200,8 @@ export function Sidebar() {
                             className={cn(
                               'group flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-medium transition-all duration-200',
                               subIsActive
-                                ? 'text-yellow-400 bg-yellow-500/10 border-l-2 border-yellow-500'
-                                : 'text-gray-500 hover:text-yellow-400 hover:bg-yellow-500/5'
+                                ? 'text-cyan-400 bg-cyan-500/10 border-l-2 border-cyan-500 neon-cyan'
+                                : 'text-gray-500 hover:text-cyan-400 hover:bg-cyan-500/10'
                             )}
                           >
                             <span>{subItem.name}</span>
@@ -222,22 +222,22 @@ export function Sidebar() {
                 className={cn(
                   'group flex items-center gap-3 rounded-xl px-4 py-3.5 text-sm font-bold transition-all duration-300 relative',
                   isActive
-                    ? 'bg-gradient-to-r from-yellow-500/20 to-amber-500/20 text-yellow-400 border border-yellow-500/40 glow-yellow'
-                    : 'text-gray-400 glass-light border border-transparent hover:border-yellow-500/20 hover:text-yellow-400 hover:bg-yellow-500/5',
-                  showGlow && 'animate-pulse-glow border-yellow-500/60'
+                    ? 'bg-gradient-to-r from-fuchsia-500/30 to-pink-500/20 text-fuchsia-300 border border-fuchsia-500/50 glow-pink'
+                    : 'text-gray-400 glass-light border border-transparent hover:border-fuchsia-500/30 hover:text-fuchsia-400 hover:bg-fuchsia-500/10',
+                  showGlow && 'animate-pulse-glow border-cyan-500/60 glow-cyan'
                 )}
               >
                 <item.icon className={cn(
                   "h-5 w-5 transition-all duration-300",
-                  isActive ? "text-yellow-400" : "text-gray-500 group-hover:text-yellow-400",
+                  isActive ? "text-fuchsia-400 neon-pink" : "text-gray-500 group-hover:text-fuchsia-400",
                   !isActive && "group-hover:scale-110"
                 )} />
                 <span>{item.name}</span>
                 {isActive && (
-                  <div className="ml-auto h-2 w-2 rounded-full bg-yellow-400 animate-pulse shadow-lg shadow-yellow-400/50" />
+                  <div className="ml-auto h-2 w-2 rounded-full bg-fuchsia-400 animate-pulse shadow-lg shadow-fuchsia-400/70 glow-pink" />
                 )}
                 {showGlow && (
-                  <div className="absolute inset-0 rounded-xl bg-yellow-500/10 animate-ping opacity-75" />
+                  <div className="absolute inset-0 rounded-xl bg-cyan-500/20 animate-ping opacity-75" />
                 )}
               </Link>
             )
@@ -245,7 +245,7 @@ export function Sidebar() {
         </nav>
 
         {/* Bottom accent */}
-        <div className="h-px bg-gradient-to-r from-transparent via-yellow-500/50 to-transparent mx-4" />
+        <div className="h-px bg-gradient-to-r from-transparent via-fuchsia-500/60 via-cyan-500/60 to-transparent mx-4 animate-pulse" />
       </div>
     </>
   )

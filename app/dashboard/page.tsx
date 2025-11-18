@@ -114,30 +114,30 @@ export default function DashboardPage() {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="flex items-center gap-3">
-          <div className="h-5 w-5 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin" />
-          <div className="text-gray-400 font-medium">Loading...</div>
+          <div className="h-5 w-5 border-2 border-fuchsia-500 border-t-transparent rounded-full animate-spin glow-pink" />
+          <div className="text-cyan-400 font-medium neon-cyan">Loading...</div>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="space-y-8 animate-in">
+    <div className="space-y-8 animate-in scanlines">
       {/* Hero Header */}
-      <div className="relative overflow-hidden rounded-3xl glass border-yellow-500/30 p-8 lg:p-12 shadow-2xl">
-        <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/5 via-transparent to-transparent" />
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-yellow-500/50 to-transparent" />
+      <div className="relative overflow-hidden rounded-3xl glass border-fuchsia-500/40 p-8 lg:p-12 shadow-2xl laser-beam">
+        <div className="absolute inset-0 bg-gradient-to-br from-fuchsia-500/10 via-cyan-500/5 to-transparent" />
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-fuchsia-500 via-cyan-500 to-transparent animate-pulse" />
         
         <div className="relative z-10">
           <div className="flex items-center gap-4 mb-4">
-            <div className="p-3 rounded-2xl glass-light border-yellow-500/30 h-14 w-14 flex items-center justify-center overflow-hidden">
+            <div className="p-3 rounded-2xl glass-light border-fuchsia-500/40 h-14 w-14 flex items-center justify-center overflow-hidden glow-pink">
               <img src="/logo.png" alt="BHFE Logo" className="h-full w-full object-contain" />
             </div>
             <div>
-              <h1 className="text-4xl lg:text-6xl font-black text-white tracking-tight neon-yellow mb-2">
+              <h1 className="text-4xl lg:text-6xl font-black text-white tracking-tight neon-pink mb-2 animate-neon-flicker">
                 Dashboard
               </h1>
-              <p className="text-yellow-400/80 text-lg font-semibold">Welcome back! Here's your business overview.</p>
+              <p className="text-cyan-400/90 text-lg font-semibold neon-cyan">Welcome back! Here's your business overview.</p>
             </div>
           </div>
         </div>
@@ -154,51 +154,51 @@ export default function DashboardPage() {
               style={{ animationDelay: `${index * 50}ms` }} 
               className="animate-in block group"
             >
-              <Card className="glass border-yellow-500/20 hover:border-yellow-500/40 transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl cursor-pointer relative overflow-hidden group">
+              <Card className="glass border-fuchsia-500/30 hover:border-fuchsia-500/50 transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl cursor-pointer relative overflow-hidden group scan-line">
                 {/* Shimmer effect */}
-                <div className="absolute inset-0 shimmer opacity-0 group-hover:opacity-30 transition-opacity duration-500" />
+                <div className="absolute inset-0 shimmer opacity-0 group-hover:opacity-40 transition-opacity duration-500" />
                 
-                {/* Yellow accent line */}
-                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-yellow-500 via-amber-500 to-yellow-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                {/* Neon accent line */}
+                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-fuchsia-500 via-cyan-500 to-fuchsia-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300 animate-pulse" />
                 
                 <CardHeader className="flex flex-row items-center justify-between pb-4 relative z-10">
-                  <CardTitle className="text-xs font-black text-gray-400 uppercase tracking-widest group-hover:text-yellow-400 transition-colors">
+                  <CardTitle className="text-xs font-black text-gray-400 uppercase tracking-widest group-hover:text-fuchsia-400 transition-colors neon-pink">
                     {card.title}
                   </CardTitle>
-                  <div className="p-3 rounded-xl bg-gradient-to-br from-yellow-500/20 to-amber-500/20 border border-yellow-500/30 group-hover:from-yellow-500/30 group-hover:to-amber-500/30 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 glow-yellow">
-                    <Icon className="h-6 w-6 text-yellow-400" />
+                  <div className="p-3 rounded-xl bg-gradient-to-br from-fuchsia-500/30 to-pink-500/20 border border-fuchsia-500/40 group-hover:from-fuchsia-500/40 group-hover:to-pink-500/30 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 glow-pink">
+                    <Icon className="h-6 w-6 text-fuchsia-400 neon-pink" />
                   </div>
                 </CardHeader>
                 <CardContent className="relative z-10">
-                  <div className="text-6xl font-black text-yellow-400 mb-3 neon-yellow">
+                  <div className="text-6xl font-black text-fuchsia-400 mb-3 neon-pink animate-pulse-glow">
                     {card.value}
                   </div>
-                  <div className="flex items-center gap-2 text-sm font-bold text-gray-500 group-hover:text-yellow-400 transition-colors">
+                  <div className="flex items-center gap-2 text-sm font-bold text-gray-500 group-hover:text-cyan-400 transition-colors neon-cyan">
                     <span>View details</span>
                     <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
                   </div>
                 </CardContent>
                 
                 {/* Corner accent */}
-                <div className="absolute bottom-0 right-0 w-24 h-24 bg-gradient-to-tl from-yellow-500/10 to-transparent rounded-tl-full opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <div className="absolute bottom-0 right-0 w-24 h-24 bg-gradient-to-tl from-fuchsia-500/20 via-cyan-500/10 to-transparent rounded-tl-full opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               </Card>
             </Link>
           )
         })}
       </div>
 
-      {/* CPA Renewals - Dark Modern Card */}
+      {/* CPA Renewals - Synthwave Card */}
       {upcomingRenewals.length > 0 && (
-        <Card className="glass border-yellow-500/30 shadow-2xl overflow-hidden">
-          <CardHeader className="glass-light border-b border-yellow-500/20 p-6 relative">
-            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-yellow-500 via-amber-500 to-yellow-500" />
+        <Card className="glass border-fuchsia-500/40 shadow-2xl overflow-hidden laser-beam">
+          <CardHeader className="glass-light border-b border-fuchsia-500/30 p-6 relative">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-fuchsia-500 via-cyan-500 to-fuchsia-500 animate-pulse" />
             <div className="flex items-center gap-4 relative z-10">
-              <div className="p-3 rounded-xl glass border-yellow-500/30">
-                <CalendarIcon className="h-6 w-6 text-yellow-400" />
+              <div className="p-3 rounded-xl glass border-fuchsia-500/40 glow-pink">
+                <CalendarIcon className="h-6 w-6 text-fuchsia-400 neon-pink" />
               </div>
               <div>
-                <CardTitle className="text-2xl text-white font-black neon-yellow">CPA Renewals Coming Up</CardTitle>
-                <CardDescription className="text-yellow-400/70 mt-1 font-semibold">States with renewals in the next 3 months</CardDescription>
+                <CardTitle className="text-2xl text-white font-black neon-pink animate-neon-flicker">CPA Renewals Coming Up</CardTitle>
+                <CardDescription className="text-cyan-400/80 mt-1 font-semibold neon-cyan">States with renewals in the next 3 months</CardDescription>
               </div>
             </div>
           </CardHeader>
@@ -221,16 +221,16 @@ export default function DashboardPage() {
                   { month: thirdMonthName, states: thirdMonthStates },
                 ].map((column, colIndex) => (
                   <div key={colIndex} className="space-y-2">
-                    <h3 className="font-black text-lg text-yellow-400 mb-3 uppercase tracking-wider border-b border-yellow-500/20 pb-2">
+                    <h3 className="font-black text-lg text-fuchsia-400 mb-3 uppercase tracking-wider border-b border-fuchsia-500/30 pb-2 neon-pink">
                       {column.month}
                     </h3>
                     {column.states.length > 0 ? (
                       column.states.map((renewal, index) => (
                         <div
                           key={index}
-                          className="flex items-center gap-3 p-3 rounded-lg glass-light border border-yellow-500/20 hover:border-yellow-500/40 hover:bg-yellow-500/5 transition-all group"
+                          className="flex items-center gap-3 p-3 rounded-lg glass-light border border-fuchsia-500/30 hover:border-cyan-500/40 hover:bg-cyan-500/10 transition-all group glow-pink hover:glow-cyan"
                         >
-                          <MapPin className="h-4 w-4 text-yellow-400 flex-shrink-0 group-hover:scale-110 transition-transform" />
+                          <MapPin className="h-4 w-4 text-fuchsia-400 flex-shrink-0 group-hover:text-cyan-400 group-hover:scale-110 transition-transform neon-pink group-hover:neon-cyan" />
                           <div className="flex-1 min-w-0">
                             <div className="font-bold text-white truncate">{renewal.state_name}</div>
                             <div className="text-xs text-gray-400">Renewal: {renewal.renewal_month}</div>
