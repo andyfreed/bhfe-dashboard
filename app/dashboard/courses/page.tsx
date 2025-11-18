@@ -474,24 +474,44 @@ ${courses.map(course => `  <url>
                 </>
               )}
             </Button>
-            <Button
-              onClick={fetchMetaKeys}
-              disabled={loadingMetaKeys || !wordpressUrl.trim()}
-              variant="outline"
-              className="w-full sm:w-auto"
-            >
-              {loadingMetaKeys ? (
-                <>
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                  Loading...
-                </>
-              ) : (
-                <>
-                  <Database className="h-4 w-4 mr-2" />
-                  View Meta Fields
-                </>
-              )}
-            </Button>
+            <div className="flex gap-2 flex-wrap">
+              <Button
+                onClick={fetchMetaKeys}
+                disabled={loadingMetaKeys || !wordpressUrl.trim()}
+                variant="outline"
+                className="w-full sm:w-auto"
+              >
+                {loadingMetaKeys ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    Loading...
+                  </>
+                ) : (
+                  <>
+                    <Database className="h-4 w-4 mr-2" />
+                    View Meta Fields
+                  </>
+                )}
+              </Button>
+              <Button
+                onClick={inspectExcludedCourses}
+                disabled={inspecting || !wordpressUrl.trim()}
+                variant="outline"
+                className="w-full sm:w-auto"
+              >
+                {inspecting ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    Inspecting...
+                  </>
+                ) : (
+                  <>
+                    <FileText className="h-4 w-4 mr-2" />
+                    Inspect Excluded Courses
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
