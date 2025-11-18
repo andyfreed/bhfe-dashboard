@@ -265,14 +265,19 @@ function bhfe_get_active_courses($request) {
                 }
                 
                 // If all versions are archived AND there's no active version specified, mark as fully archived
-                // OR if active version is specified but it's also archived
+                // BUT: If an active version is specified, trust that WordPress knows which version is active
+                // and include the course even if all versions appear archived
                 if ($version_count > 0) {
                     if ($archived_count === $version_count) {
                         // All versions are archived
-                        $all_versions_archived = true;
-                    } elseif ($active_version_number && !$has_active_version) {
-                        // Active version is specified but it's archived (or doesn't exist)
-                        $all_versions_archived = true;
+                        // BUT: If flms_course_active_version is set, WordPress considers it active
+                        // so we should include it (don't mark as fully archived)
+                        if (!$active_version_number) {
+                            // No active version specified, so if all are archived, exclude it
+                            $all_versions_archived = true;
+                        }
+                        // If active_version_number is set, keep all_versions_archived = false
+                        // because WordPress has explicitly marked a version as active
                     }
                 }
             } else {
