@@ -13,7 +13,7 @@ This plugin is fully compatible with WP Pusher. The repository includes a `.wppu
 3. Enter the repository URL: `https://github.com/andyfreed/bhfe-dashboard`
 4. WP Pusher will automatically detect the `.wppusher.json` file and configure:
    - **Type**: Plugin
-   - **Subdirectory**: `wordpress-plugin`
+   - **Subdirectory**: `dashboard-plugin`
    - **Slug**: `bhfe-course-sync`
 5. Set the **Branch** to: `master` (or your preferred branch)
 6. Click **Install Plugin**
@@ -21,7 +21,7 @@ This plugin is fully compatible with WP Pusher. The repository includes a `.wppu
 ### Manual Configuration (if needed):
 
 If WP Pusher doesn't auto-detect the config:
-- **Subdirectory**: `wordpress-plugin`
+- **Subdirectory**: `dashboard-plugin`
 - **Plugin slug**: `bhfe-course-sync`
 
 ## Manual Installation
@@ -29,7 +29,7 @@ If WP Pusher doesn't auto-detect the config:
 Alternatively, you can install manually:
 
 1. Download or clone this repository
-2. Copy the `wordpress-plugin` folder to your WordPress plugins directory:
+2. Copy the `dashboard-plugin` folder to your WordPress plugins directory:
    ```
    wp-content/plugins/bhfe-course-sync/
    ```

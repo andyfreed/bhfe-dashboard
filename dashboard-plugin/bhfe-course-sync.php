@@ -14,7 +14,7 @@
  * Network: false
  * 
  * WP Pusher compatible - Install from: https://github.com/andyfreed/bhfe-dashboard
- * Subdirectory: wordpress-plugin
+ * Subdirectory: dashboard-plugin
  */
 
 // Exit if accessed directly

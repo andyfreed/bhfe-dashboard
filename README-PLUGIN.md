@@ -4,7 +4,7 @@ This plugin syncs active courses from your WordPress site to the BHFE Dashboard 
 
 ## WordPress Plugin Installation
 
-1. Copy the `wordpress-plugin/bhfe-course-sync.php` file to your WordPress plugins directory:
+1. Copy the `dashboard-plugin/bhfe-course-sync.php` file to your WordPress plugins directory:
    ```
    wp-content/plugins/bhfe-course-sync/bhfe-course-sync.php
    ```
