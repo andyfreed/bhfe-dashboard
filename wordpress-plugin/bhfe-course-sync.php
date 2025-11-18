@@ -202,11 +202,25 @@ function bhfe_get_active_courses($request) {
             $version_content = get_post_meta($post_id, 'flms_version_content', true);
             $versions = array();
             $has_active_public_version = false;
+            $all_versions_archived = false;
             
             if (is_array($version_content) && !empty($version_content)) {
+                $version_count = 0;
+                $archived_count = 0;
+                
                 foreach ($version_content as $version_key => $version_data) {
-                    // Check if this version is archived
-                    $is_archived = isset($version_data['archived']) && $version_data['archived'] === true;
+                    // Skip empty version keys (sometimes there's an empty string key)
+                    if ($version_key === '') {
+                        continue;
+                    }
+                    
+                    $version_count++;
+                    
+                    // Check version status - can be "archived" or check archived field
+                    $version_status = isset($version_data['version_status']) ? $version_data['version_status'] : null;
+                    $is_archived_field = isset($version_data['archived']) && $version_data['archived'] === true;
+                    $is_archived = ($version_status === 'archived') || $is_archived_field;
+                    
                     $is_public = isset($version_data['public']) && $version_data['public'] === true;
                     
                     // Track if we have at least one active public version
@@ -214,13 +228,23 @@ function bhfe_get_active_courses($request) {
                         $has_active_public_version = true;
                     }
                     
+                    if ($is_archived) {
+                        $archived_count++;
+                    }
+                    
                     $versions[] = array(
                         'version_key' => $version_key,
                         'version_number' => isset($version_data['version']) ? $version_data['version'] : null,
                         'is_public' => $is_public,
                         'is_archived' => $is_archived,
+                        'version_status' => $version_status,
                         'created_at' => isset($version_data['date']) ? $version_data['date'] : null,
                     );
+                }
+                
+                // If all versions are archived, mark the course as fully archived
+                if ($version_count > 0 && $archived_count === $version_count) {
+                    $all_versions_archived = true;
                 }
             } else {
                 // If no version data exists, assume the course is active (for backward compatibility)
@@ -228,12 +252,28 @@ function bhfe_get_active_courses($request) {
                 $has_active_public_version = true;
             }
             
-            // Temporarily exclude specific course IDs that shouldn't be active
-            // TODO: Replace this with proper filtering once we identify common characteristics
-            $excluded_ids = array(48753, 50728, 50727, 48594, 48528, 49453, 48855, 35568, 48390, 50513, 50511, 50512, 48754, 48752, 48674, 50385, 48553);
-            if (!$include_all && in_array($post_id, $excluded_ids)) {
+            // Exclude courses where ALL versions are archived
+            // This catches both: courses imported as archived (for customer history) 
+            // and courses where all versions were archived when new versions were created
+            if (!$include_all && $all_versions_archived) {
                 $debug_info['courses_skipped']++;
-                $debug_info['skip_reasons']['excluded_id'] = ($debug_info['skip_reasons']['excluded_id'] ?? 0) + 1;
+                $debug_info['skip_reasons']['all_versions_archived'] = ($debug_info['skip_reasons']['all_versions_archived'] ?? 0) + 1;
+                continue;
+            }
+            
+            // Exclude courses imported as archived (for customer history)
+            $imported_as_archived = get_post_meta($post_id, 'flms_web_fodder_imported_content', true);
+            if (!$include_all && $imported_as_archived === '1') {
+                $debug_info['courses_skipped']++;
+                $debug_info['skip_reasons']['imported_as_archived'] = ($debug_info['skip_reasons']['imported_as_archived'] ?? 0) + 1;
+                continue;
+            }
+            
+            // Exclude courses archived from versions
+            $archived_from_versions = get_post_meta($post_id, 'bhfe_archived_from_course_versions', true);
+            if (!$include_all && $archived_from_versions === '1') {
+                $debug_info['courses_skipped']++;
+                $debug_info['skip_reasons']['archived_from_versions'] = ($debug_info['skip_reasons']['archived_from_versions'] ?? 0) + 1;
                 continue;
             }
             
