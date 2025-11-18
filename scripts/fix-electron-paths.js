@@ -13,18 +13,26 @@ function fixPathsInFile(filePath) {
     // /icon- -> ./icon-
     // /apple-icon- -> ./apple-icon-
     
-    // Fix HTML attributes
+    // Fix HTML attributes - handle both absolute and relative paths
+    // First, fix ../_next/ -> ./_next/ (relative paths going up one directory)
+    // This is the most common issue with Next.js static exports in Electron
+    content = content.replace(/\.\.\/_next\//g, './_next/');
+    
+    // Fix /_next/ -> ./_next/ (absolute paths)
     content = content.replace(/href="\/_next\//g, 'href="./_next/');
     content = content.replace(/src="\/_next\//g, 'src="./_next/');
+    
+    // Fix other absolute paths
     content = content.replace(/href="\/manifest\.json"/g, 'href="./manifest.json"');
     content = content.replace(/href="\/favicon\.ico/g, 'href="./favicon.ico');
     content = content.replace(/href="\/icon-/g, 'href="./icon-');
     content = content.replace(/href="\/apple-icon-/g, 'href="./apple-icon-');
     
     // Fix embedded JavaScript strings (in self.__next_f.push calls)
+    // These are already handled by the global ../_next/ replacement above,
+    // but we'll keep specific patterns for absolute paths
     content = content.replace(/":\["\/_next\//g, '":["./_next/');
     content = content.replace(/","\/_next\//g, '","./_next/');
-    content = content.replace(/\/_next\/static\//g, './_next/static/');
     
     fs.writeFileSync(filePath, content, 'utf8');
     console.log(`Fixed paths in: ${filePath}`);
