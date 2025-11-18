@@ -204,9 +204,13 @@ function bhfe_get_active_courses($request) {
             $has_active_public_version = false;
             $all_versions_archived = false;
             
+            // Get the active version number if specified
+            $active_version_number = get_post_meta($post_id, 'flms_course_active_version', true);
+            
             if (is_array($version_content) && !empty($version_content)) {
                 $version_count = 0;
                 $archived_count = 0;
+                $has_active_version = false;
                 
                 foreach ($version_content as $version_key => $version_data) {
                     // Skip empty version keys (sometimes there's an empty string key)
@@ -223,6 +227,23 @@ function bhfe_get_active_courses($request) {
                     
                     $is_public = isset($version_data['public']) && $version_data['public'] === true;
                     
+                    // Check if this is the active version (by version number or key)
+                    $is_active_version = false;
+                    if ($active_version_number) {
+                        // Check if this version matches the active version number
+                        $version_name = isset($version_data['version_name']) ? $version_data['version_name'] : null;
+                        $version_num = isset($version_data['version']) ? $version_data['version'] : null;
+                        if ($version_key == $active_version_number || 
+                            $version_name == $active_version_number || 
+                            $version_num == $active_version_number) {
+                            $is_active_version = true;
+                            // If the active version is not archived, the course is active
+                            if (!$is_archived) {
+                                $has_active_version = true;
+                            }
+                        }
+                    }
+                    
                     // Track if we have at least one active public version
                     if ($is_public && !$is_archived) {
                         $has_active_public_version = true;
@@ -238,13 +259,21 @@ function bhfe_get_active_courses($request) {
                         'is_public' => $is_public,
                         'is_archived' => $is_archived,
                         'version_status' => $version_status,
+                        'is_active_version' => $is_active_version,
                         'created_at' => isset($version_data['date']) ? $version_data['date'] : null,
                     );
                 }
                 
-                // If all versions are archived, mark the course as fully archived
-                if ($version_count > 0 && $archived_count === $version_count) {
-                    $all_versions_archived = true;
+                // If all versions are archived AND there's no active version specified, mark as fully archived
+                // OR if active version is specified but it's also archived
+                if ($version_count > 0) {
+                    if ($archived_count === $version_count) {
+                        // All versions are archived
+                        $all_versions_archived = true;
+                    } elseif ($active_version_number && !$has_active_version) {
+                        // Active version is specified but it's archived (or doesn't exist)
+                        $all_versions_archived = true;
+                    }
                 }
             } else {
                 // If no version data exists, assume the course is active (for backward compatibility)
