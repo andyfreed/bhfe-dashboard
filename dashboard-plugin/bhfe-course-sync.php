@@ -395,7 +395,13 @@ function bhfe_get_active_courses($request) {
             }
             
             // Decode excerpt HTML entities (title already decoded above)
-            $course_excerpt = get_the_excerpt($post_id);
+            // Use get_post_field to get excerpt, or generate from content if empty
+            $course_excerpt = get_post_field('post_excerpt', $post_id);
+            if (empty($course_excerpt)) {
+                // Generate excerpt from content if no excerpt exists
+                $post_content = get_post_field('post_content', $post_id);
+                $course_excerpt = wp_trim_words($post_content, 55);
+            }
             $decoded_excerpt = $course_excerpt;
             if (function_exists('wp_kses_decode_entities')) {
                 $decoded_excerpt = wp_kses_decode_entities($decoded_excerpt);
