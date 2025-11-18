@@ -264,21 +264,18 @@ function bhfe_get_active_courses($request) {
                     );
                 }
                 
-                // If all versions are archived AND there's no active version specified, mark as fully archived
-                // BUT: If an active version is specified, trust that WordPress knows which version is active
-                // and include the course even if all versions appear archived
-                if ($version_count > 0) {
-                    if ($archived_count === $version_count) {
-                        // All versions are archived
-                        // BUT: If flms_course_active_version is set, WordPress considers it active
-                        // so we should include it (don't mark as fully archived)
-                        if (!$active_version_number) {
-                            // No active version specified, so if all are archived, exclude it
-                            $all_versions_archived = true;
-                        }
-                        // If active_version_number is set, keep all_versions_archived = false
-                        // because WordPress has explicitly marked a version as active
+                // Check if we have any non-archived versions OR if an active version is specified
+                // If flms_course_active_version is set, WordPress considers the course active
+                // regardless of version_status fields
+                if ($archived_count === $version_count) {
+                    // All versions appear archived
+                    // BUT: If flms_course_active_version is set, trust WordPress and include it
+                    if (!$active_version_number) {
+                        // No active version specified AND all versions are archived
+                        $all_versions_archived = true;
                     }
+                    // If active_version_number is set, keep all_versions_archived = false
+                    // because WordPress has explicitly marked a version as active
                 }
             } else {
                 // If no version data exists, assume the course is active (for backward compatibility)
@@ -286,12 +283,14 @@ function bhfe_get_active_courses($request) {
                 $has_active_public_version = true;
             }
             
-            // Exclude courses where ALL versions are archived
-            // This catches both: courses imported as archived (for customer history) 
-            // and courses where all versions were archived when new versions were created
-            if (!$include_all && $all_versions_archived) {
+            // FIRST: Check explicit meta fields that mark courses as archived
+            // These take priority over version status checks
+            
+            // Exclude courses archived from versions (this is the main indicator)
+            $archived_from_versions = get_post_meta($post_id, 'bhfe_archived_from_course_versions', true);
+            if (!$include_all && $archived_from_versions === '1') {
                 $debug_info['courses_skipped']++;
-                $debug_info['skip_reasons']['all_versions_archived'] = ($debug_info['skip_reasons']['all_versions_archived'] ?? 0) + 1;
+                $debug_info['skip_reasons']['archived_from_versions'] = ($debug_info['skip_reasons']['archived_from_versions'] ?? 0) + 1;
                 continue;
             }
             
@@ -303,19 +302,20 @@ function bhfe_get_active_courses($request) {
                 continue;
             }
             
-            // Exclude courses archived from versions
-            $archived_from_versions = get_post_meta($post_id, 'bhfe_archived_from_course_versions', true);
-            if (!$include_all && $archived_from_versions === '1') {
-                $debug_info['courses_skipped']++;
-                $debug_info['skip_reasons']['archived_from_versions'] = ($debug_info['skip_reasons']['archived_from_versions'] ?? 0) + 1;
-                continue;
-            }
-            
             // Exclude if explicitly archived via meta
             $explicitly_archived = get_post_meta($post_id, 'bhfe_archived_course', true);
             if (!$include_all && $explicitly_archived === '1') {
                 $debug_info['courses_skipped']++;
                 $debug_info['skip_reasons']['explicitly_archived'] = ($debug_info['skip_reasons']['explicitly_archived'] ?? 0) + 1;
+                continue;
+            }
+            
+            // LAST: Only exclude courses where ALL versions are archived AND no active version is specified
+            // This is a fallback check - if explicit meta fields don't mark it as archived,
+            // but all versions are archived and no active version is set, exclude it
+            if (!$include_all && $all_versions_archived) {
+                $debug_info['courses_skipped']++;
+                $debug_info['skip_reasons']['all_versions_archived'] = ($debug_info['skip_reasons']['all_versions_archived'] ?? 0) + 1;
                 continue;
             }
             
