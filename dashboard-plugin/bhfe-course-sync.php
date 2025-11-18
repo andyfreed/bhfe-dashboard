@@ -320,7 +320,7 @@ function bhfe_get_active_courses($request) {
             }
             
             // Get the title and decode HTML entities
-            $course_title = get_the_title();
+            $course_title = get_the_title($post_id);
             
             // Decode HTML entities properly (including numeric entities like &#8211;)
             // Use WordPress function first, then handle numeric entities
@@ -395,7 +395,7 @@ function bhfe_get_active_courses($request) {
             }
             
             // Decode excerpt HTML entities (title already decoded above)
-            $course_excerpt = get_the_excerpt();
+            $course_excerpt = get_the_excerpt($post_id);
             $decoded_excerpt = $course_excerpt;
             if (function_exists('wp_kses_decode_entities')) {
                 $decoded_excerpt = wp_kses_decode_entities($decoded_excerpt);
@@ -429,7 +429,7 @@ function bhfe_get_active_courses($request) {
                 'slug' => get_post_field('post_name', $post_id),
                 'permalink' => get_permalink($post_id),
                 'excerpt' => $decoded_excerpt,
-                'content' => get_the_content(),
+                'content' => get_post_field('post_content', $post_id),
                 'product_id' => $product_id,
                 'product_sku' => $product_sku,
                 'product_price' => $product_price,
