@@ -283,8 +283,8 @@ function bhfe_get_active_courses($request) {
                 $has_active_public_version = true;
             }
             
-            // FIRST: Check explicit meta fields that mark courses as archived
-            // These take priority over version status checks
+            // ONLY filter based on explicit meta fields that mark courses as archived
+            // Don't filter based on version_status alone - that field may be historical
             
             // Exclude courses archived from versions (this is the main indicator)
             $archived_from_versions = get_post_meta($post_id, 'bhfe_archived_from_course_versions', true);
@@ -310,14 +310,10 @@ function bhfe_get_active_courses($request) {
                 continue;
             }
             
-            // LAST: Only exclude courses where ALL versions are archived AND no active version is specified
-            // This is a fallback check - if explicit meta fields don't mark it as archived,
-            // but all versions are archived and no active version is set, exclude it
-            if (!$include_all && $all_versions_archived) {
-                $debug_info['courses_skipped']++;
-                $debug_info['skip_reasons']['all_versions_archived'] = ($debug_info['skip_reasons']['all_versions_archived'] ?? 0) + 1;
-                continue;
-            }
+            // NOTE: We're NOT filtering by version_status anymore because:
+            // 1. Many active courses have version_status: "archived" but are still active
+            // 2. The flms_course_active_version meta field is the authoritative source
+            // 3. Explicit meta fields (bhfe_archived_from_course_versions) are more reliable indicators
             
             // Get the title and decode HTML entities
             $course_title = get_the_title($post_id);
