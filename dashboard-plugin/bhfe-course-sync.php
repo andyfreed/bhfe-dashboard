@@ -278,11 +278,15 @@ function bhfe_get_active_courses($request) {
                 continue;
             }
             
-            // Exclude courses imported as archived (for customer history)
+            // Exclude courses imported as archived ONLY if they also have bhfe_archived_from_course_versions
+            // flms_web_fodder_imported_content alone doesn't mean the course is inactive
+            // Some imported courses may still be active (e.g., have flms_course_active_version set)
             $imported_as_archived = get_post_meta($post_id, 'flms_web_fodder_imported_content', true);
-            if (!$include_all && $imported_as_archived === '1') {
+            $archived_from_versions_check = get_post_meta($post_id, 'bhfe_archived_from_course_versions', true);
+            if (!$include_all && $imported_as_archived === '1' && $archived_from_versions_check === '1') {
+                // Only exclude if BOTH flags are set - this indicates it was imported AND archived
                 $debug_info['courses_skipped']++;
-                $debug_info['skip_reasons']['imported_as_archived'] = ($debug_info['skip_reasons']['imported_as_archived'] ?? 0) + 1;
+                $debug_info['skip_reasons']['imported_and_archived'] = ($debug_info['skip_reasons']['imported_and_archived'] ?? 0) + 1;
                 continue;
             }
             
