@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Plus, Trash2, Edit, Bell, Check } from 'lucide-react'
-import { format } from 'date-fns'
+import { format, addDays, addWeeks, addMonths, addYears } from 'date-fns'
 
 interface Reminder {
   id: string
@@ -128,14 +128,56 @@ export default function RemindersPage() {
   }
 
   const handleToggleComplete = async (reminder: Reminder) => {
+    const newIsCompleted = !reminder.is_completed
+    
     const { error } = await supabase
       .from('reminders')
-      .update({ is_completed: !reminder.is_completed })
+      .update({ is_completed: newIsCompleted })
       .eq('id', reminder.id)
 
     if (error) {
       console.error('Error updating reminder:', error)
       return
+    }
+
+    // If marking as completed and is recurring, create the next instance
+    if (newIsCompleted && reminder.is_recurring) {
+      let nextDate = new Date(reminder.reminder_date)
+      const interval = 1 // Default interval, could be expanded later to support custom intervals
+
+      switch (reminder.recurring_pattern) {
+        case 'daily':
+          nextDate = addDays(nextDate, interval)
+          break
+        case 'weekly':
+          nextDate = addWeeks(nextDate, interval)
+          break
+        case 'monthly':
+          nextDate = addMonths(nextDate, interval)
+          break
+        case 'yearly':
+          nextDate = addYears(nextDate, interval)
+          break
+        default:
+          nextDate = addDays(nextDate, interval)
+      }
+
+      const { error: createError } = await supabase
+        .from('reminders')
+        .insert([{
+          title: reminder.title,
+          description: reminder.description,
+          reminder_date: nextDate.toISOString(),
+          is_recurring: true,
+          recurring_pattern: reminder.recurring_pattern,
+          is_super_reminder: reminder.is_super_reminder,
+          user_id: reminder.user_id,
+          is_completed: false
+        }])
+
+      if (createError) {
+        console.error('Error creating next recurring reminder:', createError)
+      }
     }
 
     loadReminders()
