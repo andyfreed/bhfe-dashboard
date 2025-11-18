@@ -161,25 +161,9 @@ function bhfe_get_active_courses($request) {
         'posts_per_page'  => -1, // Get all active courses
     );
     
-    // Only apply meta_query filters if not including all courses
-    // For now, let's get ALL published courses and filter in PHP to see what we're working with
-    if (!$include_all) {
-        // Simplified: only exclude courses that are explicitly marked as archived
-        $args['meta_query'] = array(
-            array(
-                'relation' => 'OR',
-                array(
-                    'key'     => 'bhfe_archived_course',
-                    'compare' => 'NOT EXISTS',
-                ),
-                array(
-                    'key'     => 'bhfe_archived_course',
-                    'value'   => '1',
-                    'compare' => '!=',
-                ),
-            ),
-        );
-    }
+    // Get ALL published courses - we'll filter in PHP based on explicit meta fields
+    // Don't use meta_query here because we want to check multiple meta fields in PHP
+    // and some courses might not have these fields set
     
     $query = new WP_Query($args);
     $courses = array();
