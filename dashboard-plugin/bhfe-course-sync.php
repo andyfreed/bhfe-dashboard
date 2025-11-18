@@ -332,13 +332,10 @@ function bhfe_get_active_courses($request) {
                 $decoded_title = mb_convert_encoding($decoded_title, 'UTF-8', 'UTF-8');
             }
             
-            // Only filter out courses that explicitly have "Retired" at the START of the title
-            // (not just anywhere in the title, to avoid false positives)
-            if (!$include_all && (stripos(trim($course_title), 'retired') === 0 || stripos(trim($decoded_title), 'retired') === 0)) {
-                $debug_info['courses_skipped']++;
-                $debug_info['skip_reasons']['retired_in_title'] = ($debug_info['skip_reasons']['retired_in_title'] ?? 0) + 1;
-                continue;
-            }
+            // NOTE: We're NOT filtering by "Retired" in title anymore
+            // We only filter by explicit meta fields (bhfe_archived_from_course_versions, etc.)
+            // Title-based filtering is unreliable - some courses may have "retired" in the title
+            // but are still active, or vice versa
             
             if (!$include_all && $explicitly_archived === '1') {
                 $debug_info['courses_skipped']++;
