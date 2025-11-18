@@ -22,6 +22,8 @@ export default function CoursesPage() {
   const [showMetaKeys, setShowMetaKeys] = useState(false)
   const [showConfig, setShowConfig] = useState(false)
   const [sortBy, setSortBy] = useState<'sitemap' | 'alphabetical'>('sitemap')
+  const [inspectionData, setInspectionData] = useState<any>(null)
+  const [inspecting, setInspecting] = useState(false)
 
   useEffect(() => {
     // Load saved WordPress URL and API key from localStorage
@@ -246,6 +248,47 @@ ${courses.map(course => `  <url>
     }
   }
 
+  const inspectExcludedCourses = async () => {
+    if (!wordpressUrl.trim()) {
+      setError('Please enter a WordPress URL')
+      return
+    }
+    
+    // The excluded course IDs from the plugin
+    const excludedIds = [48753, 50728, 50727, 48594, 48528, 49453, 48855, 35568, 48390, 50513, 50511, 50512, 48754, 48752, 48674, 50385, 48553]
+    
+    try {
+      setInspecting(true)
+      setError(null)
+      
+      // Route through Next.js API to avoid CORS issues
+      const params = new URLSearchParams({ 
+        wordpress_url: wordpressUrl,
+        endpoint: 'inspect-courses',
+        ids: excludedIds.join(',')
+      })
+      if (apiKey) {
+        params.append('api_key', apiKey)
+      }
+      
+      const response = await fetch(`/api/sync/courses?${params.toString()}`)
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: response.statusText }))
+        throw new Error(errorData.error || `Failed to inspect courses: ${response.statusText}`)
+      }
+      
+      const data = await response.json()
+      setInspectionData(data)
+      console.log('[Courses] Inspection data:', data)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to inspect courses')
+      console.error('[Courses] Error inspecting courses:', err)
+    } finally {
+      setInspecting(false)
+    }
+  }
+
   const filteredCourses = courses.filter((course) => {
     if (!searchTerm.trim()) return true
     const search = searchTerm.toLowerCase()
@@ -459,6 +502,85 @@ ${courses.map(course => `  <url>
         <Card className="border-2 border-red-300 bg-red-50">
           <CardContent className="pt-6">
             <div className="text-red-700 font-semibold">Error: {error}</div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Inspection Data Display */}
+      {inspectionData && (
+        <Card className="border-2 border-slate-300">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Excluded Courses Inspection
+              </CardTitle>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setInspectionData(null)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <p className="text-sm text-gray-600 mt-2">
+              Inspected {inspectionData.courses_inspected} courses
+            </p>
+          </CardHeader>
+          <CardContent>
+            {inspectionData.common_meta && Object.keys(inspectionData.common_meta).length > 0 && (
+              <div className="mb-6">
+                <h3 className="font-semibold text-gray-900 mb-2">Common Meta Fields (shared by all):</h3>
+                <div className="space-y-2">
+                  {Object.entries(inspectionData.common_meta).map(([key, value]: [string, any]) => (
+                    <div key={key} className="p-3 border border-gray-200 rounded-lg bg-yellow-50">
+                      <code className="text-sm font-mono font-semibold text-gray-900">{key}:</code>
+                      <pre className="text-xs mt-1 text-gray-700 whitespace-pre-wrap break-words">
+                        {typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value)}
+                      </pre>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            <h3 className="font-semibold text-gray-900 mb-4">Individual Course Details:</h3>
+            <div className="space-y-4 max-h-[600px] overflow-y-auto">
+              {inspectionData.courses?.map((course: any) => (
+                <div key={course.id} className="p-4 border border-gray-200 rounded-lg bg-gray-50">
+                  <div className="mb-2">
+                    <span className="font-semibold text-gray-900">ID: {course.id}</span>
+                    <span className="ml-4 text-sm text-gray-600">Status: {course.post_status}</span>
+                  </div>
+                  <div className="mb-2">
+                    <span className="font-medium text-gray-700">Title: {course.title}</span>
+                  </div>
+                  {course.version_content && (
+                    <div className="mb-2">
+                      <span className="text-sm font-medium text-gray-700">Version Content:</span>
+                      <pre className="text-xs mt-1 text-gray-600 whitespace-pre-wrap break-words">
+                        {JSON.stringify(course.version_content, null, 2)}
+                      </pre>
+                    </div>
+                  )}
+                  <details className="mt-2">
+                    <summary className="cursor-pointer text-sm font-medium text-gray-700 hover:text-gray-900">
+                      All Meta Fields ({Object.keys(course.all_meta || {}).length})
+                    </summary>
+                    <div className="mt-2 space-y-2">
+                      {Object.entries(course.all_meta || {}).map(([key, value]: [string, any]) => (
+                        <div key={key} className="p-2 border border-gray-300 rounded bg-white">
+                          <code className="text-xs font-mono font-semibold text-gray-900">{key}:</code>
+                          <pre className="text-xs mt-1 text-gray-600 whitespace-pre-wrap break-words">
+                            {typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value)}
+                          </pre>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
       )}

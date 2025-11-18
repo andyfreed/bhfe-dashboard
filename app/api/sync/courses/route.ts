@@ -50,6 +50,32 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(data, { status: 200 })
     }
     
+    if (endpoint === 'inspect-courses') {
+      // Inspect specific courses
+      const courseIds = searchParams.get('ids')
+      if (!courseIds) {
+        return NextResponse.json(
+          { error: 'ids parameter is required for inspect-courses endpoint' },
+          { status: 400 }
+        )
+      }
+      
+      const inspectUrl = `${wordpressUrl.replace(/\/$/, '')}/wp-json/bhfe/v1/inspect-courses?ids=${encodeURIComponent(courseIds)}`
+      const headers: HeadersInit = {}
+      if (apiKey) {
+        headers['X-BHFE-API-Key'] = apiKey
+      }
+      
+      const response = await fetch(inspectUrl, { headers })
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: response.statusText }))
+        throw new Error(errorData.error || `Failed to inspect courses: ${response.statusText}`)
+      }
+      
+      const data = await response.json()
+      return NextResponse.json(data, { status: 200 })
+    }
+    
     if (endpoint === 'sitemap') {
       // Fetch sitemap
       const sitemapUrl = `${wordpressUrl.replace(/\/$/, '')}/sitemap.xml`
