@@ -15,6 +15,7 @@ interface Reminder {
   is_completed: boolean
   is_recurring: boolean
   recurring_pattern: string | null
+  is_super_reminder: boolean
   user_id: string
 }
 
@@ -29,6 +30,7 @@ export default function RemindersPage() {
     reminder_date: '',
     is_recurring: false,
     recurring_pattern: 'daily',
+    is_super_reminder: false,
   })
   const supabase = createClient()
 
@@ -146,6 +148,7 @@ export default function RemindersPage() {
       reminder_date: format(new Date(reminder.reminder_date), "yyyy-MM-dd'T'HH:mm"),
       is_recurring: reminder.is_recurring,
       recurring_pattern: reminder.recurring_pattern || 'daily',
+      is_super_reminder: reminder.is_super_reminder || false,
     })
     setShowForm(true)
   }
@@ -157,6 +160,7 @@ export default function RemindersPage() {
       reminder_date: '',
       is_recurring: false,
       recurring_pattern: 'daily',
+      is_super_reminder: false,
     })
     setEditingReminder(null)
     setShowForm(false)
@@ -246,6 +250,17 @@ export default function RemindersPage() {
                     <option value="yearly">Yearly</option>
                   </select>
                 )}
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={formData.is_super_reminder}
+                    onChange={(e) => setFormData({ ...formData, is_super_reminder: e.target.checked })}
+                    className="rounded"
+                  />
+                  <span className="text-sm text-gray-700 font-medium">Super Reminder</span>
+                </label>
               </div>
               <div className="flex gap-2">
                 <Button type="submit">{editingReminder ? 'Update' : 'Create'}</Button>

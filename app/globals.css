@@ -110,4 +110,19 @@
   .animation-delay-4000 {
     animation-delay: 4s;
   }
+
+  @keyframes flashRed {
+    0%, 100% {
+      background-color: rgba(255, 255, 255, 0.8);
+      border-color: rgba(226, 232, 240, 0.8);
+    }
+    50% {
+      background-color: rgba(239, 68, 68, 0.9);
+      border-color: rgba(220, 38, 38, 0.9);
+    }
+  }
+
+  .animate-flash-red {
+    animation: flashRed 1s ease-in-out infinite;
+  }
 }
