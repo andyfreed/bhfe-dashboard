@@ -329,8 +329,12 @@ export default function ChatPage() {
       return
     }
 
+    // Clear messages immediately and reload to ensure UI updates
     setMessages([])
-    loadAllMessages()
+    // Small delay to ensure database operations complete before reloading
+    setTimeout(() => {
+      loadAllMessages()
+    }, 100)
   }
 
   if (loading) {

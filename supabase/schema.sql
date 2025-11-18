@@ -259,6 +259,8 @@ CREATE POLICY "Users can create messages" ON public.chat_messages FOR INSERT
   WITH CHECK (auth.uid() = sender_id);
 CREATE POLICY "Users can update messages they received" ON public.chat_messages FOR UPDATE 
   USING (auth.uid() = receiver_id);
+CREATE POLICY "Users can delete messages they sent or received" ON public.chat_messages FOR DELETE 
+  USING (auth.uid() = sender_id OR auth.uid() = receiver_id);
 
 -- RLS Policies for links (shared across all users)
 CREATE POLICY "Users can view all links" ON public.links FOR SELECT USING (true);
