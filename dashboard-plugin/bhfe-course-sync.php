@@ -271,6 +271,7 @@ function bhfe_get_active_courses($request) {
             // Don't filter based on version_status alone - that field may be historical
             
             // Exclude courses archived from versions (this is the main indicator)
+            // This catches courses that were archived when new versions were created
             $archived_from_versions = get_post_meta($post_id, 'bhfe_archived_from_course_versions', true);
             if (!$include_all && $archived_from_versions === '1') {
                 $debug_info['courses_skipped']++;
@@ -278,17 +279,9 @@ function bhfe_get_active_courses($request) {
                 continue;
             }
             
-            // Exclude courses imported as archived ONLY if they also have bhfe_archived_from_course_versions
-            // flms_web_fodder_imported_content alone doesn't mean the course is inactive
-            // Some imported courses may still be active (e.g., have flms_course_active_version set)
-            $imported_as_archived = get_post_meta($post_id, 'flms_web_fodder_imported_content', true);
-            $archived_from_versions_check = get_post_meta($post_id, 'bhfe_archived_from_course_versions', true);
-            if (!$include_all && $imported_as_archived === '1' && $archived_from_versions_check === '1') {
-                // Only exclude if BOTH flags are set - this indicates it was imported AND archived
-                $debug_info['courses_skipped']++;
-                $debug_info['skip_reasons']['imported_and_archived'] = ($debug_info['skip_reasons']['imported_and_archived'] ?? 0) + 1;
-                continue;
-            }
+            // NOTE: We do NOT exclude courses with only flms_web_fodder_imported_content: 1
+            // This flag just means the course was imported - it doesn't mean it's inactive
+            // Many imported courses are still active and should be included
             
             // Exclude if explicitly archived via meta
             $explicitly_archived = get_post_meta($post_id, 'bhfe_archived_course', true);
