@@ -133,40 +133,44 @@ export function Sidebar() {
       {/* Mobile Menu Button */}
       <button
         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 rounded bg-zinc-900 border border-zinc-700 shadow-lg hover:bg-zinc-800 hover:border-red-500 transition-colors"
+        className="lg:hidden fixed top-4 left-4 z-50 p-2 rounded bg-neutral-800 border-2 border-black shadow-modern active:translate-y-1 active:shadow-none transition-all"
         aria-label="Toggle menu"
       >
         {isMobileMenuOpen ? (
-          <X className="h-6 w-6 text-red-500" />
+          <X className="h-6 w-6 text-primary" />
         ) : (
-          <Menu className="h-6 w-6 text-zinc-200" />
+          <Menu className="h-6 w-6 text-neutral-300" />
         )}
       </button>
 
       {/* Mobile Overlay */}
       {isMobileMenuOpen && (
         <div
-          className="lg:hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-40"
+          className="lg:hidden fixed inset-0 bg-black/90 backdrop-blur-sm z-40"
           onClick={() => setIsMobileMenuOpen(false)}
         />
       )}
 
       {/* Sidebar */}
       <div className={cn(
-        "fixed lg:static inset-y-0 left-0 z-50 flex h-screen w-64 flex-col bg-black border-r border-zinc-800 shadow-2xl shadow-black transform transition-transform duration-300 ease-in-out",
+        "fixed lg:static inset-y-0 left-0 z-50 flex h-screen w-64 flex-col metallic border-r-4 border-black shadow-2xl transform transition-transform duration-300 ease-in-out",
         isMobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
       )}>
-        {/* Header with Gradient */}
-        <div className="flex h-20 items-center justify-center border-b border-zinc-800 px-4 bg-gradient-to-b from-zinc-900 to-black relative overflow-hidden">
-          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-20"></div>
-          <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-red-600 to-transparent opacity-70"></div>
-          <h1 className="text-xl lg:text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-b from-white to-zinc-400 tracking-tighter italic relative z-10 drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]">
-            <span className="text-red-600 mr-1 not-italic">ZZ</span>DASH
+        {/* Header with Speaker Grill */}
+        <div className="h-24 flex items-center justify-center border-b-4 border-black speaker-grill relative overflow-hidden mx-2 mt-2 rounded-lg">
+          <div className="absolute inset-0 bg-black/50"></div>
+          <h1 className="relative z-10 text-2xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-neutral-400 tracking-widest italic drop-shadow-[0_2px_0_rgba(0,0,0,1)] rotate-[-2deg]">
+            <span className="text-primary mr-1 not-italic text-3xl">BOOM</span>BOX
           </h1>
+          {/* Screws */}
+          <div className="absolute top-2 left-2 w-2 h-2 rounded-full bg-neutral-400 shadow-inner border border-black"></div>
+          <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-neutral-400 shadow-inner border border-black"></div>
+          <div className="absolute bottom-2 left-2 w-2 h-2 rounded-full bg-neutral-400 shadow-inner border border-black"></div>
+          <div className="absolute bottom-2 right-2 w-2 h-2 rounded-full bg-neutral-400 shadow-inner border border-black"></div>
         </div>
         
         {/* Navigation */}
-        <nav className="flex-1 space-y-2 px-3 py-6 overflow-y-auto bg-black custom-scrollbar">
+        <nav className="flex-1 space-y-3 px-4 py-6 overflow-y-auto custom-scrollbar">
           {navigation.map((item) => {
             const isActive = pathname === item.href || (item.href === '/dashboard/states' && pathname.startsWith('/dashboard/states'))
             const isChat = item.name === 'Chat'
@@ -175,36 +179,39 @@ export function Sidebar() {
             
             if (isRegulatory && item.hasSubmenu) {
               return (
-                <div key={item.name}>
+                <div key={item.name} className="space-y-1">
                   <button
                     onClick={() => {
                       setIsRegulatoryExpanded(!isRegulatoryExpanded)
                       if (!isRegulatoryExpanded && !pathname.startsWith('/dashboard/states')) {
-                        // Navigate to states page when expanding
                         router.push('/dashboard/states')
                       }
                     }}
                     className={cn(
-                      'group w-full flex items-center gap-3 rounded px-4 py-3.5 text-sm font-bold transition-all duration-200 shadow-sm relative uppercase tracking-wider border',
+                      'push-button w-full flex items-center gap-3 rounded px-4 py-3 text-sm font-bold transition-all relative uppercase tracking-widest border-2 border-black',
                       isActive
-                        ? 'bg-gradient-to-r from-red-700 to-red-900 text-white border-red-600 shadow-red-900/20'
-                        : 'text-zinc-400 bg-zinc-900/50 border-transparent hover:bg-zinc-800 hover:text-white hover:border-zinc-700'
+                        ? 'bg-gradient-to-b from-neutral-700 to-neutral-900 text-primary translate-y-[2px] shadow-none border-t-black'
+                        : 'text-neutral-400 hover:text-white'
                     )}
                   >
                     <item.icon className={cn(
-                      "h-5 w-5 transition-transform duration-200",
-                      isActive ? "text-white drop-shadow-md" : "text-zinc-500 group-hover:text-red-500",
-                      !isActive && "group-hover:scale-110"
+                      "h-5 w-5",
+                      isActive ? "text-primary drop-shadow-[0_0_5px_rgba(255,51,153,0.8)]" : "text-neutral-500"
                     )} />
                     <span className="flex-1 text-left">{item.name}</span>
                     {isRegulatoryExpanded ? (
-                      <ChevronDown className="h-4 w-4 text-zinc-500" />
+                      <ChevronDown className="h-4 w-4 text-neutral-500" />
                     ) : (
-                      <ChevronRight className="h-4 w-4 text-zinc-500" />
+                      <ChevronRight className="h-4 w-4 text-neutral-500" />
                     )}
+                    {/* LED Indicator */}
+                    <div className={cn(
+                      "w-2 h-2 rounded-full border border-black shadow-inner ml-2 transition-all duration-300",
+                      isActive ? "bg-primary box-shadow-[0_0_8px_#ff3399]" : "bg-neutral-800"
+                    )}></div>
                   </button>
                   {isRegulatoryExpanded && (
-                    <div className="ml-4 mt-2 space-y-1 border-l border-zinc-800 pl-2">
+                    <div className="ml-2 mt-2 space-y-1 p-2 bg-black/30 rounded border-2 border-black inset-shadow">
                       {regulatorySubmenu.map((subItem) => {
                         const subIsActive = pathname.startsWith('/dashboard/states')
                         return (
@@ -213,13 +220,13 @@ export function Sidebar() {
                             href={subItem.href}
                             onClick={() => setIsMobileMenuOpen(false)}
                             className={cn(
-                              'group flex items-center gap-3 rounded px-4 py-2.5 text-xs font-bold uppercase tracking-wider transition-all duration-200',
+                              'block px-3 py-2 text-xs font-mono font-bold uppercase tracking-wider transition-all border-l-2',
                               subIsActive
-                                ? 'text-red-500 bg-red-900/10 border-l-2 border-red-500'
-                                : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900/50'
+                                ? 'text-primary border-primary bg-black/50'
+                                : 'text-neutral-500 border-neutral-700 hover:text-neutral-300 hover:border-neutral-500'
                             )}
                           >
-                            <span>{subItem.name}</span>
+                            {subItem.name}
                           </Link>
                         )
                       })}
@@ -229,7 +236,6 @@ export function Sidebar() {
               )
             }
             
-            // Special handling for Active Courses to show count
             const isActiveCourses = item.name === 'Active Courses'
             
             return (
@@ -238,40 +244,53 @@ export function Sidebar() {
                 href={item.href}
                 onClick={() => setIsMobileMenuOpen(false)}
                 className={cn(
-                  'group flex items-center gap-3 rounded px-4 py-3.5 text-sm font-bold transition-all duration-200 shadow-sm relative uppercase tracking-wider border',
+                  'push-button flex items-center gap-3 rounded px-4 py-3 text-sm font-bold transition-all relative uppercase tracking-widest border-2 border-black group',
                   isActive
-                    ? 'bg-gradient-to-r from-red-700 to-red-900 text-white border-red-600 shadow-lg shadow-red-900/30'
-                    : 'text-zinc-400 bg-zinc-900/50 border-transparent hover:bg-zinc-800 hover:text-white hover:border-zinc-700',
-                  showGlow && 'shadow-lg shadow-yellow-500/20 ring-1 ring-yellow-500/40 animate-pulse border-yellow-500/30'
+                    ? 'bg-gradient-to-b from-neutral-800 to-black text-primary translate-y-[2px] shadow-none border-t-black'
+                    : 'text-neutral-400 hover:text-white',
+                  showGlow && 'animate-pulse'
                 )}
               >
                 <item.icon className={cn(
-                  "h-5 w-5 transition-transform duration-200",
-                  isActive ? "text-white drop-shadow-md" : "text-zinc-500 group-hover:text-red-500",
-                  !isActive && "group-hover:scale-110"
+                  "h-5 w-5",
+                  isActive ? "text-primary drop-shadow-[0_0_5px_rgba(255,51,153,0.8)]" : "text-neutral-500 group-hover:text-white"
                 )} />
                 <span className="flex-1">{item.name}</span>
+                
                 {isActiveCourses && coursesNotInSitemapCount !== null && coursesNotInSitemapCount > 0 && (
                   <span className={cn(
-                    "px-2 py-0.5 rounded text-xs font-black border",
+                    "px-1.5 py-0.5 text-[10px] font-mono border border-black shadow-inner bg-[#222]",
                     isActive 
-                      ? "bg-black/30 text-white border-white/20" 
-                      : "bg-yellow-500 text-black border-yellow-400"
+                      ? "text-primary" 
+                      : "text-accent"
                   )}>
                     {coursesNotInSitemapCount}
                   </span>
                 )}
-                {isActive && (
-                  <div className="ml-auto h-2 w-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]" />
-                )}
+                
+                {/* LED Indicator */}
+                <div className={cn(
+                  "w-3 h-3 rounded-full border-2 border-black shadow-inner ml-auto transition-all duration-300",
+                  isActive ? "bg-primary shadow-[0_0_10px_#ff3399]" : "bg-[#111]"
+                )}></div>
               </Link>
             )
           })}
         </nav>
         
-        {/* Footer/User area (optional, if sidebar has footer) */}
-        <div className="p-4 border-t border-zinc-800 bg-black">
-           <div className="text-xs text-zinc-600 text-center font-mono">BHFE v0.1.0</div>
+        {/* Cassette Deck Footer */}
+        <div className="p-4 border-t-4 border-black bg-[#111] m-2 rounded-lg relative">
+           <div className="flex justify-center gap-4 mb-2">
+             <div className="w-8 h-8 rounded-full border-2 border-neutral-700 bg-black relative knob">
+               <div className="absolute top-1 left-1/2 -translate-x-1/2 w-1 h-3 bg-white rounded-full"></div>
+             </div>
+             <div className="w-8 h-8 rounded-full border-2 border-neutral-700 bg-black relative knob">
+               <div className="absolute top-1 left-1/2 -translate-x-1/2 w-1 h-3 bg-white rounded-full"></div>
+             </div>
+           </div>
+           <div className="text-[10px] text-neutral-600 text-center font-mono uppercase border-t border-neutral-800 pt-1">
+             Stereo Sound
+           </div>
         </div>
       </div>
     </>

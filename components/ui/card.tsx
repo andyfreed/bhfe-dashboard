@@ -8,7 +8,7 @@ const Card = React.forwardRef<
   <div
     ref={ref}
     className={cn(
-      "rounded border border-zinc-800 bg-black/60 backdrop-blur-md text-zinc-100 shadow-lg shadow-black/40 hover:shadow-red-900/10 hover:border-zinc-600 transition-all duration-300 animate-in",
+      "metallic rounded shadow-modern text-foreground p-1",
       className
     )}
     {...props}
@@ -22,7 +22,7 @@ const CardHeader = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn("flex flex-col space-y-1.5 p-6 border-b border-zinc-800/50", className)}
+    className={cn("flex flex-col space-y-1.5 p-4 border-b border-black bg-neutral-800/50", className)}
     {...props}
   />
 ))
@@ -35,7 +35,7 @@ const CardTitle = React.forwardRef<
   <h3
     ref={ref}
     className={cn(
-      "text-2xl font-extrabold leading-none tracking-wide uppercase text-red-500 drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]",
+      "text-xl font-black uppercase tracking-wider text-white drop-shadow-md",
       className
     )}
     {...props}
@@ -49,7 +49,7 @@ const CardDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <p
     ref={ref}
-    className={cn("text-sm text-zinc-400 font-medium tracking-wide", className)}
+    className={cn("text-xs text-neutral-400 font-mono uppercase", className)}
     {...props}
   />
 ))
@@ -59,7 +59,7 @@ const CardContent = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => (
-  <div ref={ref} className={cn("p-6 pt-6", className)} {...props} />
+  <div ref={ref} className={cn("p-4 bg-[#111] shadow-inner border-t border-white/10", className)} {...props} />
 ))
 CardContent.displayName = "CardContent"
 
@@ -69,7 +69,7 @@ const CardFooter = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn("flex items-center p-6 pt-0 border-t border-zinc-800/50 mt-4", className)}
+    className={cn("flex items-center p-4 pt-0 border-t border-black bg-neutral-800/30 mt-0", className)}
     {...props}
   />
 ))

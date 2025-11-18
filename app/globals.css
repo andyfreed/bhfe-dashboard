@@ -2,56 +2,56 @@
 
 @layer base {
   :root {
-    /* ZZ Top Theme: Sharp Dressed Man / Eliminator Style */
-    /* Backgrounds: Deep Asphalt Black/Grey */
-    --background: 0 0% 4%; /* #0a0a0a */
-    --foreground: 45 20% 90%; /* Dusty White */
+    /* BOOMBOX THEME: 80s Ghetto Blaster Style */
+    /* Backgrounds: Dark Plastic / Metallic */
+    --background: 0 0% 10%; /* #1a1a1a */
+    --foreground: 0 0% 90%; /* #e5e5e5 */
     
-    --card: 0 0% 9%; /* #171717 */
-    --card-foreground: 45 20% 90%;
+    --card: 0 0% 15%; /* #262626 */
+    --card-foreground: 0 0% 90%;
     
-    --popover: 0 0% 9%;
-    --popover-foreground: 45 20% 90%;
+    --popover: 0 0% 12%;
+    --popover-foreground: 0 0% 90%;
     
-    /* Primary: Hot Rod Red */
-    --primary: 0 72% 51%; /* #dc2626 */
+    /* Primary: Neon Pink/Green Indicators */
+    --primary: 326 100% 60%; /* #ff3399 Hot Pink */
     --primary-foreground: 0 0% 100%;
     
-    /* Secondary: Chrome / Billy Gibbons Beard White */
-    --secondary: 0 0% 20%;
-    --secondary-foreground: 0 0% 98%;
+    /* Secondary: Chrome / Metallic */
+    --secondary: 0 0% 80%;
+    --secondary-foreground: 0 0% 10%;
     
-    --muted: 0 0% 15%;
+    --muted: 0 0% 20%;
     --muted-foreground: 0 0% 60%;
     
-    --accent: 48 96% 53%; /* Gold/Yellow */
+    --accent: 150 100% 50%; /* #00ff80 Neon Green */
     --accent-foreground: 0 0% 0%;
     
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive: 0 100% 50%; /* Red LED */
+    --destructive-foreground: 0 0% 100%;
     
-    --border: 0 0% 20%; /* Chrome border */
-    --input: 0 0% 20%;
-    --ring: 0 72% 51%;
+    --border: 0 0% 30%; /* Dark plastic seam */
+    --input: 0 0% 5%; /* LCD Black */
+    --ring: 326 100% 60%;
     
-    --radius: 0.25rem; /* Sharper edges */
+    --radius: 0.1rem; /* Boxy shapes */
   }
 
   body {
-    background: #0a0a0a;
+    background: #1a1a1a;
     background-image: 
-      linear-gradient(rgba(10, 10, 10, 0.9), rgba(10, 10, 10, 0.9)),
-      url("https://www.transparenttextures.com/patterns/dark-leather.png");
+      linear-gradient(to right, #111 1px, transparent 1px),
+      linear-gradient(to bottom, #111 1px, transparent 1px);
+    background-size: 20px 20px; /* Grid pattern */
     color: hsl(var(--foreground));
-    font-feature-settings: "rlig" 1, "calt" 1;
-    letter-spacing: 0.05em; /* Wide stance */
+    font-family: 'Courier New', Courier, monospace; /* Retro digital look */
   }
 
   h1, h2, h3, h4, h5, h6 {
     text-transform: uppercase;
-    font-weight: 800;
+    font-weight: 900;
     letter-spacing: 0.1em;
-    color: #ef4444; /* Red headings */
+    color: #e5e5e5;
     text-shadow: 2px 2px 0px #000;
   }
 }
@@ -61,39 +61,74 @@
     text-wrap: balance;
   }
 
+  /* Speaker Grill Pattern */
+  .speaker-grill {
+    background-color: #111;
+    background-image: radial-gradient(#333 15%, transparent 16%), radial-gradient(#333 15%, transparent 16%);
+    background-size: 10px 10px;
+    background-position: 0 0, 5px 5px;
+    box-shadow: inset 0 0 20px #000;
+    border-radius: 50%;
+    border: 4px solid #444;
+  }
+
+  /* Metallic Brush */
+  .metallic {
+    background: linear-gradient(to bottom, #555 0%, #999 50%, #555 100%);
+    border: 1px solid #333;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.4);
+  }
+
+  /* Push Button Effect */
+  .push-button {
+    background: linear-gradient(to bottom, #444, #222);
+    border-top: 1px solid #666;
+    border-bottom: 1px solid #000;
+    box-shadow: 0 4px 0 #000;
+    transition: all 0.1s;
+  }
+  
+  .push-button:active {
+    transform: translateY(4px);
+    box-shadow: 0 0 0 #000;
+    background: linear-gradient(to bottom, #222, #444);
+  }
+
+  /* LCD Display */
+  .lcd-screen {
+    background-color: #748676; /* Greenish LCD background */
+    color: #000;
+    font-family: 'Courier New', monospace;
+    box-shadow: inset 2px 2px 5px rgba(0,0,0,0.3);
+    border: 4px solid #333;
+    border-radius: 4px;
+  }
+
+  /* Chrome Knob */
+  .knob {
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #fff, #ccc, #666);
+    box-shadow: 2px 2px 5px rgba(0,0,0,0.5);
+    border: 1px solid #444;
+  }
+
+  /* VU Meter gradient */
+  .vu-gradient {
+    background: linear-gradient(to right, #0f0 60%, #ff0 80%, #f00 100%);
+  }
+
   .glass {
-    background: rgba(23, 23, 23, 0.8);
-    backdrop-filter: blur(12px);
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
     border: 1px solid rgba(255, 255, 255, 0.1);
   }
 
-  .gradient-primary {
-    background: linear-gradient(to right, #dc2626, #b91c1c, #991b1b);
-  }
-
-  .gradient-card {
-    background: linear-gradient(to bottom right, #171717, #0a0a0a);
-    border: 1px solid #333;
-  }
-
-  /* Chrome effect */
-  .chrome-text {
-    background: linear-gradient(to bottom, #e5e7eb 0%, #9ca3af 50%, #4b5563 51%, #1f2937 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    font-weight: 900;
+  .shadow-modern {
+    box-shadow: 4px 4px 0 #000;
   }
   
-  .shadow-modern {
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
-  }
-
   .shadow-modern-lg {
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.7), 0 4px 6px -2px rgba(0, 0, 0, 0.5);
-  }
-
-  .shadow-modern-xl {
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.8), 0 10px 10px -5px rgba(0, 0, 0, 0.6);
+    box-shadow: 8px 8px 0 #000;
   }
 
   .animate-in {
@@ -101,39 +136,7 @@
   }
 
   @keyframes fadeIn {
-    from {
-      opacity: 0;
-      transform: translateY(4px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  .hover-lift {
-    transition: all 200ms ease;
-  }
-
-  .hover-lift:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 10px 15px -3px rgba(220, 38, 38, 0.2), 0 4px 6px -4px rgba(220, 38, 38, 0.2);
-    border-color: #dc2626;
-  }
-  
-  /* Hot Rod flames animation (simplified as red pulse) */
-  @keyframes flashRed {
-    0%, 100% {
-      background-color: rgba(23, 23, 23, 0.8);
-      border-color: rgba(64, 64, 64, 0.8);
-    }
-    50% {
-      background-color: rgba(127, 29, 29, 0.3);
-      border-color: rgba(220, 38, 38, 0.6);
-    }
-  }
-
-  .animate-flash-red {
-    animation: flashRed 1s ease-in-out infinite;
+    from { opacity: 0; }
+    to { opacity: 1; }
   }
 }
