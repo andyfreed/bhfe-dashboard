@@ -9,6 +9,7 @@
 !.yarn/plugins
 !.yarn/releases
 !.yarn/versions
+.pnp.js
 
 # testing
 /coverage
@@ -16,9 +17,10 @@
 # next.js
 /.next/
 /out/
+/build
 
 # production
-/build
+/dist
 
 # misc
 .DS_Store
@@ -46,3 +48,6 @@ next-env.d.ts
 /public/sw.js.map
 /public/workbox-*.js
 /public/workbox-*.js.map
+
+# electron
+/dist-electron

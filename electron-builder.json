@@ -1,0 +1,55 @@
+{
+  "appId": "com.bhfe.dashboard",
+  "productName": "BHFE Dashboard",
+  "directories": {
+    "output": "dist",
+    "buildResources": "build"
+  },
+  "files": [
+    "out/**/*",
+    "electron/**/*",
+    "node_modules/**/*",
+    "package.json"
+  ],
+  "extraFiles": [
+    {
+      "from": "public/icon-512x512.png",
+      "to": "icon.png"
+    },
+    {
+      "from": ".env.local",
+      "to": ".env.local",
+      "filter": [".env.local"]
+    }
+  ],
+  "win": {
+    "target": [
+      {
+        "target": "nsis",
+        "arch": ["x64"]
+      }
+    ],
+    "icon": "public/icon-512x512.png",
+    "publisherName": "BHFE",
+    "sign": null,
+    "signingHashAlgorithms": []
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "shortcutName": "BHFE Dashboard"
+  },
+  "mac": {
+    "target": "dmg",
+    "icon": "public/icon-512x512.png",
+    "category": "public.app-category.productivity"
+  },
+  "linux": {
+    "target": "AppImage",
+    "icon": "public/icon-512x512.png",
+    "category": "Utility"
+  }
+}
+

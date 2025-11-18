@@ -5,6 +5,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { sendPushNotification } from '@/lib/push'
 
+// Prevent this route from being included in static exports (for Electron builds)
+export const dynamic = 'force-dynamic'
+
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()

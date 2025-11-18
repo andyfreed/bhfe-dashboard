@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { fetchActiveCoursesFromWordPress } from '@/lib/wordpress-sync'
 
+// Prevent this route from being included in static exports (for Electron builds)
+export const dynamic = 'force-dynamic'
+
 /**
  * API route to sync courses from WordPress
  * 

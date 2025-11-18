@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -64,7 +64,7 @@ const MONTHS = [
 
 type RegulatoryType = 'CPA' | 'CFP' | 'EA/OTRP/ERPA' | 'CDFA' | 'IAR'
 
-export default function StatesPage() {
+function StatesPageContent() {
   const searchParams = useSearchParams()
   const [states, setStates] = useState<StateInfo[]>([])
   const [loading, setLoading] = useState(true)
@@ -119,7 +119,7 @@ export default function StatesPage() {
       .from('state_info')
       .select('state_code')
 
-    const existingCodes = new Set(existingStates?.map((s) => s.state_code) || [])
+    const existingCodes = new Set(existingStates?.map((s: any) => s.state_code) || [])
     const missingStates = US_STATES.filter((state) => !existingCodes.has(state.code))
 
     if (missingStates.length > 0) {
@@ -499,5 +499,20 @@ export default function StatesPage() {
         </Card>
       )}
     </div>
+  )
+}
+
+export default function StatesPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    }>
+      <StatesPageContent />
+    </Suspense>
   )
 }

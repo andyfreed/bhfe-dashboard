@@ -1,10 +1,26 @@
 import type { NextConfig } from "next";
 import withPWA from "next-pwa";
 
+// Check if building for Electron
+const isElectronBuild = process.env.ELECTRON_BUILD === 'true';
+
 const nextConfig: NextConfig = {
   // Configure to handle file system issues with Dropbox
   // Optionally use a different output directory if needed
   // distDir: '.next',
+  
+  // For Electron builds, use static export
+  ...(isElectronBuild && {
+    output: 'export',
+    distDir: 'out',
+    images: {
+      unoptimized: true,
+    },
+    // Exclude API routes from static export
+    skipTrailingSlashRedirect: true,
+    // Don't set assetPrefix - Next.js will use relative paths by default for static export
+    // This works with file:// protocol in Electron
+  }),
   
   // Disable React strict mode to avoid double renders during development
   reactStrictMode: true,
@@ -21,19 +37,29 @@ const nextConfig: NextConfig = {
   // Configure webpack (required for next-pwa)
   // next-pwa uses webpack configuration which is not compatible with Turbopack
   webpack: (config, { isServer }) => {
+    // For Electron builds, exclude API routes (they can't be statically exported)
+    if (isElectronBuild && !isServer) {
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        '@/app/api': false,
+      }
+    }
     // Return webpack config as-is (next-pwa will modify it)
     return config
   },
 };
 
-const pwaConfig = withPWA({
-  dest: "public",
-  register: true,
-  skipWaiting: true,
-  disable: process.env.NODE_ENV === "development", // Disable PWA in development
-  publicExcludes: ["!icon-*.png", "!apple-icon-*.png"],
-  // Note: next-pwa v5 doesn't directly support custom service worker injection
-  // Push handlers are in sw-custom.js and are registered via the PushServiceWorker component
-});
+// Only apply PWA config for web builds (not Electron)
+const pwaConfig = isElectronBuild 
+  ? (config: NextConfig) => config
+  : withPWA({
+      dest: "public",
+      register: true,
+      skipWaiting: true,
+      disable: process.env.NODE_ENV === "development", // Disable PWA in development
+      publicExcludes: ["!icon-*.png", "!apple-icon-*.png"],
+      // Note: next-pwa v5 doesn't directly support custom service worker injection
+      // Push handlers are in sw-custom.js and are registered via the PushServiceWorker component
+    });
 
 export default pwaConfig(nextConfig);

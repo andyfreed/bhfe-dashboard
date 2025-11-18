@@ -2,12 +2,20 @@
   "name": "bhfe-dashboard",
   "version": "0.1.0",
   "private": true,
+  "main": "electron/main.js",
   "scripts": {
     "dev": "next dev",
+    "dev:electron": "concurrently \"next dev\" \"wait-on http://localhost:3000 && electron .\"",
     "build": "next build --webpack && node scripts/inject-push-handlers.js",
+    "build:web": "next build --webpack && node scripts/inject-push-handlers.js",
+    "prebuild:electron": "node scripts/prepare-electron-build.js",
+    "build:electron": "cross-env ELECTRON_BUILD=true next build --webpack && node scripts/fix-electron-paths.js && electron-builder && node scripts/restore-api-after-build.js",
+    "build:electron:dir": "cross-env ELECTRON_BUILD=true next build --webpack && electron-builder --dir && node scripts/restore-api-after-build.js",
+    "postbuild:electron": "node scripts/restore-api-after-build.js",
     "postbuild": "node scripts/inject-push-handlers.js",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "electron": "electron ."
   },
   "dependencies": {
     "@supabase/ssr": "^0.7.0",
@@ -30,9 +38,14 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/web-push": "^3.6.4",
+    "concurrently": "^9.1.0",
+    "cross-env": "^7.0.3",
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8",
     "eslint": "^9",
     "eslint-config-next": "16.0.3",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "wait-on": "^8.0.1"
   }
 }

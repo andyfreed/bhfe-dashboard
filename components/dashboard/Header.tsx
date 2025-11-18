@@ -28,7 +28,7 @@ export function Header() {
     const interval = setInterval(updateDateTime, 1000)
 
     // Get current user
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    supabase.auth.getUser().then(({ data: { user } }: any) => {
       setUser(user)
     })
 

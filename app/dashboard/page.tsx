@@ -61,13 +61,13 @@ export default function DashboardPage() {
 
       if (statesData) {
         const renewals = statesData
-          .filter(state => 
+          .filter((state: any) => 
             state.renewal_month && 
             (state.renewal_month === currentMonthName || 
              state.renewal_month === nextMonthName || 
              state.renewal_month === thirdMonthName)
           )
-          .map(state => ({
+          .map((state: any) => ({
             state_name: state.state_name,
             state_code: state.state_code,
             renewal_month: state.renewal_month || '',
