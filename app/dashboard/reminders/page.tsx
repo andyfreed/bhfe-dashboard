@@ -80,8 +80,25 @@ export default function RemindersPage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
+    // Convert datetime-local value to ISO string (treat as local time)
+    // datetime-local gives format "YYYY-MM-DDTHH:mm" in local timezone
+    // Note: new Date("YYYY-MM-DDTHH:mm") treats it as UTC, so we need to parse it manually
+    let reminderDateISO = formData.reminder_date
+    if (formData.reminder_date) {
+      // Parse the datetime-local string and create a Date in local timezone
+      const [datePart, timePart] = formData.reminder_date.split('T')
+      const [year, month, day] = datePart.split('-').map(Number)
+      const [hours, minutes] = timePart.split(':').map(Number)
+      
+      // Create Date object in local timezone
+      const localDate = new Date(year, month - 1, day, hours, minutes)
+      // Convert to ISO string for database (which stores in UTC)
+      reminderDateISO = localDate.toISOString()
+    }
+
     const reminderData = {
       ...formData,
+      reminder_date: reminderDateISO,
       user_id: user.id,
     }
 
