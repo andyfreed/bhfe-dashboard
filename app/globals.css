@@ -2,32 +2,57 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 221.2 83.2% 53.3%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
-    --radius: 0.5rem;
+    /* ZZ Top Theme: Sharp Dressed Man / Eliminator Style */
+    /* Backgrounds: Deep Asphalt Black/Grey */
+    --background: 0 0% 4%; /* #0a0a0a */
+    --foreground: 45 20% 90%; /* Dusty White */
+    
+    --card: 0 0% 9%; /* #171717 */
+    --card-foreground: 45 20% 90%;
+    
+    --popover: 0 0% 9%;
+    --popover-foreground: 45 20% 90%;
+    
+    /* Primary: Hot Rod Red */
+    --primary: 0 72% 51%; /* #dc2626 */
+    --primary-foreground: 0 0% 100%;
+    
+    /* Secondary: Chrome / Billy Gibbons Beard White */
+    --secondary: 0 0% 20%;
+    --secondary-foreground: 0 0% 98%;
+    
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 60%;
+    
+    --accent: 48 96% 53%; /* Gold/Yellow */
+    --accent-foreground: 0 0% 0%;
+    
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    
+    --border: 0 0% 20%; /* Chrome border */
+    --input: 0 0% 20%;
+    --ring: 0 72% 51%;
+    
+    --radius: 0.25rem; /* Sharper edges */
   }
 
   body {
-    background: linear-gradient(to bottom right, #f8fafc, rgba(239, 246, 255, 0.3), rgba(238, 242, 255, 0.2));
+    background: #0a0a0a;
+    background-image: 
+      linear-gradient(rgba(10, 10, 10, 0.9), rgba(10, 10, 10, 0.9)),
+      url("https://www.transparenttextures.com/patterns/dark-leather.png");
     color: hsl(var(--foreground));
     font-feature-settings: "rlig" 1, "calt" 1;
+    letter-spacing: 0.05em; /* Wide stance */
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    text-transform: uppercase;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    color: #ef4444; /* Red headings */
+    text-shadow: 2px 2px 0px #000;
   }
 }
 
@@ -37,29 +62,38 @@
   }
 
   .glass {
-    background: rgba(255, 255, 255, 0.8);
+    background: rgba(23, 23, 23, 0.8);
     backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.1);
   }
 
   .gradient-primary {
-    background: linear-gradient(to right, #2563eb, #4f46e5, #9333ea);
+    background: linear-gradient(to right, #dc2626, #b91c1c, #991b1b);
   }
 
   .gradient-card {
-    background: linear-gradient(to bottom right, #ffffff, rgba(248, 250, 252, 0.5));
+    background: linear-gradient(to bottom right, #171717, #0a0a0a);
+    border: 1px solid #333;
   }
 
+  /* Chrome effect */
+  .chrome-text {
+    background: linear-gradient(to bottom, #e5e7eb 0%, #9ca3af 50%, #4b5563 51%, #1f2937 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-weight: 900;
+  }
+  
   .shadow-modern {
-    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
   }
 
   .shadow-modern-lg {
-    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.7), 0 4px 6px -2px rgba(0, 0, 0, 0.5);
   }
 
   .shadow-modern-xl {
-    box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.8), 0 10px 10px -5px rgba(0, 0, 0, 0.6);
   }
 
   .animate-in {
@@ -83,42 +117,19 @@
 
   .hover-lift:hover {
     transform: translateY(-4px);
-    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    box-shadow: 0 10px 15px -3px rgba(220, 38, 38, 0.2), 0 4px 6px -4px rgba(220, 38, 38, 0.2);
+    border-color: #dc2626;
   }
-
-  /* Animated blob for background */
-  @keyframes blob {
-    0%, 100% {
-      transform: translate(0px, 0px) scale(1);
-    }
-    33% {
-      transform: translate(30px, -50px) scale(1.1);
-    }
-    66% {
-      transform: translate(-20px, 20px) scale(0.9);
-    }
-  }
-
-  .animate-blob {
-    animation: blob 7s infinite;
-  }
-
-  .animation-delay-2000 {
-    animation-delay: 2s;
-  }
-
-  .animation-delay-4000 {
-    animation-delay: 4s;
-  }
-
+  
+  /* Hot Rod flames animation (simplified as red pulse) */
   @keyframes flashRed {
     0%, 100% {
-      background-color: rgba(255, 255, 255, 0.8);
-      border-color: rgba(226, 232, 240, 0.8);
+      background-color: rgba(23, 23, 23, 0.8);
+      border-color: rgba(64, 64, 64, 0.8);
     }
     50% {
-      background-color: rgba(239, 68, 68, 0.9);
-      border-color: rgba(220, 38, 38, 0.9);
+      background-color: rgba(127, 29, 29, 0.3);
+      border-color: rgba(220, 38, 38, 0.6);
     }
   }
 

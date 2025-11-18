@@ -25,7 +25,7 @@ export const metadata: Metadata = {
       { url: "/icon-512x512.png", sizes: "512x512", type: "image/png" },
     ],
   },
-  themeColor: "#3b82f6",
+  themeColor: "#dc2626",
   viewport: {
     width: "device-width",
     initialScale: 1,
@@ -51,7 +51,7 @@ export default function RootLayout({
         {/* Prevent automatic phone number detection */}
         <meta name="format-detection" content="telephone=no" />
       </head>
-      <body className={`${inter.variable} font-sans antialiased bg-gray-50`}>
+      <body className={`${inter.variable} font-sans antialiased bg-black text-zinc-100`}>
         {children}
         <NotificationPrompt />
       </body>
