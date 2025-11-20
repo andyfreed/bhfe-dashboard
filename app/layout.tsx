@@ -51,7 +51,7 @@ export default function RootLayout({
         {/* Prevent automatic phone number detection */}
         <meta name="format-detection" content="telephone=no" />
       </head>
-      <body className={`${inter.variable} font-sans antialiased bg-gray-50`}>
+      <body className={`${inter.variable} font-sans antialiased bg-neutral-900 text-neutral-200`}>
         {children}
         <NotificationPrompt />
       </body>

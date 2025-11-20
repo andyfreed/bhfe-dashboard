@@ -2,32 +2,38 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 221.2 83.2% 53.3%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --background: 23 23 23; /* neutral-900 */
+    --foreground: 229 229 229; /* neutral-200 */
+    --card: 23 23 23; /* neutral-900 */
+    --card-foreground: 229 229 229; /* neutral-200 */
+    --popover: 10 10 10; /* neutral-950 */
+    --popover-foreground: 229 229 229; /* neutral-200 */
+    --primary: 59 130 246; /* blue-500 */
+    --primary-foreground: 219 234 254; /* blue-100 */
+    --secondary: 38 38 38; /* neutral-800 */
+    --secondary-foreground: 229 229 229; /* neutral-200 */
+    --muted: 38 38 38; /* neutral-800 */
+    --muted-foreground: 163 163 163; /* neutral-400 */
+    --accent: 16 185 129; /* emerald-500 */
+    --accent-foreground: 10 10 10; /* neutral-950 */
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
+    --border: 64 64 64; /* neutral-700 */
+    --input: 64 64 64; /* neutral-700 */
+    --ring: 59 130 246; /* blue-500 */
     --radius: 0.5rem;
   }
 
   body {
-    background: linear-gradient(to bottom right, #f8fafc, rgba(239, 246, 255, 0.3), rgba(238, 242, 255, 0.2));
+    background: #171717; /* neutral-900 */
     color: hsl(var(--foreground));
     font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  /* Selection styling matching example-style */
+  ::selection {
+    background-color: rgb(16 185 129); /* emerald-500 */
+    color: rgb(10 10 10); /* neutral-950 */
   }
 }
 
@@ -37,17 +43,56 @@
   }
 
   .glass {
-    background: rgba(255, 255, 255, 0.8);
+    background: rgba(255, 255, 255, 0.02);
     backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.05);
   }
 
   .gradient-primary {
-    background: linear-gradient(to right, #2563eb, #4f46e5, #9333ea);
+    background: linear-gradient(to right, #3b82f6, #2563eb, #1d4ed8);
   }
 
   .gradient-card {
-    background: linear-gradient(to bottom right, #ffffff, rgba(248, 250, 252, 0.5));
+    background: linear-gradient(to bottom right, rgba(23, 23, 23, 0.8), rgba(38, 38, 38, 0.5));
+  }
+
+  /* Beam background animation from example-style */
+  .beam-background {
+    animation: animate-beams 60s linear infinite;
+    background: linear-gradient(to right, white, transparent, white);
+    background-image: repeating-linear-gradient(
+      100deg,
+      #262626 0%,
+      #262626 3%,
+      rgba(38, 38, 38, 0.7) 5%,
+      rgba(38, 38, 38, 0.7) 7%,
+      transparent 10%,
+      transparent 12%,
+      rgba(38, 38, 38, 0.7) 14%,
+      #262626 16%
+    ),
+    repeating-linear-gradient(
+      100deg,
+      #9ca3af 0%,
+      #9ca3af 1.5%,
+      rgba(156, 163, 175, 0.8) 2%,
+      #6b7280 3%,
+      #6b7280 4%,
+      rgba(156, 163, 175, 0.8) 4.5%,
+      #9ca3af 5%
+    );
+    background-size: 300%, 200%;
+    background-position: 50% 80%, 5% 50%;
+    will-change: background-position;
+  }
+
+  @keyframes animate-beams {
+    0% {
+      background-position: 50% 50%, 50% 50%;
+    }
+    100% {
+      background-position: 350% 50%, 350% 50%;
+    }
   }
 
   .shadow-modern {

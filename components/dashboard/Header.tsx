@@ -95,26 +95,26 @@ export function Header() {
   }
 
   return (
-    <header className={`h-16 lg:h-20 border-b border-slate-200/80 bg-white/80 backdrop-blur-sm px-4 sm:px-6 lg:px-8 flex items-center justify-between shadow-sm mt-14 lg:mt-0 ${hasActiveSuperReminder ? 'animate-flash-red' : ''}`}>
+    <header className={`h-16 lg:h-20 border-b border-white/5 bg-neutral-950/80 backdrop-blur-md px-4 sm:px-6 lg:px-8 flex items-center justify-between mt-14 lg:mt-0 ${hasActiveSuperReminder ? 'animate-flash-red' : ''}`}>
       <div className="flex items-center gap-2 sm:gap-4 min-w-0">
         <div className="flex flex-col min-w-0">
-          <h2 className="text-sm sm:text-base lg:text-lg font-bold text-slate-900 truncate">{currentDate}</h2>
-          <p className="text-xs text-slate-500 font-medium hidden sm:block">Welcome back!</p>
+          <h2 className="text-sm sm:text-base lg:text-lg font-medium text-neutral-200 truncate">{currentDate}</h2>
+          <p className="text-xs text-neutral-400 font-light hidden sm:block">Welcome back!</p>
         </div>
       </div>
       <div className="flex items-center gap-2 sm:gap-4">
         {user && (
-          <div className="hidden sm:flex items-center gap-2 lg:gap-3 px-3 lg:px-4 py-2 rounded-lg bg-slate-50 border border-slate-200/80">
-            <div className="flex items-center justify-center h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-500">
-              <User className="h-4 w-4 text-white" />
+          <div className="hidden sm:flex items-center gap-2 lg:gap-3 px-3 lg:px-4 py-2 rounded-lg bg-white/5 border border-white/5">
+            <div className="flex items-center justify-center h-8 w-8 rounded-full bg-blue-600">
+              <User className="h-4 w-4 text-blue-100" />
             </div>
             <div className="flex flex-col min-w-0">
-              <span className="text-xs lg:text-sm font-semibold text-slate-900 truncate">{user.email?.split('@')[0] || 'User'}</span>
-              <span className="text-xs text-slate-500 truncate hidden lg:block">{user.email || ''}</span>
+              <span className="text-xs lg:text-sm font-light text-neutral-200 truncate">{user.email?.split('@')[0] || 'User'}</span>
+              <span className="text-xs text-neutral-400 truncate hidden lg:block">{user.email || ''}</span>
             </div>
           </div>
         )}
-        <Button variant="outline" size="sm" onClick={handleSignOut} className="gap-1 sm:gap-2 text-xs sm:text-sm">
+        <Button variant="outline" size="sm" onClick={handleSignOut} className="gap-1 sm:gap-2 text-xs sm:text-sm border-white/5 bg-white/5 text-neutral-400 hover:bg-white/10 hover:text-neutral-200">
           <LogOut className="h-3 w-3 sm:h-4 sm:w-4" />
           <span className="hidden sm:inline">Sign Out</span>
         </Button>
