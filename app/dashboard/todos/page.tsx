@@ -224,12 +224,14 @@ export default function TodosPage() {
         console.error('Error checking for existing reminder:', checkError)
       }
 
-      const reminderUserId = formData.assigned_to || user.id // Assign to assigned user or creator
+      // Set reminder user_id to assigned user, or creator if unassigned
+      // The RLS policy will allow this if the user created the todo or is assigned to it
+      const reminderUserId = formData.assigned_to || user.id
       const reminderData = {
         title: formData.title,
         description: formData.description || null,
         reminder_date: reminderDateISO,
-        user_id: reminderUserId,
+        user_id: reminderUserId, // This will be the assigned user or creator
         todo_id: todoId,
         is_recurring: formData.is_recurring,
         recurring_pattern: formData.is_recurring ? formData.recurring_pattern : null,
