@@ -145,16 +145,20 @@ export default function TodosPage() {
       reminderDateISO = localDate.toISOString()
     }
 
+    // Convert due_date to ISO string
+    let dueDateISO = null
+    if (formData.due_date) {
+      const [datePart, timePart] = formData.due_date.split('T')
+      const [year, month, day] = datePart.split('-').map(Number)
+      const [hours, minutes] = timePart.split(':').map(Number)
+      dueDateISO = new Date(year, month - 1, day, hours, minutes).toISOString()
+    }
+
     const todoData = {
       title: formData.title,
       description: formData.description || null,
       user_id: user.id,
-      due_date: formData.due_date ? (() => {
-        const [datePart, timePart] = formData.due_date.split('T')
-        const [year, month, day] = datePart.split('-').map(Number)
-        const [hours, minutes] = timePart.split(':').map(Number)
-        return new Date(year, month - 1, day, hours, minutes).toISOString()
-      })() : null,
+      due_date: dueDateISO,
       reminder_date: reminderDateISO,
       assigned_to: formData.assigned_to || null,
       is_recurring: formData.is_recurring,
