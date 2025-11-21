@@ -590,6 +590,9 @@ export default function TodosPage() {
                     </option>
                   ))}
                 </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  {formData.assigned_to ? `Task will be assigned to ${profiles[formData.assigned_to]?.name || 'selected user'}` : 'Task will be unassigned'}
+                </p>
               </div>
               <div className="flex items-center gap-4">
                 <label className="flex items-center gap-2">
