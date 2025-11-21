@@ -214,17 +214,22 @@ export default function TodosPage() {
     // Create or update reminder if reminder_date is set
     if (reminderDateISO && todoId) {
       // Check if reminder already exists for this todo
-      const { data: existingReminder } = await supabase
+      const { data: existingReminder, error: checkError } = await supabase
         .from('reminders')
         .select('id')
         .eq('todo_id', todoId)
-        .single()
+        .maybeSingle()
 
+      if (checkError && checkError.code !== 'PGRST116') { // PGRST116 is "not found" which is OK
+        console.error('Error checking for existing reminder:', checkError)
+      }
+
+      const reminderUserId = formData.assigned_to || user.id // Assign to assigned user or creator
       const reminderData = {
         title: formData.title,
-        description: formData.description,
+        description: formData.description || null,
         reminder_date: reminderDateISO,
-        user_id: formData.assigned_to || user.id, // Assign to assigned user or creator
+        user_id: reminderUserId,
         todo_id: todoId,
         is_recurring: formData.is_recurring,
         recurring_pattern: formData.is_recurring ? formData.recurring_pattern : null,
@@ -232,22 +237,40 @@ export default function TodosPage() {
 
       if (existingReminder) {
         // Update existing reminder
-        await supabase
+        const { error: updateError } = await supabase
           .from('reminders')
           .update(reminderData)
           .eq('id', existingReminder.id)
+
+        if (updateError) {
+          console.error('Error updating reminder:', updateError)
+        } else {
+          console.log('Reminder updated successfully')
+        }
       } else {
         // Create new reminder
-        await supabase
+        const { data: newReminder, error: insertError } = await supabase
           .from('reminders')
           .insert([reminderData])
+          .select()
+          .single()
+
+        if (insertError) {
+          console.error('Error creating reminder:', insertError)
+        } else {
+          console.log('Reminder created successfully:', newReminder)
+        }
       }
-    } else if (todoId && editingTodo) {
+    } else if (todoId && editingTodo && !reminderDateISO) {
       // If reminder_date is removed, delete the associated reminder
-      await supabase
+      const { error: deleteError } = await supabase
         .from('reminders')
         .delete()
         .eq('todo_id', todoId)
+
+      if (deleteError) {
+        console.error('Error deleting reminder:', deleteError)
+      }
     }
 
     resetForm()

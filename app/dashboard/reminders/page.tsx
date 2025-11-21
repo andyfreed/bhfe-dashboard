@@ -43,6 +43,8 @@ export default function RemindersPage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
+    // Load reminders where user_id matches the current user
+    // (Reminders are created with the assigned user's ID, so they'll see reminders for tasks assigned to them)
     const { data, error } = await supabase
       .from('reminders')
       .select('*')
