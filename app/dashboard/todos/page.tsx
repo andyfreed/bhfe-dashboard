@@ -4,8 +4,15 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Plus, Trash2, Edit, Check, X, ChevronDown, User, Building } from 'lucide-react'
+import { Plus, Trash2, Edit, Check, X, ChevronDown, User, Building, ChevronUp, Tag } from 'lucide-react'
 import { format } from 'date-fns'
+
+interface Profile {
+  id: string
+  name: string
+  email: string
+  user_color: string | null
+}
 
 interface Todo {
   id: string
@@ -17,11 +24,15 @@ interface Todo {
   recurring_pattern: string | null
   is_company_task: boolean
   user_id: string
+  tags: string[] | null
+  color: string | null
+  sort_order: number | null
   created_at: string
 }
 
 export default function TodosPage() {
   const [todos, setTodos] = useState<Todo[]>([])
+  const [profiles, setProfiles] = useState<Record<string, Profile>>({})
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [showDropdown, setShowDropdown] = useState(false)
@@ -33,13 +44,33 @@ export default function TodosPage() {
     is_recurring: false,
     recurring_pattern: 'daily',
     is_company_task: false,
+    tags: '',
+    color: '#3b82f6',
   })
   const supabase = createClient()
 
   useEffect(() => {
+    loadProfiles()
     loadTodos()
     subscribeToTodos()
   }, [supabase])
+
+  const loadProfiles = async () => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+
+    if (error) {
+      console.error('Error loading profiles:', error)
+      return
+    }
+
+    const profilesMap: Record<string, Profile> = {}
+    data?.forEach((profile) => {
+      profilesMap[profile.id] = profile
+    })
+    setProfiles(profilesMap)
+  }
 
   const loadTodos = async () => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -48,6 +79,7 @@ export default function TodosPage() {
     const { data, error } = await supabase
       .from('todos')
       .select('*')
+      .order('sort_order', { ascending: true, nullsFirst: false })
       .order('created_at', { ascending: false })
 
     if (error) {
@@ -81,10 +113,24 @@ export default function TodosPage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
+    // Parse tags from comma-separated string
+    const tagsArray = formData.tags
+      .split(',')
+      .map((tag) => tag.trim())
+      .filter((tag) => tag.length > 0)
+
+    // Get user color - use profile color for personal tasks, form color for company tasks
+    const userColor = formData.is_company_task 
+      ? formData.color 
+      : (profiles[user.id]?.user_color || '#3b82f6')
+
     const todoData = {
       ...formData,
       user_id: user.id,
       due_date: formData.due_date || null,
+      tags: tagsArray.length > 0 ? tagsArray : null,
+      color: userColor,
+      sort_order: editingTodo ? editingTodo.sort_order : Date.now(),
     }
 
     if (editingTodo) {
@@ -151,8 +197,35 @@ export default function TodosPage() {
       is_recurring: todo.is_recurring,
       recurring_pattern: todo.recurring_pattern || 'daily',
       is_company_task: todo.is_company_task,
+      tags: todo.tags?.join(', ') || '',
+      color: todo.color || '#3b82f6',
     })
     setShowForm(true)
+  }
+
+  const handleMoveTodo = async (todo: Todo, direction: 'up' | 'down') => {
+    const currentIndex = todos.findIndex((t) => t.id === todo.id)
+    if (currentIndex === -1) return
+
+    const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1
+    if (targetIndex < 0 || targetIndex >= todos.length) return
+
+    const targetTodo = todos[targetIndex]
+    const newSortOrder = targetTodo.sort_order || Date.now()
+    const currentSortOrder = todo.sort_order || Date.now()
+
+    // Swap sort orders
+    await supabase
+      .from('todos')
+      .update({ sort_order: newSortOrder })
+      .eq('id', todo.id)
+
+    await supabase
+      .from('todos')
+      .update({ sort_order: currentSortOrder })
+      .eq('id', targetTodo.id)
+
+    loadTodos()
   }
 
   const resetForm = () => {
@@ -163,15 +236,28 @@ export default function TodosPage() {
       is_recurring: false,
       recurring_pattern: 'daily',
       is_company_task: false,
+      tags: '',
+      color: '#3b82f6',
     })
     setEditingTodo(null)
     setShowForm(false)
     setShowDropdown(false)
   }
 
-  const personalTodos = todos.filter((t) => !t.is_company_task && !t.completed)
-  const companyTodos = todos.filter((t) => t.is_company_task && !t.completed)
+  const activeTodos = todos.filter((t) => !t.completed)
   const completedTodos = todos.filter((t) => t.completed)
+
+  const getUserColor = (userId: string, isCompanyTask: boolean, todoColor: string | null) => {
+    if (isCompanyTask) {
+      return todoColor || '#9333ea' // Purple for company tasks
+    }
+    return profiles[userId]?.user_color || todoColor || '#3b82f6'
+  }
+
+  const getUserName = (userId: string, isCompanyTask: boolean) => {
+    if (isCompanyTask) return 'Company'
+    return profiles[userId]?.name || 'Unknown'
+  }
 
   if (loading) {
     return <div className="text-center py-12">Loading...</div>
@@ -181,8 +267,8 @@ export default function TodosPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">To-Do Lists</h1>
-          <p className="text-gray-600 mt-1">Manage your personal and company tasks</p>
+          <h1 className="text-3xl font-bold text-gray-900">To-Do List</h1>
+          <p className="text-gray-600 mt-1">Unified list of personal and company tasks with tags and colors</p>
         </div>
         <div className="relative">
           <Button onClick={() => setShowDropdown(!showDropdown)}>
@@ -199,8 +285,14 @@ export default function TodosPage() {
               <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
                 <div className="py-1">
                   <button
-                    onClick={() => {
-                      setFormData({ ...formData, is_company_task: false })
+                    onClick={async () => {
+                      const { data: { user } } = await supabase.auth.getUser()
+                      const userColor = user ? (profiles[user.id]?.user_color || '#3b82f6') : '#3b82f6'
+                      setFormData({ 
+                        ...formData, 
+                        is_company_task: false,
+                        color: userColor
+                      })
                       setShowDropdown(false)
                       setShowForm(true)
                     }}
@@ -214,7 +306,11 @@ export default function TodosPage() {
                   </button>
                   <button
                     onClick={() => {
-                      setFormData({ ...formData, is_company_task: true })
+                      setFormData({ 
+                        ...formData, 
+                        is_company_task: true,
+                        color: '#9333ea' // Default purple for company tasks
+                      })
                       setShowDropdown(false)
                       setShowForm(true)
                     }}
@@ -300,6 +396,31 @@ export default function TodosPage() {
                   </select>
                 )}
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Tags (comma-separated)
+                </label>
+                <input
+                  type="text"
+                  value={formData.tags}
+                  onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
+                  placeholder="tag1, tag2, tag3"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                />
+              </div>
+              {formData.is_company_task && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Color
+                  </label>
+                  <input
+                    type="color"
+                    value={formData.color}
+                    onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                    className="w-full h-10 border border-gray-300 rounded-md cursor-pointer"
+                  />
+                </div>
+              )}
               <div className="flex gap-2">
                 <Button type="submit">{editingTodo ? 'Update' : 'Create'}</Button>
                 <Button type="button" variant="outline" onClick={resetForm}>
@@ -311,111 +432,106 @@ export default function TodosPage() {
         </Card>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Personal Todos</CardTitle>
-            <CardDescription>Your personal tasks</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {personalTodos.length === 0 ? (
-              <p className="text-gray-500 text-center py-4">No personal todos yet</p>
-            ) : (
-              personalTodos.map((todo) => (
+      <Card>
+        <CardHeader>
+          <CardTitle>All Todos</CardTitle>
+          <CardDescription>Personal and company tasks in one unified list</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {activeTodos.length === 0 ? (
+            <p className="text-gray-500 text-center py-4">No active todos yet</p>
+          ) : (
+            activeTodos.map((todo, index) => {
+              const userColor = getUserColor(todo.user_id, todo.is_company_task, todo.color)
+              const userName = getUserName(todo.user_id, todo.is_company_task)
+              
+              return (
                 <div
                   key={todo.id}
-                  className="flex items-start gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50"
+                  className="flex items-start gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                  style={{ borderLeftColor: userColor, borderLeftWidth: '4px' }}
                 >
+                  <div className="flex flex-col gap-1 mt-1">
+                    <button
+                      onClick={() => handleMoveTodo(todo, 'up')}
+                      disabled={index === 0}
+                      className={`h-4 w-4 flex items-center justify-center ${
+                        index === 0 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      <ChevronUp className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => handleMoveTodo(todo, 'down')}
+                      disabled={index === activeTodos.length - 1}
+                      className={`h-4 w-4 flex items-center justify-center ${
+                        index === activeTodos.length - 1 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      <ChevronDown className="h-4 w-4" />
+                    </button>
+                  </div>
                   <button
                     onClick={() => handleToggleComplete(todo)}
-                    className={`mt-1 h-5 w-5 rounded border-2 flex items-center justify-center ${
+                    className={`mt-1 h-5 w-5 rounded border-2 flex items-center justify-center flex-shrink-0 ${
                       todo.completed ? 'bg-green-500 border-green-500' : 'border-gray-300'
                     }`}
                   >
                     {todo.completed && <Check className="h-3 w-3 text-white" />}
                   </button>
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <div
+                        className="w-3 h-3 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: userColor }}
+                      />
+                      <span className="text-xs font-medium text-gray-600">{userName}</span>
+                      {todo.is_company_task && (
+                        <span className="text-xs px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full">
+                          Company
+                        </span>
+                      )}
+                    </div>
                     <div className="font-medium">{todo.title}</div>
                     {todo.description && (
-                      <div className="text-sm text-gray-600">{todo.description}</div>
+                      <div className="text-sm text-gray-600 mt-1">{todo.description}</div>
                     )}
-                    {todo.due_date && (
-                      <div className="text-xs text-gray-500 mt-1">
-                        Due: {format(new Date(todo.due_date), 'MMM d, yyyy h:mm a')}
+                    {todo.tags && todo.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {todo.tags.map((tag, tagIndex) => (
+                          <span
+                            key={tagIndex}
+                            className="inline-flex items-center gap-1 text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full"
+                          >
+                            <Tag className="h-3 w-3" />
+                            {tag}
+                          </span>
+                        ))}
                       </div>
                     )}
-                    {todo.is_recurring && (
-                      <div className="text-xs text-blue-600 mt-1">
-                        Recurring: {todo.recurring_pattern}
-                      </div>
-                    )}
+                    <div className="flex flex-wrap gap-3 mt-2 text-xs text-gray-500">
+                      {todo.due_date && (
+                        <span>Due: {format(new Date(todo.due_date), 'MMM d, yyyy h:mm a')}</span>
+                      )}
+                      {todo.is_recurring && (
+                        <span className="text-blue-600">Recurring: {todo.recurring_pattern}</span>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex gap-2">
-                    <button onClick={() => handleEdit(todo)} className="text-blue-600">
+                  <div className="flex gap-2 flex-shrink-0">
+                    <button onClick={() => handleEdit(todo)} className="text-blue-600 hover:text-blue-800">
                       <Edit className="h-4 w-4" />
                     </button>
-                    <button onClick={() => handleDelete(todo.id)} className="text-red-600">
+                    <button onClick={() => handleDelete(todo.id)} className="text-red-600 hover:text-red-800">
                       <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
                 </div>
-              ))
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Company Todos</CardTitle>
-            <CardDescription>Shared company tasks</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {companyTodos.length === 0 ? (
-              <p className="text-gray-500 text-center py-4">No company todos yet</p>
-            ) : (
-              companyTodos.map((todo) => (
-                <div
-                  key={todo.id}
-                  className="flex items-start gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50"
-                >
-                  <button
-                    onClick={() => handleToggleComplete(todo)}
-                    className={`mt-1 h-5 w-5 rounded border-2 flex items-center justify-center ${
-                      todo.completed ? 'bg-green-500 border-green-500' : 'border-gray-300'
-                    }`}
-                  >
-                    {todo.completed && <Check className="h-3 w-3 text-white" />}
-                  </button>
-                  <div className="flex-1">
-                    <div className="font-medium">{todo.title}</div>
-                    {todo.description && (
-                      <div className="text-sm text-gray-600">{todo.description}</div>
-                    )}
-                    {todo.due_date && (
-                      <div className="text-xs text-gray-500 mt-1">
-                        Due: {format(new Date(todo.due_date), 'MMM d, yyyy h:mm a')}
-                      </div>
-                    )}
-                    {todo.is_recurring && (
-                      <div className="text-xs text-blue-600 mt-1">
-                        Recurring: {todo.recurring_pattern}
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex gap-2">
-                    <button onClick={() => handleEdit(todo)} className="text-blue-600">
-                      <Edit className="h-4 w-4" />
-                    </button>
-                    <button onClick={() => handleDelete(todo.id)} className="text-red-600">
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
-              ))
-            )}
-          </CardContent>
-        </Card>
-      </div>
+              )
+            })
+          )}
+        </CardContent>
+      </Card>
 
       {completedTodos.length > 0 && (
         <Card>
@@ -424,25 +540,56 @@ export default function TodosPage() {
             <CardDescription>Finished tasks</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
-            {completedTodos.map((todo) => (
-              <div
-                key={todo.id}
-                className="flex items-start gap-3 p-3 border border-gray-200 rounded-lg bg-gray-50 opacity-75"
-              >
-                <div className="mt-1 h-5 w-5 rounded bg-green-500 border-green-500 flex items-center justify-center">
-                  <Check className="h-3 w-3 text-white" />
+            {completedTodos.map((todo) => {
+              const userColor = getUserColor(todo.user_id, todo.is_company_task, todo.color)
+              const userName = getUserName(todo.user_id, todo.is_company_task)
+              
+              return (
+                <div
+                  key={todo.id}
+                  className="flex items-start gap-3 p-3 border border-gray-200 rounded-lg bg-gray-50 opacity-75"
+                  style={{ borderLeftColor: userColor, borderLeftWidth: '4px' }}
+                >
+                  <div className="mt-1 h-5 w-5 rounded bg-green-500 border-green-500 flex items-center justify-center flex-shrink-0">
+                    <Check className="h-3 w-3 text-white" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <div
+                        className="w-3 h-3 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: userColor }}
+                      />
+                      <span className="text-xs font-medium text-gray-600">{userName}</span>
+                      {todo.is_company_task && (
+                        <span className="text-xs px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full">
+                          Company
+                        </span>
+                      )}
+                    </div>
+                    <div className="font-medium line-through">{todo.title}</div>
+                    {todo.description && (
+                      <div className="text-sm text-gray-600 mt-1">{todo.description}</div>
+                    )}
+                    {todo.tags && todo.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {todo.tags.map((tag, tagIndex) => (
+                          <span
+                            key={tagIndex}
+                            className="inline-flex items-center gap-1 text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full"
+                          >
+                            <Tag className="h-3 w-3" />
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <button onClick={() => handleDelete(todo.id)} className="text-red-600 hover:text-red-800 flex-shrink-0">
+                    <Trash2 className="h-4 w-4" />
+                  </button>
                 </div>
-                <div className="flex-1">
-                  <div className="font-medium line-through">{todo.title}</div>
-                  {todo.description && (
-                    <div className="text-sm text-gray-600">{todo.description}</div>
-                  )}
-                </div>
-                <button onClick={() => handleDelete(todo.id)} className="text-red-600">
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
-            ))}
+              )
+            })}
           </CardContent>
         </Card>
       )}
