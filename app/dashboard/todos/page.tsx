@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Plus, Trash2, Edit, Check, X, ChevronDown, User, Building, ChevronUp, Tag } from 'lucide-react'
+import { Plus, Trash2, Edit, Check, X, ChevronDown, User, Building, ChevronUp, Tag, Filter, Bell } from 'lucide-react'
 import { format } from 'date-fns'
 
 interface Profile {
@@ -20,10 +20,12 @@ interface Todo {
   description: string | null
   completed: boolean
   due_date: string | null
+  reminder_date: string | null
   is_recurring: boolean
   recurring_pattern: string | null
   is_company_task: boolean
   user_id: string
+  assigned_to: string | null
   tags: string[] | null
   color: string | null
   sort_order: number | null
@@ -37,13 +39,22 @@ export default function TodosPage() {
   const [showForm, setShowForm] = useState(false)
   const [showDropdown, setShowDropdown] = useState(false)
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null)
+  const [filters, setFilters] = useState({
+    user: 'all',
+    assignedTo: 'all',
+    tag: 'all',
+    type: 'all', // 'all', 'personal', 'company'
+    search: '',
+  })
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     due_date: '',
+    reminder_date: '',
     is_recurring: false,
     recurring_pattern: 'daily',
     is_company_task: false,
+    assigned_to: '',
     tags: '',
     color: '#3b82f6',
   })
@@ -124,34 +135,102 @@ export default function TodosPage() {
       ? formData.color 
       : (profiles[user.id]?.user_color || '#3b82f6')
 
+    // Convert datetime-local to ISO string for reminder_date
+    let reminderDateISO = null
+    if (formData.reminder_date) {
+      const [datePart, timePart] = formData.reminder_date.split('T')
+      const [year, month, day] = datePart.split('-').map(Number)
+      const [hours, minutes] = timePart.split(':').map(Number)
+      const localDate = new Date(year, month - 1, day, hours, minutes)
+      reminderDateISO = localDate.toISOString()
+    }
+
     const todoData = {
-      ...formData,
+      title: formData.title,
+      description: formData.description || null,
       user_id: user.id,
-      due_date: formData.due_date || null,
+      due_date: formData.due_date ? (() => {
+        const [datePart, timePart] = formData.due_date.split('T')
+        const [year, month, day] = datePart.split('-').map(Number)
+        const [hours, minutes] = timePart.split(':').map(Number)
+        return new Date(year, month - 1, day, hours, minutes).toISOString()
+      })() : null,
+      reminder_date: reminderDateISO,
+      assigned_to: formData.assigned_to || null,
+      is_recurring: formData.is_recurring,
+      recurring_pattern: formData.is_recurring ? formData.recurring_pattern : null,
+      is_company_task: formData.is_company_task,
       tags: tagsArray.length > 0 ? tagsArray : null,
       color: userColor,
       sort_order: editingTodo ? editingTodo.sort_order : Date.now(),
     }
 
+    let todoId: string | null = null
+
     if (editingTodo) {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('todos')
         .update(todoData)
         .eq('id', editingTodo.id)
+        .select()
+        .single()
 
       if (error) {
         console.error('Error updating todo:', error)
         return
       }
+      todoId = data.id
     } else {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('todos')
         .insert([todoData])
+        .select()
+        .single()
 
       if (error) {
         console.error('Error creating todo:', error)
         return
       }
+      todoId = data.id
+    }
+
+    // Create or update reminder if reminder_date is set
+    if (reminderDateISO && todoId) {
+      // Check if reminder already exists for this todo
+      const { data: existingReminder } = await supabase
+        .from('reminders')
+        .select('id')
+        .eq('todo_id', todoId)
+        .single()
+
+      const reminderData = {
+        title: formData.title,
+        description: formData.description,
+        reminder_date: reminderDateISO,
+        user_id: formData.assigned_to || user.id, // Assign to assigned user or creator
+        todo_id: todoId,
+        is_recurring: formData.is_recurring,
+        recurring_pattern: formData.is_recurring ? formData.recurring_pattern : null,
+      }
+
+      if (existingReminder) {
+        // Update existing reminder
+        await supabase
+          .from('reminders')
+          .update(reminderData)
+          .eq('id', existingReminder.id)
+      } else {
+        // Create new reminder
+        await supabase
+          .from('reminders')
+          .insert([reminderData])
+      }
+    } else if (todoId && editingTodo) {
+      // If reminder_date is removed, delete the associated reminder
+      await supabase
+        .from('reminders')
+        .delete()
+        .eq('todo_id', todoId)
     }
 
     resetForm()
@@ -194,9 +273,11 @@ export default function TodosPage() {
       title: todo.title,
       description: todo.description || '',
       due_date: todo.due_date ? format(new Date(todo.due_date), "yyyy-MM-dd'T'HH:mm") : '',
+      reminder_date: todo.reminder_date ? format(new Date(todo.reminder_date), "yyyy-MM-dd'T'HH:mm") : '',
       is_recurring: todo.is_recurring,
       recurring_pattern: todo.recurring_pattern || 'daily',
       is_company_task: todo.is_company_task,
+      assigned_to: todo.assigned_to || '',
       tags: todo.tags?.join(', ') || '',
       color: todo.color || '#3b82f6',
     })
@@ -233,9 +314,11 @@ export default function TodosPage() {
       title: '',
       description: '',
       due_date: '',
+      reminder_date: '',
       is_recurring: false,
       recurring_pattern: 'daily',
       is_company_task: false,
+      assigned_to: '',
       tags: '',
       color: '#3b82f6',
     })
@@ -244,8 +327,65 @@ export default function TodosPage() {
     setShowDropdown(false)
   }
 
-  const activeTodos = todos.filter((t) => !t.completed)
-  const completedTodos = todos.filter((t) => t.completed)
+  // Filter todos based on filters
+  const getFilteredTodos = (todoList: Todo[]) => {
+    return todoList.filter((todo) => {
+      // User filter
+      if (filters.user !== 'all' && todo.user_id !== filters.user) {
+        return false
+      }
+
+      // Assigned to filter
+      if (filters.assignedTo !== 'all') {
+        if (filters.assignedTo === 'unassigned' && todo.assigned_to) {
+          return false
+        }
+        if (filters.assignedTo !== 'unassigned' && todo.assigned_to !== filters.assignedTo) {
+          return false
+        }
+      }
+
+      // Tag filter
+      if (filters.tag !== 'all') {
+        if (!todo.tags || !todo.tags.includes(filters.tag)) {
+          return false
+        }
+      }
+
+      // Type filter
+      if (filters.type === 'personal' && todo.is_company_task) {
+        return false
+      }
+      if (filters.type === 'company' && !todo.is_company_task) {
+        return false
+      }
+
+      // Search filter
+      if (filters.search) {
+        const searchLower = filters.search.toLowerCase()
+        const matchesTitle = todo.title.toLowerCase().includes(searchLower)
+        const matchesDescription = todo.description?.toLowerCase().includes(searchLower) || false
+        const matchesTags = todo.tags?.some(tag => tag.toLowerCase().includes(searchLower)) || false
+        if (!matchesTitle && !matchesDescription && !matchesTags) {
+          return false
+        }
+      }
+
+      return true
+    })
+  }
+
+  const activeTodos = getFilteredTodos(todos.filter((t) => !t.completed))
+  const completedTodos = getFilteredTodos(todos.filter((t) => t.completed))
+
+  // Get all unique tags from todos
+  const allTags = Array.from(
+    new Set(
+      todos
+        .flatMap((todo) => todo.tags || [])
+        .filter((tag) => tag.length > 0)
+    )
+  ).sort()
 
   const getUserColor = (userId: string, isCompanyTask: boolean, todoColor: string | null) => {
     if (isCompanyTask) {
@@ -257,6 +397,11 @@ export default function TodosPage() {
   const getUserName = (userId: string, isCompanyTask: boolean) => {
     if (isCompanyTask) return 'Company'
     return profiles[userId]?.name || 'Unknown'
+  }
+
+  const getAssignedUserName = (assignedTo: string | null) => {
+    if (!assignedTo) return null
+    return profiles[assignedTo]?.name || 'Unknown'
   }
 
   if (loading) {
@@ -362,6 +507,7 @@ export default function TodosPage() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                 />
               </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Due Date
@@ -372,6 +518,36 @@ export default function TodosPage() {
                   onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                 />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <Bell className="h-4 w-4 inline mr-1" />
+                    Reminder Date (creates reminder)
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={formData.reminder_date}
+                    onChange={(e) => setFormData({ ...formData, reminder_date: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Assign To
+                </label>
+                <select
+                  value={formData.assigned_to}
+                  onChange={(e) => setFormData({ ...formData, assigned_to: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                >
+                  <option value="">Unassigned</option>
+                  {Object.values(profiles).map((profile) => (
+                    <option key={profile.id} value={profile.id}>
+                      {profile.name}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div className="flex items-center gap-4">
                 <label className="flex items-center gap-2">
@@ -432,12 +608,94 @@ export default function TodosPage() {
         </Card>
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>All Todos</CardTitle>
-          <CardDescription>Personal and company tasks in one unified list</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-2">
+        <Card>
+          <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>All Todos</CardTitle>
+              <CardDescription>Personal and company tasks in one unified list</CardDescription>
+            </div>
+          </div>
+          </CardHeader>
+        <CardContent>
+          {/* Filters */}
+          <div className="mb-4 p-4 bg-gray-50 rounded-lg space-y-3">
+            <div className="flex items-center gap-2 mb-2">
+              <Filter className="h-4 w-4 text-gray-600" />
+              <span className="text-sm font-medium text-gray-700">Filters</span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Search</label>
+                <input
+                  type="text"
+                  value={filters.search}
+                  onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+                  placeholder="Search todos..."
+                  className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Created By</label>
+                <select
+                  value={filters.user}
+                  onChange={(e) => setFilters({ ...filters, user: e.target.value })}
+                  className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md"
+                >
+                  <option value="all">All Users</option>
+                  {Object.values(profiles).map((profile) => (
+                    <option key={profile.id} value={profile.id}>
+                      {profile.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Assigned To</label>
+                <select
+                  value={filters.assignedTo}
+                  onChange={(e) => setFilters({ ...filters, assignedTo: e.target.value })}
+                  className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md"
+                >
+                  <option value="all">All</option>
+                  <option value="unassigned">Unassigned</option>
+                  {Object.values(profiles).map((profile) => (
+                    <option key={profile.id} value={profile.id}>
+                      {profile.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Tag</label>
+                <select
+                  value={filters.tag}
+                  onChange={(e) => setFilters({ ...filters, tag: e.target.value })}
+                  className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md"
+                >
+                  <option value="all">All Tags</option>
+                  {allTags.map((tag) => (
+                    <option key={tag} value={tag}>
+                      {tag}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Type</label>
+                <select
+                  value={filters.type}
+                  onChange={(e) => setFilters({ ...filters, type: e.target.value })}
+                  className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md"
+                >
+                  <option value="all">All</option>
+                  <option value="personal">Personal</option>
+                  <option value="company">Company</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div className="space-y-2">
           {activeTodos.length === 0 ? (
             <p className="text-gray-500 text-center py-4">No active todos yet</p>
           ) : (
@@ -452,7 +710,7 @@ export default function TodosPage() {
                   style={{ borderLeftColor: userColor, borderLeftWidth: '4px' }}
                 >
                   <div className="flex flex-col gap-1 mt-1">
-                    <button
+                  <button
                       onClick={() => handleMoveTodo(todo, 'up')}
                       disabled={index === 0}
                       className={`h-4 w-4 flex items-center justify-center ${
@@ -513,10 +771,13 @@ export default function TodosPage() {
                       {todo.due_date && (
                         <span>Due: {format(new Date(todo.due_date), 'MMM d, yyyy h:mm a')}</span>
                       )}
-                      {todo.is_recurring && (
+                      {todo.reminder_date && (
+                        <span className="text-orange-600">Reminder: {format(new Date(todo.reminder_date), 'MMM d, yyyy h:mm a')}</span>
+                    )}
+                    {todo.is_recurring && (
                         <span className="text-blue-600">Recurring: {todo.recurring_pattern}</span>
                       )}
-                    </div>
+                      </div>
                   </div>
                   <div className="flex gap-2 flex-shrink-0">
                     <button onClick={() => handleEdit(todo)} className="text-blue-600 hover:text-blue-800">
@@ -529,9 +790,9 @@ export default function TodosPage() {
                 </div>
               )
             })
-          )}
-        </CardContent>
-      </Card>
+            )}
+          </CardContent>
+        </Card>
 
       {completedTodos.length > 0 && (
         <Card>
@@ -545,29 +806,40 @@ export default function TodosPage() {
               const userName = getUserName(todo.user_id, todo.is_company_task)
               
               return (
-                <div
-                  key={todo.id}
-                  className="flex items-start gap-3 p-3 border border-gray-200 rounded-lg bg-gray-50 opacity-75"
+              <div
+                key={todo.id}
+                className="flex items-start gap-3 p-3 border border-gray-200 rounded-lg bg-gray-50 opacity-75"
                   style={{ borderLeftColor: userColor, borderLeftWidth: '4px' }}
-                >
+              >
                   <div className="mt-1 h-5 w-5 rounded bg-green-500 border-green-500 flex items-center justify-center flex-shrink-0">
-                    <Check className="h-3 w-3 text-white" />
-                  </div>
+                  <Check className="h-3 w-3 text-white" />
+                </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <div
                         className="w-3 h-3 rounded-full flex-shrink-0"
                         style={{ backgroundColor: userColor }}
                       />
-                      <span className="text-xs font-medium text-gray-600">{userName}</span>
+                      <span className="text-xs font-medium text-gray-600">By: {userName}</span>
+                      {todo.assigned_to && (
+                        <span className="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded-full">
+                          → {getAssignedUserName(todo.assigned_to)}
+                        </span>
+                      )}
                       {todo.is_company_task && (
                         <span className="text-xs px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full">
                           Company
                         </span>
                       )}
+                      {todo.reminder_date && (
+                        <span className="text-xs px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full flex items-center gap-1">
+                          <Bell className="h-3 w-3" />
+                          Reminder
+                        </span>
+                      )}
                     </div>
-                    <div className="font-medium line-through">{todo.title}</div>
-                    {todo.description && (
+                  <div className="font-medium line-through">{todo.title}</div>
+                  {todo.description && (
                       <div className="text-sm text-gray-600 mt-1">{todo.description}</div>
                     )}
                     {todo.tags && todo.tags.length > 0 && (
@@ -582,12 +854,12 @@ export default function TodosPage() {
                           </span>
                         ))}
                       </div>
-                    )}
-                  </div>
-                  <button onClick={() => handleDelete(todo.id)} className="text-red-600 hover:text-red-800 flex-shrink-0">
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                  )}
                 </div>
+                  <button onClick={() => handleDelete(todo.id)} className="text-red-600 hover:text-red-800 flex-shrink-0">
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
               )
             })}
           </CardContent>
