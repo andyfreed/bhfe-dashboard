@@ -154,6 +154,19 @@ export default function TodosPage() {
       dueDateISO = new Date(year, month - 1, day, hours, minutes).toISOString()
     }
 
+    // Calculate sort_order - use existing value if editing, otherwise get max + 1
+    let sortOrder = editingTodo ? editingTodo.sort_order : null
+    if (!sortOrder) {
+      const { data: maxTodo } = await supabase
+        .from('todos')
+        .select('sort_order')
+        .order('sort_order', { ascending: false })
+        .limit(1)
+        .single()
+      
+      sortOrder = maxTodo?.sort_order ? maxTodo.sort_order + 1 : 1
+    }
+
     const todoData = {
       title: formData.title,
       description: formData.description || null,
@@ -166,7 +179,7 @@ export default function TodosPage() {
       is_company_task: formData.is_company_task,
       tags: tagsArray.length > 0 ? tagsArray : null,
       color: userColor,
-      sort_order: editingTodo ? editingTodo.sort_order : Date.now(),
+      sort_order: sortOrder,
     }
 
     let todoId: string | null = null
