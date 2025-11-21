@@ -742,15 +742,26 @@ export default function TodosPage() {
                     {todo.completed && <Check className="h-3 w-3 text-white" />}
                   </button>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <div
                         className="w-3 h-3 rounded-full flex-shrink-0"
                         style={{ backgroundColor: userColor }}
                       />
-                      <span className="text-xs font-medium text-gray-600">{userName}</span>
+                      <span className="text-xs font-medium text-gray-600">By: {userName}</span>
+                      {todo.assigned_to && (
+                        <span className="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded-full">
+                          → {getAssignedUserName(todo.assigned_to)}
+                        </span>
+                      )}
                       {todo.is_company_task && (
                         <span className="text-xs px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full">
                           Company
+                        </span>
+                      )}
+                      {todo.reminder_date && (
+                        <span className="text-xs px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full flex items-center gap-1">
+                          <Bell className="h-3 w-3" />
+                          Reminder
                         </span>
                       )}
                     </div>
@@ -777,11 +788,11 @@ export default function TodosPage() {
                       )}
                       {todo.reminder_date && (
                         <span className="text-orange-600">Reminder: {format(new Date(todo.reminder_date), 'MMM d, yyyy h:mm a')}</span>
-                    )}
-                    {todo.is_recurring && (
+                      )}
+                      {todo.is_recurring && (
                         <span className="text-blue-600">Recurring: {todo.recurring_pattern}</span>
                       )}
-                      </div>
+                    </div>
                   </div>
                   <div className="flex gap-2 flex-shrink-0">
                     <button onClick={() => handleEdit(todo)} className="text-blue-600 hover:text-blue-800">
@@ -794,8 +805,9 @@ export default function TodosPage() {
                 </div>
               )
             })
-            )}
-          </CardContent>
+          )}
+          </div>
+        </CardContent>
         </Card>
 
       {completedTodos.length > 0 && (
