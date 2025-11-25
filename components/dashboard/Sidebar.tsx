@@ -20,6 +20,7 @@ import {
   ChevronDown,
   ChevronRight,
   Settings,
+  User,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
@@ -37,6 +38,7 @@ const navigation = [
   { name: 'Chat', href: '/dashboard/chat', icon: MessageSquare },
   { name: 'Operations', href: '/dashboard/operations', icon: Settings },
   { name: 'Links', href: '/dashboard/links', icon: ExternalLink },
+  { name: 'Profile', href: '/dashboard/profile', icon: User },
 ]
 
 const regulatorySubmenu = [

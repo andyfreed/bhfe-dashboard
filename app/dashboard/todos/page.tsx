@@ -429,11 +429,13 @@ export default function TodosPage() {
     )
   ).sort()
 
-  const getUserColor = (userId: string, isCompanyTask: boolean, todoColor: string | null) => {
+  const getUserColor = (userId: string, assignedTo: string | null, isCompanyTask: boolean, todoColor: string | null) => {
     if (isCompanyTask) {
       return todoColor || '#9333ea' // Purple for company tasks
     }
-    return profiles[userId]?.user_color || todoColor || '#3b82f6'
+    // Use the assigned user's color if assigned, otherwise fall back to creator's color
+    const targetUserId = assignedTo || userId
+    return profiles[targetUserId]?.user_color || todoColor || '#3b82f6'
   }
 
   const getUserName = (userId: string, isCompanyTask: boolean) => {
@@ -745,7 +747,7 @@ export default function TodosPage() {
             <p className="text-gray-500 text-center py-4">No active todos yet</p>
           ) : (
             activeTodos.map((todo, index) => {
-              const userColor = getUserColor(todo.user_id, todo.is_company_task, todo.color)
+              const userColor = getUserColor(todo.user_id, todo.assigned_to, todo.is_company_task, todo.color)
               const userName = getUserName(todo.user_id, todo.is_company_task)
               
               return (
@@ -859,7 +861,7 @@ export default function TodosPage() {
           </CardHeader>
           <CardContent className="space-y-2">
             {completedTodos.map((todo) => {
-              const userColor = getUserColor(todo.user_id, todo.is_company_task, todo.color)
+              const userColor = getUserColor(todo.user_id, todo.assigned_to, todo.is_company_task, todo.color)
               const userName = getUserName(todo.user_id, todo.is_company_task)
               
               return (
