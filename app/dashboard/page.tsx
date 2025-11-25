@@ -31,7 +31,9 @@ export default function DashboardPage() {
       const [todos, events, reminders, messages] = await Promise.all([
         supabase.from('todos').select('id', { count: 'exact', head: true }),
         supabase.from('calendar_events').select('id', { count: 'exact', head: true }),
-        supabase.from('reminders').select('id', { count: 'exact', head: true }),
+        supabase.from('reminders').select('id', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .eq('is_completed', false),
         supabase.from('chat_messages').select('id', { count: 'exact', head: true })
           .eq('receiver_id', user.id)
           .eq('is_read', false),

@@ -77,9 +77,15 @@ export async function GET(request: NextRequest) {
     }
     
     if (endpoint === 'sitemap') {
-      // Fetch sitemap
-      const sitemapUrl = `${wordpressUrl.replace(/\/$/, '')}/sitemap.xml`
-      const response = await fetch(sitemapUrl)
+      // Fetch sitemap with cache-busting to ensure fresh content
+      const sitemapUrl = `${wordpressUrl.replace(/\/$/, '')}/sitemap.xml?_t=${Date.now()}`
+      const response = await fetch(sitemapUrl, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+        },
+      })
       
       if (!response.ok) {
         return NextResponse.json({ urls: [] }, { status: 200 })
