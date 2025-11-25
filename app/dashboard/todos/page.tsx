@@ -525,6 +525,18 @@ export default function TodosPage() {
             <CardDescription>
               {editingTodo ? 'Update your todo item' : 'Create a new todo item'}
             </CardDescription>
+            {editingTodo && (
+              <div className="mt-2 text-sm text-gray-600 flex items-center gap-2">
+                <span>Created by:</span>
+                <span className="font-medium">
+                  {editingTodo.is_company_task ? 'Company' : (profiles[editingTodo.user_id]?.name || 'Unknown')}
+                </span>
+                <div
+                  className="w-3 h-3 rounded-full"
+                  style={{ backgroundColor: profiles[editingTodo.user_id]?.user_color || '#3b82f6' }}
+                />
+              </div>
+            )}
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -790,12 +802,9 @@ export default function TodosPage() {
                         className="w-3 h-3 rounded-full flex-shrink-0"
                         style={{ backgroundColor: userColor }}
                       />
-                      <span className="text-xs font-medium text-gray-600">By: {userName}</span>
-                      {todo.assigned_to && (
-                        <span className="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded-full">
-                          → {getAssignedUserName(todo.assigned_to)}
-                        </span>
-                      )}
+                      <span className="text-xs font-medium text-gray-600">
+                        {todo.assigned_to ? getAssignedUserName(todo.assigned_to) : userName}
+                      </span>
                       {todo.is_company_task && (
                         <span className="text-xs px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full">
                           Company
@@ -879,12 +888,9 @@ export default function TodosPage() {
                         className="w-3 h-3 rounded-full flex-shrink-0"
                         style={{ backgroundColor: userColor }}
                       />
-                      <span className="text-xs font-medium text-gray-600">By: {userName}</span>
-                      {todo.assigned_to && (
-                        <span className="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded-full">
-                          → {getAssignedUserName(todo.assigned_to)}
-                        </span>
-                      )}
+                      <span className="text-xs font-medium text-gray-600">
+                        {todo.assigned_to ? getAssignedUserName(todo.assigned_to) : userName}
+                      </span>
                       {todo.is_company_task && (
                         <span className="text-xs px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full">
                           Company
