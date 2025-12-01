@@ -4,8 +4,15 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Plus, Trash2, Edit, Bell, Check } from 'lucide-react'
+import { Plus, Trash2, Edit, Bell, Check, Users, User } from 'lucide-react'
 import { format, addDays, addWeeks, addMonths, addYears } from 'date-fns'
+
+interface Profile {
+  id: string
+  name: string
+  email: string
+  user_color: string | null
+}
 
 interface Reminder {
   id: string
@@ -21,8 +28,11 @@ interface Reminder {
 
 export default function RemindersPage() {
   const [reminders, setReminders] = useState<Reminder[]>([])
+  const [profiles, setProfiles] = useState<Record<string, Profile>>({})
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
+  const [showAllUsers, setShowAllUsers] = useState(false)
   const [editingReminder, setEditingReminder] = useState<Reminder | null>(null)
   const [formData, setFormData] = useState({
     title: '',
@@ -35,21 +45,45 @@ export default function RemindersPage() {
   const supabase = createClient()
 
   useEffect(() => {
+    loadProfiles()
     loadReminders()
     subscribeToReminders()
-  }, [supabase])
+  }, [supabase, showAllUsers])
+
+  const loadProfiles = async () => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+
+    if (error) {
+      console.error('Error loading profiles:', error)
+      return
+    }
+
+    const profilesMap: Record<string, Profile> = {}
+    data?.forEach((profile) => {
+      profilesMap[profile.id] = profile
+    })
+    setProfiles(profilesMap)
+  }
 
   const loadReminders = async () => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
+    
+    setCurrentUserId(user.id)
 
-    // Load reminders where user_id matches the current user
-    // (Reminders are created with the assigned user's ID, so they'll see reminders for tasks assigned to them)
-    const { data, error } = await supabase
+    let query = supabase
       .from('reminders')
       .select('*')
-      .eq('user_id', user.id)
       .order('reminder_date', { ascending: true })
+
+    // If toggle is off, only show current user's reminders
+    if (!showAllUsers) {
+      query = query.eq('user_id', user.id)
+    }
+
+    const { data, error } = await query
 
     if (error) {
       console.error('Error loading reminders:', error)
@@ -241,10 +275,22 @@ export default function RemindersPage() {
           <h1 className="text-3xl font-bold text-gray-900">Reminders</h1>
           <p className="text-gray-600 mt-1">Set and manage your reminders</p>
         </div>
-        <Button onClick={() => setShowForm(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Reminder
-        </Button>
+        <div className="flex items-center gap-3">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={showAllUsers}
+              onChange={(e) => setShowAllUsers(e.target.checked)}
+              className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            />
+            <Users className="h-4 w-4 text-gray-600" />
+            <span className="text-sm font-medium text-gray-700">Show all users</span>
+          </label>
+          <Button onClick={() => setShowForm(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Reminder
+          </Button>
+        </div>
       </div>
 
       {showForm && (
@@ -337,7 +383,9 @@ export default function RemindersPage() {
       <Card>
         <CardHeader>
           <CardTitle>Upcoming Reminders</CardTitle>
-          <CardDescription>Your active reminders</CardDescription>
+          <CardDescription>
+            {showAllUsers ? "All users' active reminders" : "Your active reminders"}
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-2">
           {upcomingReminders.length === 0 ? (
@@ -345,6 +393,9 @@ export default function RemindersPage() {
           ) : (
             upcomingReminders.map((reminder) => {
               const isOverdue = new Date(reminder.reminder_date) < new Date()
+              const reminderOwner = profiles[reminder.user_id]
+              const isOwnReminder = currentUserId === reminder.user_id
+              
               return (
                 <div
                   key={reminder.id}
@@ -354,14 +405,32 @@ export default function RemindersPage() {
                 >
                   <button
                     onClick={() => handleToggleComplete(reminder)}
-                    className="mt-1 h-5 w-5 rounded border-2 border-gray-300 flex items-center justify-center hover:border-blue-500"
+                    disabled={!isOwnReminder}
+                    className={`mt-1 h-5 w-5 rounded border-2 border-gray-300 flex items-center justify-center ${
+                      isOwnReminder ? 'hover:border-blue-500 cursor-pointer' : 'cursor-not-allowed opacity-50'
+                    }`}
                   >
                     <Check className="h-3 w-3 text-white" />
                   </button>
                   <div className="flex-1">
-                    <div className="font-medium flex items-center gap-2">
+                    <div className="font-medium flex items-center gap-2 flex-wrap">
                       <Bell className="h-4 w-4 text-yellow-600" />
                       {reminder.title}
+                      {showAllUsers && reminderOwner && (
+                        <span className="text-xs px-2 py-0.5 rounded-full flex items-center gap-1"
+                          style={{ 
+                            backgroundColor: `${reminderOwner.user_color || '#3b82f6'}20`,
+                            color: reminderOwner.user_color || '#3b82f6'
+                          }}
+                        >
+                          <div
+                            className="w-2 h-2 rounded-full"
+                            style={{ backgroundColor: reminderOwner.user_color || '#3b82f6' }}
+                          />
+                          {reminderOwner.name}
+                          {!isOwnReminder && <span className="text-gray-500">(Other)</span>}
+                        </span>
+                      )}
                       {isOverdue && (
                         <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded">
                           Overdue
@@ -380,14 +449,16 @@ export default function RemindersPage() {
                       )}
                     </div>
                   </div>
-                  <div className="flex gap-2">
-                    <button onClick={() => handleEdit(reminder)} className="text-blue-600">
-                      <Edit className="h-4 w-4" />
-                    </button>
-                    <button onClick={() => handleDelete(reminder.id)} className="text-red-600">
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
+                  {isOwnReminder && (
+                    <div className="flex gap-2">
+                      <button onClick={() => handleEdit(reminder)} className="text-blue-600">
+                        <Edit className="h-4 w-4" />
+                      </button>
+                      <button onClick={() => handleDelete(reminder.id)} className="text-red-600">
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  )}
                 </div>
               )
             })
@@ -399,28 +470,54 @@ export default function RemindersPage() {
         <Card>
           <CardHeader>
             <CardTitle>Completed Reminders</CardTitle>
-            <CardDescription>Finished reminders</CardDescription>
+            <CardDescription>
+              {showAllUsers ? "All users' completed reminders" : "Your completed reminders"}
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
-            {pastReminders.map((reminder) => (
-              <div
-                key={reminder.id}
-                className="flex items-start gap-3 p-4 border border-gray-200 rounded-lg bg-gray-50 opacity-75"
-              >
-                <div className="mt-1 h-5 w-5 rounded bg-green-500 border-green-500 flex items-center justify-center">
-                  <Check className="h-3 w-3 text-white" />
-                </div>
-                <div className="flex-1">
-                  <div className="font-medium line-through">{reminder.title}</div>
-                  {reminder.description && (
-                    <div className="text-sm text-gray-600">{reminder.description}</div>
+            {pastReminders.map((reminder) => {
+              const reminderOwner = profiles[reminder.user_id]
+              const isOwnReminder = currentUserId === reminder.user_id
+              
+              return (
+                <div
+                  key={reminder.id}
+                  className="flex items-start gap-3 p-4 border border-gray-200 rounded-lg bg-gray-50 opacity-75"
+                >
+                  <div className="mt-1 h-5 w-5 rounded bg-green-500 border-green-500 flex items-center justify-center">
+                    <Check className="h-3 w-3 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-medium line-through flex items-center gap-2 flex-wrap">
+                      {reminder.title}
+                      {showAllUsers && reminderOwner && (
+                        <span className="text-xs px-2 py-0.5 rounded-full flex items-center gap-1"
+                          style={{ 
+                            backgroundColor: `${reminderOwner.user_color || '#3b82f6'}20`,
+                            color: reminderOwner.user_color || '#3b82f6'
+                          }}
+                        >
+                          <div
+                            className="w-2 h-2 rounded-full"
+                            style={{ backgroundColor: reminderOwner.user_color || '#3b82f6' }}
+                          />
+                          {reminderOwner.name}
+                          {!isOwnReminder && <span className="text-gray-500">(Other)</span>}
+                        </span>
+                      )}
+                    </div>
+                    {reminder.description && (
+                      <div className="text-sm text-gray-600">{reminder.description}</div>
+                    )}
+                  </div>
+                  {isOwnReminder && (
+                    <button onClick={() => handleDelete(reminder.id)} className="text-red-600">
+                      <Trash2 className="h-4 w-4" />
+                    </button>
                   )}
-                </div>
-                <button onClick={() => handleDelete(reminder.id)} className="text-red-600">
-                  <Trash2 className="h-4 w-4" />
-                </button>
               </div>
-            ))}
+              )
+            })}
           </CardContent>
         </Card>
       )}
