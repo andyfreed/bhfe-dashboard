@@ -45,7 +45,9 @@ const regulatorySubmenu = [
   { name: 'CPA', href: '/dashboard/regulatory/cpa' },
   { name: 'IAR', href: '/dashboard/regulatory/iar' },
   { name: 'CFP', href: '/dashboard/regulatory/cfp' },
-  { name: 'EA/OTRP/ERPA', href: '/dashboard/regulatory/ea-otrp-erpa' },
+  { name: 'EA', href: '/dashboard/regulatory/ea' },
+  { name: 'OTRP', href: '/dashboard/regulatory/otrp' },
+  { name: 'ERPA', href: '/dashboard/regulatory/erpa' },
   { name: 'CDFA', href: '/dashboard/regulatory/cdfa' },
 ]
 

@@ -3,12 +3,12 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { FileText } from 'lucide-react'
 
-export default function CFPRegulatoryPage() {
+export default function ERPARegulatoryPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">CFP Regulatory Information</h1>
-        <p className="text-gray-600 mt-1">View and manage CFP regulatory requirements</p>
+        <h1 className="text-3xl font-bold text-gray-900">ERPA Regulatory Information</h1>
+        <p className="text-gray-600 mt-1">Enrolled Retirement Plan Agent continuing education requirements</p>
       </div>
 
       <Card>
@@ -18,7 +18,7 @@ export default function CFPRegulatoryPage() {
             CE Requirements
           </CardTitle>
           <CardDescription>
-            CFP Board continuing education requirements for Certified Financial Planners
+            IRS continuing education requirements for Enrolled Retirement Plan Agents
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -26,11 +26,10 @@ export default function CFPRegulatoryPage() {
             <div>
               <h3 className="font-medium text-gray-900 mb-2">Continuing Education Requirements</h3>
               <ul className="list-disc list-inside space-y-2 text-gray-700 ml-4">
-                <li><strong>30 CE hours every 2-year reporting period</strong></li>
-                <li><strong>Breakdown:</strong>
+                <li><strong>72 CE hours every 3 years</strong></li>
+                <li><strong>Annual minimum:</strong> At least 16 hours per year, of which:
                   <ul className="list-disc list-inside ml-6 mt-1 space-y-1">
-                    <li>2 hours CFP Board–approved Ethics CE</li>
-                    <li>28 hours in CFP Board Principal Knowledge Topics (financial planning content)</li>
+                    <li>2 hours must be ethics or professional conduct</li>
                   </ul>
                 </li>
               </ul>
