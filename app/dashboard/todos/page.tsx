@@ -482,20 +482,29 @@ export default function TodosPage() {
       {/* Completion GIF Overlay */}
       {showCompletionGif && (
         <div 
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 animate-fade-in"
+          className="fixed inset-0 z-50 flex items-center justify-center"
           onClick={() => setShowCompletionGif(false)}
-          style={{ pointerEvents: 'auto' }}
+          style={{ 
+            pointerEvents: 'auto',
+            backgroundColor: 'rgba(0, 0, 0, 0.5)'
+          }}
         >
-          <div className="relative bg-white rounded-lg p-4">
-            <div className="text-center mb-2">
+          <div className="relative bg-white rounded-lg p-6 shadow-2xl border-2 border-gray-300">
+            <div className="text-center mb-3">
               <p className="text-lg font-semibold text-gray-900">Who completed a todo?</p>
             </div>
-            <img 
-              src="/task-complete.gif" 
-              alt="Task completed!" 
-              className="max-w-md max-h-md rounded"
-              style={{ animation: 'none' }}
-            />
+            <div className="flex justify-center">
+              <img 
+                src="/task-complete.gif" 
+                alt="Task completed!" 
+                className="rounded"
+                style={{ 
+                  width: '165px',
+                  height: '231px',
+                  animation: 'none'
+                }}
+              />
+            </div>
           </div>
         </div>
       )}
