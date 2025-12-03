@@ -5,7 +5,7 @@ import { MapPin } from 'lucide-react'
 
 // States that have adopted IAR requirements
 // Update this list as needed
-const ADOPTED_STATES = [
+const ADOPTED_STATES: string[] = [
   // Add states here once you provide the list
 ]
 
