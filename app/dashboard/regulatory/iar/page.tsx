@@ -3,10 +3,31 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { MapPin } from 'lucide-react'
 
-// States that have adopted IAR requirements
-// Update this list as needed
+// States and territories that have adopted IAR requirements
 const ADOPTED_STATES: string[] = [
-  // Add states here once you provide the list
+  'MD', // Maryland
+  'MS', // Mississippi
+  'VT', // Vermont
+  'AR', // Arkansas
+  'KY', // Kentucky
+  'MI', // Michigan
+  'OK', // Oklahoma
+  'OR', // Oregon
+  'SC', // South Carolina
+  'DC', // Washington, D.C.
+  'WI', // Wisconsin
+  'CA', // California
+  'CO', // Colorado
+  'FL', // Florida
+  'HI', // Hawaii
+  'NV', // Nevada
+  'ND', // North Dakota
+  'TN', // Tennessee
+  'MN', // Minnesota
+  'NE', // Nebraska
+  'NJ', // New Jersey
+  'RI', // Rhode Island
+  'VI', // U.S. Virgin Islands
 ]
 
 const US_STATES = [
@@ -27,6 +48,7 @@ const US_STATES = [
   { code: 'TX', name: 'Texas' }, { code: 'UT', name: 'Utah' }, { code: 'VT', name: 'Vermont' },
   { code: 'VA', name: 'Virginia' }, { code: 'WA', name: 'Washington' }, { code: 'WV', name: 'West Virginia' },
   { code: 'WI', name: 'Wisconsin' }, { code: 'WY', name: 'Wyoming' },
+  { code: 'DC', name: 'Washington, D.C.' }, { code: 'VI', name: 'U.S. Virgin Islands' },
 ]
 
 export default function IARRegulatoryPage() {
@@ -41,8 +63,43 @@ export default function IARRegulatoryPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-gray-900">IAR Regulatory Information</h1>
-        <p className="text-gray-600 mt-1">States that have adopted IAR requirements</p>
+        <p className="text-gray-600 mt-1">States and territories that have adopted IAR requirements</p>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>CE Requirements</CardTitle>
+          <CardDescription>
+            NASAA model rule continuing education requirements for Investment Adviser Representatives
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div>
+              <h3 className="font-medium text-gray-900 mb-2">Annual CE Requirements</h3>
+              <p className="text-gray-700 mb-3">
+                Every IAR in a jurisdiction that's adopted the NASAA model rule needs:
+              </p>
+              <ul className="list-disc list-inside space-y-2 text-gray-700 ml-4">
+                <li><strong>12 hours of CE each year</strong>, made up of:
+                  <ul className="list-disc list-inside ml-6 mt-1 space-y-1">
+                    <li>6 hours Products & Practices</li>
+                    <li>6 hours Ethics & Professional Responsibility</li>
+                  </ul>
+                </li>
+              </ul>
+            </div>
+            <div className="border-t pt-4">
+              <h3 className="font-medium text-gray-900 mb-2">Important Notes</h3>
+              <ul className="list-disc list-inside space-y-2 text-gray-700 ml-4">
+                <li>Courses must be NASAA-approved and reported through FINRA/FinPro</li>
+                <li>There's a one-year grace period</li>
+                <li>Missing two years will result in the IAR going CE-inactive in those states</li>
+              </ul>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
