@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -62,15 +61,11 @@ const MONTHS = [
   'Varies',
 ]
 
-type RegulatoryType = 'CPA' | 'CFP' | 'EA/OTRP/ERPA' | 'CDFA' | 'IAR'
-
 export default function StatesPage() {
-  const searchParams = useSearchParams()
   const [states, setStates] = useState<StateInfo[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedState, setSelectedState] = useState<StateInfo | null>(null)
   const [editingState, setEditingState] = useState<StateInfo | null>(null)
-  const [activeTab, setActiveTab] = useState<RegulatoryType>('CPA')
   const [formData, setFormData] = useState({
     cpe_requirements: '',
     renewal_period: '',
@@ -78,10 +73,6 @@ export default function StatesPage() {
     contact_info: '',
     website_url: '',
     notes: '',
-    cfp_notes: '',
-    ea_otrp_erpa_notes: '',
-    cdfa_notes: '',
-    iar_notes: '',
   })
   const [searchTerm, setSearchTerm] = useState('')
   const supabase = createClient()
@@ -90,13 +81,6 @@ export default function StatesPage() {
     loadStates()
     initializeStates()
   }, [supabase])
-
-  useEffect(() => {
-    const tab = searchParams.get('tab') as RegulatoryType | null
-    if (tab && ['CPA', 'CFP', 'EA/OTRP/ERPA', 'CDFA', 'IAR'].includes(tab)) {
-      setActiveTab(tab)
-    }
-  }, [searchParams])
 
   const loadStates = async () => {
     const { data, error } = await supabase
@@ -136,22 +120,28 @@ export default function StatesPage() {
   const handleSelectState = (state: StateInfo) => {
     setSelectedState(state)
     setEditingState(null)
-    setActiveTab('CPA')
   }
 
   const handleEdit = (state: StateInfo) => {
     setEditingState(state)
+    // Merge all license notes into CPA notes
+    const allNotes = [
+      state.notes,
+      state.cfp_notes,
+      state.ea_otrp_erpa_notes,
+      state.cdfa_notes,
+      state.iar_notes,
+    ]
+      .filter(note => note && note.trim().length > 0)
+      .join('\n\n')
+    
     setFormData({
       cpe_requirements: state.cpe_requirements || '',
       renewal_period: state.renewal_period || '',
       renewal_month: state.renewal_month || '',
       contact_info: state.contact_info || '',
       website_url: state.website_url || '',
-      notes: state.notes || '',
-      cfp_notes: state.cfp_notes || '',
-      ea_otrp_erpa_notes: state.ea_otrp_erpa_notes || '',
-      cdfa_notes: state.cdfa_notes || '',
-      iar_notes: state.iar_notes || '',
+      notes: allNotes || state.notes || '',
     })
   }
 
@@ -170,10 +160,11 @@ export default function StatesPage() {
         contact_info: formData.contact_info || null,
         website_url: formData.website_url || null,
         notes: formData.notes || null,
-        cfp_notes: formData.cfp_notes || null,
-        ea_otrp_erpa_notes: formData.ea_otrp_erpa_notes || null,
-        cdfa_notes: formData.cdfa_notes || null,
-        iar_notes: formData.iar_notes || null,
+        // Clear other license notes fields
+        cfp_notes: null,
+        ea_otrp_erpa_notes: null,
+        cdfa_notes: null,
+        iar_notes: null,
         updated_by: user.id,
       })
       .eq('id', editingState.id)
@@ -194,17 +185,24 @@ export default function StatesPage() {
   const handleCancel = () => {
     setEditingState(null)
     if (selectedState) {
+      // Merge all license notes into CPA notes for display
+      const allNotes = [
+        selectedState.notes,
+        selectedState.cfp_notes,
+        selectedState.ea_otrp_erpa_notes,
+        selectedState.cdfa_notes,
+        selectedState.iar_notes,
+      ]
+        .filter(note => note && note.trim().length > 0)
+        .join('\n\n')
+      
       setFormData({
         cpe_requirements: selectedState.cpe_requirements || '',
         renewal_period: selectedState.renewal_period || '',
         renewal_month: selectedState.renewal_month || '',
         contact_info: selectedState.contact_info || '',
         website_url: selectedState.website_url || '',
-        notes: selectedState.notes || '',
-        cfp_notes: selectedState.cfp_notes || '',
-        ea_otrp_erpa_notes: selectedState.ea_otrp_erpa_notes || '',
-        cdfa_notes: selectedState.cdfa_notes || '',
-        iar_notes: selectedState.iar_notes || '',
+        notes: allNotes || selectedState.notes || '',
       })
     }
   }
@@ -218,187 +216,157 @@ export default function StatesPage() {
     return <div className="text-center py-12">Loading...</div>
   }
 
-  const renderTabContent = () => {
+  const renderContent = () => {
     if (!selectedState) return null
+
+    // Merge all license notes for display
+    const allNotes = [
+      selectedState.notes,
+      selectedState.cfp_notes,
+      selectedState.ea_otrp_erpa_notes,
+      selectedState.cdfa_notes,
+      selectedState.iar_notes,
+    ]
+      .filter(note => note && note.trim().length > 0)
+      .join('\n\n')
 
     if (editingState?.id === selectedState.id) {
       // Edit mode
-      if (activeTab === 'CPA') {
-        return (
-          <>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                CPE Requirements
-              </label>
-              <textarea
-                value={formData.cpe_requirements}
-                onChange={(e) => setFormData({ ...formData, cpe_requirements: e.target.value })}
-                rows={4}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Renewal Period
-              </label>
-              <input
-                type="text"
-                value={formData.renewal_period}
-                onChange={(e) => setFormData({ ...formData, renewal_period: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                placeholder="e.g., Every 2 years"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                CPA Renewal Month
-              </label>
-              <select
-                value={formData.renewal_month}
-                onChange={(e) => setFormData({ ...formData, renewal_month: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              >
-                <option value="">Select a month</option>
-                {MONTHS.map((month) => (
-                  <option key={month} value={month}>
-                    {month}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Contact Information
-              </label>
-              <textarea
-                value={formData.contact_info}
-                onChange={(e) => setFormData({ ...formData, contact_info: e.target.value })}
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                State Board URL
-              </label>
-              <input
-                type="url"
-                value={formData.website_url}
-                onChange={(e) => setFormData({ ...formData, website_url: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                placeholder="https://..."
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Notes
-              </label>
-              <textarea
-                value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                rows={4}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              />
-            </div>
-          </>
-        )
-      } else {
-        // Other tabs - just Notes field
-        const notesField = 
-          activeTab === 'CFP' ? 'cfp_notes' :
-          activeTab === 'EA/OTRP/ERPA' ? 'ea_otrp_erpa_notes' :
-          activeTab === 'CDFA' ? 'cdfa_notes' :
-          'iar_notes'
-        
-        return (
+      return (
+        <>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              CPE Requirements
+            </label>
+            <textarea
+              value={formData.cpe_requirements}
+              onChange={(e) => setFormData({ ...formData, cpe_requirements: e.target.value })}
+              rows={4}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Renewal Period
+            </label>
+            <input
+              type="text"
+              value={formData.renewal_period}
+              onChange={(e) => setFormData({ ...formData, renewal_period: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              placeholder="e.g., Every 2 years"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Renewal Month
+            </label>
+            <select
+              value={formData.renewal_month}
+              onChange={(e) => setFormData({ ...formData, renewal_month: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+            >
+              <option value="">Select a month</option>
+              {MONTHS.map((month) => (
+                <option key={month} value={month}>
+                  {month}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Contact Information
+            </label>
+            <textarea
+              value={formData.contact_info}
+              onChange={(e) => setFormData({ ...formData, contact_info: e.target.value })}
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              State Board URL
+            </label>
+            <input
+              type="url"
+              value={formData.website_url}
+              onChange={(e) => setFormData({ ...formData, website_url: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              placeholder="https://..."
+            />
+          </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Notes
             </label>
             <textarea
-              value={formData[notesField as keyof typeof formData]}
-              onChange={(e) => setFormData({ ...formData, [notesField]: e.target.value })}
-              rows={8}
+              value={formData.notes}
+              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              rows={6}
               className="w-full px-3 py-2 border border-gray-300 rounded-md"
             />
           </div>
-        )
-      }
+        </>
+      )
     } else {
       // View mode
-      if (activeTab === 'CPA') {
-        return (
-          <>
-            <div>
-              <h3 className="font-medium text-gray-900 mb-2">CPE Requirements</h3>
-              <p className="text-gray-700 whitespace-pre-wrap">
-                {selectedState.cpe_requirements || 'No information available'}
-              </p>
-            </div>
-            {selectedState.renewal_period && (
-              <div>
-                <h3 className="font-medium text-gray-900 mb-2">Renewal Period</h3>
-                <p className="text-gray-700">{selectedState.renewal_period}</p>
-              </div>
-            )}
-            {selectedState.renewal_month && (
-              <div>
-                <h3 className="font-medium text-gray-900 mb-2">CPA Renewal Month</h3>
-                <p className="text-gray-700">{selectedState.renewal_month}</p>
-              </div>
-            )}
-            {selectedState.contact_info && (
-              <div>
-                <h3 className="font-medium text-gray-900 mb-2">Contact Information</h3>
-                <p className="text-gray-700 whitespace-pre-wrap">{selectedState.contact_info}</p>
-              </div>
-            )}
-            {selectedState.website_url && (
-              <div>
-                <h3 className="font-medium text-gray-900 mb-2">State Board URL</h3>
-                <a
-                  href={selectedState.website_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-600 hover:underline"
-                >
-                  {selectedState.website_url}
-                </a>
-              </div>
-            )}
-            {selectedState.notes && (
-              <div>
-                <h3 className="font-medium text-gray-900 mb-2">Notes</h3>
-                <p className="text-gray-700 whitespace-pre-wrap">{selectedState.notes}</p>
-              </div>
-            )}
-          </>
-        )
-      } else {
-        // Other tabs - just Notes
-        const notesValue = 
-          activeTab === 'CFP' ? selectedState.cfp_notes :
-          activeTab === 'EA/OTRP/ERPA' ? selectedState.ea_otrp_erpa_notes :
-          activeTab === 'CDFA' ? selectedState.cdfa_notes :
-          selectedState.iar_notes
-        
-        return (
+      return (
+        <>
           <div>
-            <h3 className="font-medium text-gray-900 mb-2">Notes</h3>
+            <h3 className="font-medium text-gray-900 mb-2">CPE Requirements</h3>
             <p className="text-gray-700 whitespace-pre-wrap">
-              {notesValue || 'No notes available'}
+              {selectedState.cpe_requirements || 'No information available'}
             </p>
           </div>
-        )
-      }
+          {selectedState.renewal_period && (
+            <div>
+              <h3 className="font-medium text-gray-900 mb-2">Renewal Period</h3>
+              <p className="text-gray-700">{selectedState.renewal_period}</p>
+            </div>
+          )}
+          {selectedState.renewal_month && (
+            <div>
+              <h3 className="font-medium text-gray-900 mb-2">Renewal Month</h3>
+              <p className="text-gray-700">{selectedState.renewal_month}</p>
+            </div>
+          )}
+          {selectedState.contact_info && (
+            <div>
+              <h3 className="font-medium text-gray-900 mb-2">Contact Information</h3>
+              <p className="text-gray-700 whitespace-pre-wrap">{selectedState.contact_info}</p>
+            </div>
+          )}
+          {selectedState.website_url && (
+            <div>
+              <h3 className="font-medium text-gray-900 mb-2">State Board URL</h3>
+              <a
+                href={selectedState.website_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:underline"
+              >
+                {selectedState.website_url}
+              </a>
+            </div>
+          )}
+          {allNotes && (
+            <div>
+              <h3 className="font-medium text-gray-900 mb-2">Notes</h3>
+              <p className="text-gray-700 whitespace-pre-wrap">{allNotes}</p>
+            </div>
+          )}
+        </>
+      )
     }
   }
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Regulatory Information</h1>
-        <p className="text-gray-600 mt-1">View and manage regulatory requirements by state</p>
+        <h1 className="text-3xl font-bold text-gray-900">CPA Regulatory Information</h1>
+        <p className="text-gray-600 mt-1">View and manage CPA regulatory requirements by state</p>
       </div>
 
       <div>
@@ -453,26 +421,9 @@ export default function StatesPage() {
             </div>
           </CardHeader>
           <CardContent>
-            {/* Tabs */}
-            <div className="flex gap-2 mb-6 border-b border-gray-200">
-              {(['CPA', 'CFP', 'EA/OTRP/ERPA', 'CDFA', 'IAR'] as RegulatoryType[]).map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
-                    activeTab === tab
-                      ? 'border-blue-600 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  {tab}
-                </button>
-              ))}
-            </div>
-
-            {/* Tab Content */}
+            {/* Content */}
             <div className="space-y-4">
-              {renderTabContent()}
+              {renderContent()}
             </div>
 
             {/* Save/Cancel buttons */}
