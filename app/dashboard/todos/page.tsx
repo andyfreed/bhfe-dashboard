@@ -57,6 +57,7 @@ export default function TodosPage() {
   const [tagInput, setTagInput] = useState('')
   const [showTagSuggestions, setShowTagSuggestions] = useState(false)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+  const [showCompletionGif, setShowCompletionGif] = useState(false)
   const supabase = createClient()
 
   useEffect(() => {
@@ -279,6 +280,8 @@ export default function TodosPage() {
   }
 
   const handleToggleComplete = async (todo: Todo) => {
+    const wasIncomplete = !todo.completed
+    
     const { error } = await supabase
       .from('todos')
       .update({ completed: !todo.completed })
@@ -287,6 +290,15 @@ export default function TodosPage() {
     if (error) {
       console.error('Error updating todo:', error)
       return
+    }
+
+    // Show GIF if task was just completed (going from incomplete to complete)
+    if (wasIncomplete) {
+      setShowCompletionGif(true)
+      // Hide the GIF after animation completes
+      setTimeout(() => {
+        setShowCompletionGif(false)
+      }, 5000) // 5 seconds
     }
 
     loadTodos()
@@ -466,6 +478,25 @@ export default function TodosPage() {
   }
 
   return (
+    <>
+      {/* Completion GIF Overlay */}
+      {showCompletionGif && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 animate-fade-in"
+          onClick={() => setShowCompletionGif(false)}
+          style={{ pointerEvents: 'auto' }}
+        >
+          <div className="relative">
+            <img 
+              src="/task-complete.gif" 
+              alt="Task completed!" 
+              className="max-w-md max-h-md"
+              style={{ animation: 'none' }}
+            />
+          </div>
+        </div>
+      )}
+      
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
@@ -1088,6 +1119,7 @@ export default function TodosPage() {
         </Card>
       )}
     </div>
+    </>
   )
 }
 
