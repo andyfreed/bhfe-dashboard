@@ -1,25 +1,13 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { MapPin, Edit, Save, X } from 'lucide-react'
-import { format } from 'date-fns'
+import { MapPin } from 'lucide-react'
 
-interface IARStateInfo {
-  id: string
-  state_code: string
-  state_name: string
-  ce_requirements: string | null
-  renewal_period: string | null
-  renewal_month: string | null
-  contact_info: string | null
-  website_url: string | null
-  notes: string | null
-  last_updated: string
-  updated_by: string | null
-}
+// States that have adopted IAR requirements
+// Update this list as needed
+const ADOPTED_STATES = [
+  // Add states here once you provide the list
+]
 
 const US_STATES = [
   { code: 'AL', name: 'Alabama' }, { code: 'AK', name: 'Alaska' }, { code: 'AZ', name: 'Arizona' },
@@ -41,373 +29,81 @@ const US_STATES = [
   { code: 'WI', name: 'Wisconsin' }, { code: 'WY', name: 'Wyoming' },
 ]
 
-const MONTHS = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
-  'Varies',
-]
+export default function IARRegulatoryPage() {
+  // Get state details for adopted states
+  const adoptedStateDetails = ADOPTED_STATES.map(stateCode => {
+    return US_STATES.find(s => s.code === stateCode) || { code: stateCode, name: stateCode }
+  }).filter(Boolean)
 
-export default function IARStatesPage() {
-  const [states, setStates] = useState<IARStateInfo[]>([])
-  const [loading, setLoading] = useState(true)
-  const [selectedState, setSelectedState] = useState<IARStateInfo | null>(null)
-  const [editingState, setEditingState] = useState<IARStateInfo | null>(null)
-  const [formData, setFormData] = useState({
-    ce_requirements: '',
-    renewal_period: '',
-    renewal_month: '',
-    contact_info: '',
-    website_url: '',
-    notes: '',
-  })
-  const [searchTerm, setSearchTerm] = useState('')
-  const supabase = createClient()
-
-  useEffect(() => {
-    loadStates()
-    initializeStates()
-  }, [supabase])
-
-  const loadStates = async () => {
-    const { data, error } = await supabase
-      .from('iar_state_info')
-      .select('*')
-      .order('state_name', { ascending: true })
-
-    if (error) {
-      console.error('Error loading IAR states:', error)
-      return
-    }
-
-    setStates(data || [])
-    setLoading(false)
-  }
-
-  const initializeStates = async () => {
-    // Check if states exist, if not create placeholder entries
-    const { data: existingStates } = await supabase
-      .from('iar_state_info')
-      .select('state_code')
-
-    const existingCodes = new Set(existingStates?.map((s) => s.state_code) || [])
-    const missingStates = US_STATES.filter((state) => !existingCodes.has(state.code))
-
-    if (missingStates.length > 0) {
-      const statesToInsert = missingStates.map((state) => ({
-        state_code: state.code,
-        state_name: state.name,
-      }))
-
-      await supabase.from('iar_state_info').insert(statesToInsert)
-      loadStates()
-    }
-  }
-
-  const handleSelectState = (state: IARStateInfo) => {
-    setSelectedState(state)
-    setEditingState(null)
-  }
-
-  const handleEdit = (state: IARStateInfo) => {
-    setEditingState(state)
-    setFormData({
-      ce_requirements: state.ce_requirements || '',
-      renewal_period: state.renewal_period || '',
-      renewal_month: state.renewal_month || '',
-      contact_info: state.contact_info || '',
-      website_url: state.website_url || '',
-      notes: state.notes || '',
-    })
-  }
-
-  const handleSave = async () => {
-    if (!editingState) return
-
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
-
-    const { error } = await supabase
-      .from('iar_state_info')
-      .update({
-        ce_requirements: formData.ce_requirements || null,
-        renewal_period: formData.renewal_period || null,
-        renewal_month: formData.renewal_month || null,
-        contact_info: formData.contact_info || null,
-        website_url: formData.website_url || null,
-        notes: formData.notes || null,
-        updated_by: user.id,
-      })
-      .eq('id', editingState.id)
-
-    if (error) {
-      console.error('Error updating IAR state:', error)
-      return
-    }
-
-    setEditingState(null)
-    loadStates()
-    const updatedState = states.find((s) => s.id === editingState.id)
-    if (updatedState) {
-      setSelectedState(updatedState)
-    }
-  }
-
-  const handleCancel = () => {
-    setEditingState(null)
-    if (selectedState) {
-      setFormData({
-        ce_requirements: selectedState.ce_requirements || '',
-        renewal_period: selectedState.renewal_period || '',
-        renewal_month: selectedState.renewal_month || '',
-        contact_info: selectedState.contact_info || '',
-        website_url: selectedState.website_url || '',
-        notes: selectedState.notes || '',
-      })
-    }
-  }
-
-  const filteredStates = states.filter((state) =>
-    state.state_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    state.state_code.toLowerCase().includes(searchTerm.toLowerCase())
-  )
-
-  if (loading) {
-    return <div className="text-center py-12">Loading...</div>
-  }
-
-  const renderContent = () => {
-    if (!selectedState) return null
-
-    if (editingState?.id === selectedState.id) {
-      // Edit mode
-      return (
-        <>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              CE Requirements
-            </label>
-            <textarea
-              value={formData.ce_requirements}
-              onChange={(e) => setFormData({ ...formData, ce_requirements: e.target.value })}
-              rows={4}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Renewal Period
-            </label>
-            <input
-              type="text"
-              value={formData.renewal_period}
-              onChange={(e) => setFormData({ ...formData, renewal_period: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              placeholder="e.g., Every 2 years"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Renewal Month
-            </label>
-            <select
-              value={formData.renewal_month}
-              onChange={(e) => setFormData({ ...formData, renewal_month: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-            >
-              <option value="">Select a month</option>
-              {MONTHS.map((month) => (
-                <option key={month} value={month}>
-                  {month}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Contact Information
-            </label>
-            <textarea
-              value={formData.contact_info}
-              onChange={(e) => setFormData({ ...formData, contact_info: e.target.value })}
-              rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Regulatory Body URL
-            </label>
-            <input
-              type="url"
-              value={formData.website_url}
-              onChange={(e) => setFormData({ ...formData, website_url: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              placeholder="https://..."
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Notes
-            </label>
-            <textarea
-              value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              rows={6}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-            />
-          </div>
-        </>
-      )
-    } else {
-      // View mode
-      return (
-        <>
-          <div>
-            <h3 className="font-medium text-gray-900 mb-2">CE Requirements</h3>
-            <p className="text-gray-700 whitespace-pre-wrap">
-              {selectedState.ce_requirements || 'No information available'}
-            </p>
-          </div>
-          {selectedState.renewal_period && (
-            <div>
-              <h3 className="font-medium text-gray-900 mb-2">Renewal Period</h3>
-              <p className="text-gray-700">{selectedState.renewal_period}</p>
-            </div>
-          )}
-          {selectedState.renewal_month && (
-            <div>
-              <h3 className="font-medium text-gray-900 mb-2">Renewal Month</h3>
-              <p className="text-gray-700">{selectedState.renewal_month}</p>
-            </div>
-          )}
-          {selectedState.contact_info && (
-            <div>
-              <h3 className="font-medium text-gray-900 mb-2">Contact Information</h3>
-              <p className="text-gray-700 whitespace-pre-wrap">{selectedState.contact_info}</p>
-            </div>
-          )}
-          {selectedState.website_url && (
-            <div>
-              <h3 className="font-medium text-gray-900 mb-2">Regulatory Body URL</h3>
-              <a
-                href={selectedState.website_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-600 hover:underline"
-              >
-                {selectedState.website_url}
-              </a>
-            </div>
-          )}
-          {selectedState.notes && (
-            <div>
-              <h3 className="font-medium text-gray-900 mb-2">Notes</h3>
-              <p className="text-gray-700 whitespace-pre-wrap">{selectedState.notes}</p>
-            </div>
-          )}
-        </>
-      )
-    }
-  }
+  const notAdoptedStateDetails = US_STATES.filter(state => !ADOPTED_STATES.includes(state.code))
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-gray-900">IAR Regulatory Information</h1>
-        <p className="text-gray-600 mt-1">View and manage IAR regulatory requirements by state</p>
+        <p className="text-gray-600 mt-1">States that have adopted IAR requirements</p>
       </div>
 
-      <div>
-        <input
-          type="text"
-          placeholder="Search states..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full max-w-md px-4 py-2 border border-gray-300 rounded-md"
-        />
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MapPin className="h-5 w-5 text-blue-600" />
+            Adopted States
+          </CardTitle>
+          <CardDescription>
+            {ADOPTED_STATES.length > 0 
+              ? `${ADOPTED_STATES.length} state${ADOPTED_STATES.length !== 1 ? 's' : ''} have adopted IAR requirements`
+              : 'No states have been added yet. Please provide the list of states.'}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {ADOPTED_STATES.length > 0 ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              {adoptedStateDetails.map((state) => (
+                <div
+                  key={state.code}
+                  className="flex items-center gap-2 px-3 py-2 bg-green-50 border border-green-200 rounded-lg"
+                >
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <span className="text-sm font-medium text-gray-900">
+                    {state.code} - {state.name}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              <p>Waiting for list of adopted states to be provided.</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
-      {filteredStates.length > 0 && (
-        <div className="mb-4">
-          <select
-            value={selectedState?.id || ''}
-            onChange={(e) => {
-              const state = states.find(s => s.id === e.target.value)
-              if (state) handleSelectState(state)
-            }}
-            className="w-full max-w-md px-4 py-2 border border-gray-300 rounded-md"
-          >
-            <option value="">Select a state...</option>
-            {filteredStates.map((state) => (
-              <option key={state.id} value={state.id}>
-                {state.state_code} - {state.state_name}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
-
-      {selectedState ? (
+      {ADOPTED_STATES.length > 0 && (
         <Card>
           <CardHeader>
-            <div className="flex items-start justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2">
-                  <MapPin className="h-5 w-5 text-blue-600" />
-                  {selectedState.state_name} ({selectedState.state_code})
-                </CardTitle>
-                <CardDescription>
-                  Last updated: {format(new Date(selectedState.last_updated), 'MMM d, yyyy h:mm a')}
-                </CardDescription>
-              </div>
-              {editingState?.id !== selectedState.id && (
-                <Button variant="outline" size="sm" onClick={() => handleEdit(selectedState)}>
-                  <Edit className="h-4 w-4 mr-2" />
-                  Edit
-                </Button>
-              )}
-            </div>
+            <CardTitle>Not Yet Adopted</CardTitle>
+            <CardDescription>
+              {notAdoptedStateDetails.length} state{notAdoptedStateDetails.length !== 1 ? 's' : ''} have not yet adopted IAR requirements
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            {/* Content */}
-            <div className="space-y-4">
-              {renderContent()}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              {notAdoptedStateDetails.map((state) => (
+                <div
+                  key={state.code}
+                  className="flex items-center gap-2 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg"
+                >
+                  <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                  <span className="text-sm text-gray-600">
+                    {state.code} - {state.name}
+                  </span>
+                </div>
+              ))}
             </div>
-
-            {/* Save/Cancel buttons */}
-            {editingState?.id === selectedState.id && (
-              <div className="flex gap-2 mt-6">
-                <Button onClick={handleSave}>
-                  <Save className="h-4 w-4 mr-2" />
-                  Save
-                </Button>
-                <Button variant="outline" onClick={handleCancel}>
-                  <X className="h-4 w-4 mr-2" />
-                  Cancel
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      ) : (
-        <Card>
-          <CardContent className="text-center py-12">
-            <MapPin className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-500">Search and select a state to view regulatory information</p>
           </CardContent>
         </Card>
       )}
     </div>
   )
 }
-
