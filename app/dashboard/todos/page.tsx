@@ -52,8 +52,10 @@ export default function TodosPage() {
     is_recurring: false,
     recurring_pattern: 'daily',
     assigned_to: '',
-    tags: '',
+    tags: [] as string[],
   })
+  const [tagInput, setTagInput] = useState('')
+  const [showTagSuggestions, setShowTagSuggestions] = useState(false)
   const supabase = createClient()
 
   useEffect(() => {
@@ -120,11 +122,8 @@ export default function TodosPage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
-    // Parse tags from comma-separated string
-    const tagsArray = formData.tags
-      .split(',')
-      .map((tag) => tag.trim())
-      .filter((tag) => tag.length > 0)
+    // Tags are already an array
+    const tagsArray = formData.tags.filter((tag) => tag.trim().length > 0)
 
     // Convert datetime-local to ISO string for reminder_date
     let reminderDateISO = null
@@ -310,8 +309,10 @@ export default function TodosPage() {
       is_recurring: todo.is_recurring,
       recurring_pattern: todo.recurring_pattern || 'daily',
       assigned_to: todo.assigned_to || '',
-      tags: todo.tags?.join(', ') || '',
+      tags: todo.tags || [],
     })
+    setTagInput('')
+    setShowTagSuggestions(false)
     setShowForm(true)
   }
 
@@ -349,10 +350,12 @@ export default function TodosPage() {
       is_recurring: false,
       recurring_pattern: 'daily',
       assigned_to: '',
-      tags: '',
+      tags: [],
     })
     setEditingTodo(null)
     setShowForm(false)
+    setTagInput('')
+    setShowTagSuggestions(false)
   }
 
   // Filter todos based on filters
@@ -403,6 +406,37 @@ export default function TodosPage() {
     )
   ).sort()
 
+  // Filter tags based on input for autocomplete
+  const filteredTags = tagInput.trim()
+    ? allTags.filter(tag => 
+        tag.toLowerCase().includes(tagInput.toLowerCase()) &&
+        !formData.tags.includes(tag)
+      )
+    : allTags.filter(tag => !formData.tags.includes(tag))
+
+  const handleAddTag = (tag: string) => {
+    const trimmedTag = tag.trim()
+    if (trimmedTag && !formData.tags.includes(trimmedTag)) {
+      setFormData({ ...formData, tags: [...formData.tags, trimmedTag] })
+      setTagInput('')
+      setShowTagSuggestions(false)
+    }
+  }
+
+  const handleRemoveTag = (tagToRemove: string) => {
+    setFormData({ ...formData, tags: formData.tags.filter(tag => tag !== tagToRemove) })
+  }
+
+  const handleTagInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && tagInput.trim()) {
+      e.preventDefault()
+      handleAddTag(tagInput)
+    } else if (e.key === 'Backspace' && !tagInput && formData.tags.length > 0) {
+      // Remove last tag if input is empty and backspace is pressed
+      handleRemoveTag(formData.tags[formData.tags.length - 1])
+    }
+  }
+
   const getUserColor = (userId: string, assignedTo: string | null) => {
     // Always use the assigned user's color if assigned, otherwise fall back to creator's color
     const targetUserId = assignedTo || userId
@@ -430,6 +464,8 @@ export default function TodosPage() {
           <p className="text-gray-600 mt-1">Unified list of tasks with tags and colors</p>
         </div>
         <Button onClick={() => {
+          setTagInput('')
+          setShowTagSuggestions(false)
           setShowForm(true)
         }}>
           <Plus className="h-4 w-4 mr-2" />
@@ -541,15 +577,73 @@ export default function TodosPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Tags (comma-separated)
+                  Tags
                 </label>
-                <input
-                  type="text"
-                  value={formData.tags}
-                  onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
-                  placeholder="tag1, tag2, tag3"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                />
+                <div className="relative">
+                  {/* Selected tags */}
+                  <div className="flex flex-wrap gap-2 p-2 border border-gray-300 rounded-md min-h-[42px] bg-white">
+                    {formData.tags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-sm"
+                      >
+                        <Tag className="h-3 w-3" />
+                        {tag}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveTag(tag)}
+                          className="ml-1 hover:text-blue-900"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </span>
+                    ))}
+                    <input
+                      type="text"
+                      value={tagInput}
+                      onChange={(e) => {
+                        setTagInput(e.target.value)
+                        setShowTagSuggestions(true)
+                      }}
+                      onFocus={() => setShowTagSuggestions(true)}
+                      onKeyDown={handleTagInputKeyDown}
+                      placeholder={formData.tags.length === 0 ? "Type to search or create tags..." : ""}
+                      className="flex-1 min-w-[150px] outline-none border-none bg-transparent text-sm"
+                    />
+                  </div>
+                  {/* Suggestions dropdown */}
+                  {showTagSuggestions && (filteredTags.length > 0 || tagInput.trim()) && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-10"
+                        onClick={() => setShowTagSuggestions(false)}
+                      />
+                      <div className="absolute z-20 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto">
+                        {filteredTags.slice(0, 10).map((tag) => (
+                          <button
+                            key={tag}
+                            type="button"
+                            onClick={() => handleAddTag(tag)}
+                            className="w-full px-3 py-2 text-left hover:bg-blue-50 text-sm flex items-center gap-2"
+                          >
+                            <Tag className="h-3 w-3 text-gray-400" />
+                            {tag}
+                          </button>
+                        ))}
+                        {tagInput.trim() && !allTags.includes(tagInput.trim()) && !formData.tags.includes(tagInput.trim()) && (
+                          <button
+                            type="button"
+                            onClick={() => handleAddTag(tagInput)}
+                            className="w-full px-3 py-2 text-left hover:bg-green-50 text-sm flex items-center gap-2 border-t border-gray-200 text-green-700 font-medium"
+                          >
+                            <Plus className="h-3 w-3" />
+                            Create "{tagInput.trim()}"
+                          </button>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
               <div className="flex gap-2">
                 <Button type="submit">Create</Button>
@@ -825,15 +919,73 @@ export default function TodosPage() {
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Tags (comma-separated)
+                              Tags
                             </label>
-                            <input
-                              type="text"
-                              value={formData.tags}
-                              onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
-                              placeholder="tag1, tag2, tag3"
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                            />
+                            <div className="relative">
+                              {/* Selected tags */}
+                              <div className="flex flex-wrap gap-2 p-2 border border-gray-300 rounded-md min-h-[42px] bg-white">
+                                {formData.tags.map((tag) => (
+                                  <span
+                                    key={tag}
+                                    className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-sm"
+                                  >
+                                    <Tag className="h-3 w-3" />
+                                    {tag}
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemoveTag(tag)}
+                                      className="ml-1 hover:text-blue-900"
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </button>
+                                  </span>
+                                ))}
+                                <input
+                                  type="text"
+                                  value={tagInput}
+                                  onChange={(e) => {
+                                    setTagInput(e.target.value)
+                                    setShowTagSuggestions(true)
+                                  }}
+                                  onFocus={() => setShowTagSuggestions(true)}
+                                  onKeyDown={handleTagInputKeyDown}
+                                  placeholder={formData.tags.length === 0 ? "Type to search or create tags..." : ""}
+                                  className="flex-1 min-w-[150px] outline-none border-none bg-transparent text-sm"
+                                />
+                              </div>
+                              {/* Suggestions dropdown */}
+                              {showTagSuggestions && (filteredTags.length > 0 || tagInput.trim()) && (
+                                <>
+                                  <div
+                                    className="fixed inset-0 z-10"
+                                    onClick={() => setShowTagSuggestions(false)}
+                                  />
+                                  <div className="absolute z-20 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto">
+                                    {filteredTags.slice(0, 10).map((tag) => (
+                                      <button
+                                        key={tag}
+                                        type="button"
+                                        onClick={() => handleAddTag(tag)}
+                                        className="w-full px-3 py-2 text-left hover:bg-blue-50 text-sm flex items-center gap-2"
+                                      >
+                                        <Tag className="h-3 w-3 text-gray-400" />
+                                        {tag}
+                                      </button>
+                                    ))}
+                                    {tagInput.trim() && !allTags.includes(tagInput.trim()) && !formData.tags.includes(tagInput.trim()) && (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleAddTag(tagInput)}
+                                        className="w-full px-3 py-2 text-left hover:bg-green-50 text-sm flex items-center gap-2 border-t border-gray-200 text-green-700 font-medium"
+                                      >
+                                        <Plus className="h-3 w-3" />
+                                        Create "{tagInput.trim()}"
+                                      </button>
+                                    )}
+                                  </div>
+                                </>
+                              )}
+                            </div>
                           </div>
                           <div className="flex gap-2">
                             <Button type="submit">Update</Button>
