@@ -56,13 +56,22 @@ export default function TodosPage() {
   })
   const [tagInput, setTagInput] = useState('')
   const [showTagSuggestions, setShowTagSuggestions] = useState(false)
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const supabase = createClient()
 
   useEffect(() => {
+    loadCurrentUser()
     loadProfiles()
     loadTodos()
     subscribeToTodos()
   }, [supabase])
+
+  const loadCurrentUser = async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      setCurrentUserId(user.id)
+    }
+  }
 
   const loadProfiles = async () => {
     const { data, error } = await supabase
@@ -768,6 +777,11 @@ export default function TodosPage() {
                       <span className="text-xs font-medium text-gray-600">
                         {todo.assigned_to ? getAssignedUserName(todo.assigned_to) : userName}
                       </span>
+                      {currentUserId && todo.assigned_to === currentUserId && todo.user_id !== currentUserId && (
+                        <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full">
+                          Assigned by {getUserName(todo.user_id)}
+                        </span>
+                      )}
                       {todo.reminder_date && (
                         <span className="text-xs px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full flex items-center gap-1">
                           <Bell className="h-3 w-3" />
@@ -1034,6 +1048,11 @@ export default function TodosPage() {
                       <span className="text-xs font-medium text-gray-600">
                         {todo.assigned_to ? getAssignedUserName(todo.assigned_to) : userName}
                       </span>
+                      {currentUserId && todo.assigned_to === currentUserId && todo.user_id !== currentUserId && (
+                        <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full">
+                          Assigned by {getUserName(todo.user_id)}
+                        </span>
+                      )}
                       {todo.reminder_date && (
                         <span className="text-xs px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full flex items-center gap-1">
                           <Bell className="h-3 w-3" />
