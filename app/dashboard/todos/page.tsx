@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Plus, Trash2, Edit, Check, X, ChevronDown, User, Building, ChevronUp, Tag, Filter, Bell } from 'lucide-react'
 import { format } from 'date-fns'
+import { RECURRING_PATTERNS, getRecurringPatternLabel, type RecurringPattern } from '@/lib/recurring-dates'
 
 interface Profile {
   id: string
@@ -518,25 +519,13 @@ export default function TodosPage() {
         </div>
       </div>
 
-      {showForm && (
+      {showForm && !editingTodo && (
         <Card>
           <CardHeader>
-            <CardTitle>{editingTodo ? 'Edit Todo' : 'New Todo'}</CardTitle>
+            <CardTitle>New Todo</CardTitle>
             <CardDescription>
-              {editingTodo ? 'Update your todo item' : 'Create a new todo item'}
+              Create a new todo item
             </CardDescription>
-            {editingTodo && (
-              <div className="mt-2 text-sm text-gray-600 flex items-center gap-2">
-                <span>Created by:</span>
-                <span className="font-medium">
-                  {editingTodo.is_company_task ? 'Company' : (profiles[editingTodo.user_id]?.name || 'Unknown')}
-                </span>
-                <div
-                  className="w-3 h-3 rounded-full"
-                  style={{ backgroundColor: profiles[editingTodo.user_id]?.user_color || '#3b82f6' }}
-                />
-              </div>
-            )}
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -624,10 +613,11 @@ export default function TodosPage() {
                     onChange={(e) => setFormData({ ...formData, recurring_pattern: e.target.value })}
                     className="px-3 py-2 border border-gray-300 rounded-md"
                   >
-                    <option value="daily">Daily</option>
-                    <option value="weekly">Weekly</option>
-                    <option value="monthly">Monthly</option>
-                    <option value="yearly">Yearly</option>
+                    {RECURRING_PATTERNS.map((pattern) => (
+                      <option key={pattern.value} value={pattern.value}>
+                        {pattern.label}
+                      </option>
+                    ))}
                   </select>
                 )}
               </div>
@@ -657,7 +647,7 @@ export default function TodosPage() {
                 </div>
               )}
               <div className="flex gap-2">
-                <Button type="submit">{editingTodo ? 'Update' : 'Create'}</Button>
+                <Button type="submit">Create</Button>
                 <Button type="button" variant="outline" onClick={resetForm}>
                   Cancel
                 </Button>
@@ -761,13 +751,14 @@ export default function TodosPage() {
             activeTodos.map((todo, index) => {
               const userColor = getUserColor(todo.user_id, todo.assigned_to, todo.is_company_task, todo.color)
               const userName = getUserName(todo.user_id, todo.is_company_task)
+              const isEditing = editingTodo?.id === todo.id
               
               return (
-                <div
-                  key={todo.id}
-                  className="flex items-start gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-                  style={{ borderLeftColor: userColor, borderLeftWidth: '4px' }}
-                >
+                <div key={todo.id} className="space-y-2">
+                  <div
+                    className="flex items-start gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                    style={{ borderLeftColor: userColor, borderLeftWidth: '4px' }}
+                  >
                   <div className="flex flex-col gap-1 mt-1">
                   <button
                       onClick={() => handleMoveTodo(todo, 'up')}
@@ -842,18 +833,167 @@ export default function TodosPage() {
                         <span className="text-orange-600">Reminder: {format(new Date(todo.reminder_date), 'MMM d, yyyy h:mm a')}</span>
                       )}
                       {todo.is_recurring && (
-                        <span className="text-blue-600">Recurring: {todo.recurring_pattern}</span>
+                        <span className="text-blue-600">Recurring: {getRecurringPatternLabel(todo.recurring_pattern)}</span>
                       )}
                     </div>
                   </div>
-                  <div className="flex gap-2 flex-shrink-0">
-                    <button onClick={() => handleEdit(todo)} className="text-blue-600 hover:text-blue-800">
-                      <Edit className="h-4 w-4" />
-                    </button>
-                    <button onClick={() => handleDelete(todo.id)} className="text-red-600 hover:text-red-800">
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
+                  {!isEditing && (
+                    <div className="flex gap-2 flex-shrink-0">
+                      <button onClick={() => handleEdit(todo)} className="text-blue-600 hover:text-blue-800">
+                        <Edit className="h-4 w-4" />
+                      </button>
+                      <button onClick={() => handleDelete(todo.id)} className="text-red-600 hover:text-red-800">
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+                  {isEditing && (
+                    <Card className="border-2 border-blue-300">
+                      <CardHeader>
+                        <CardTitle>Edit Todo</CardTitle>
+                        <CardDescription>
+                          <div className="mt-2 text-sm text-gray-600 flex items-center gap-2">
+                            <span>Created by:</span>
+                            <span className="font-medium">
+                              {todo.is_company_task ? 'Company' : (profiles[todo.user_id]?.name || 'Unknown')}
+                            </span>
+                            <div
+                              className="w-3 h-3 rounded-full"
+                              style={{ backgroundColor: profiles[todo.user_id]?.user_color || '#3b82f6' }}
+                            />
+                          </div>
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Title *
+                            </label>
+                            <input
+                              type="text"
+                              value={formData.title}
+                              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                              required
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Description
+                            </label>
+                            <textarea
+                              value={formData.description}
+                              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                              rows={3}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                            />
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Due Date
+                              </label>
+                              <input
+                                type="datetime-local"
+                                value={formData.due_date}
+                                onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                <Bell className="h-4 w-4 inline mr-1" />
+                                Reminder Date (creates reminder)
+                              </label>
+                              <input
+                                type="datetime-local"
+                                value={formData.reminder_date}
+                                onChange={(e) => setFormData({ ...formData, reminder_date: e.target.value })}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Assign To
+                            </label>
+                            <select
+                              value={formData.assigned_to}
+                              onChange={(e) => setFormData({ ...formData, assigned_to: e.target.value })}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                            >
+                              <option value="">Unassigned</option>
+                              {Object.values(profiles).map((profile) => (
+                                <option key={profile.id} value={profile.id}>
+                                  {profile.name}
+                                </option>
+                              ))}
+                            </select>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {formData.assigned_to ? `Task will be assigned to ${profiles[formData.assigned_to]?.name || 'selected user'}` : 'Task will be unassigned'}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-4">
+                            <label className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={formData.is_recurring}
+                                onChange={(e) => setFormData({ ...formData, is_recurring: e.target.checked })}
+                                className="rounded"
+                              />
+                              <span className="text-sm text-gray-700">Recurring</span>
+                            </label>
+                            {formData.is_recurring && (
+                              <select
+                                value={formData.recurring_pattern}
+                                onChange={(e) => setFormData({ ...formData, recurring_pattern: e.target.value })}
+                                className="px-3 py-2 border border-gray-300 rounded-md"
+                              >
+                                {RECURRING_PATTERNS.map((pattern) => (
+                                  <option key={pattern.value} value={pattern.value}>
+                                    {pattern.label}
+                                  </option>
+                                ))}
+                              </select>
+                            )}
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Tags (comma-separated)
+                            </label>
+                            <input
+                              type="text"
+                              value={formData.tags}
+                              onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
+                              placeholder="tag1, tag2, tag3"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                            />
+                          </div>
+                          {formData.is_company_task && (
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Color
+                              </label>
+                              <input
+                                type="color"
+                                value={formData.color}
+                                onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                                className="w-full h-10 border border-gray-300 rounded-md cursor-pointer"
+                              />
+                            </div>
+                          )}
+                          <div className="flex gap-2">
+                            <Button type="submit">Update</Button>
+                            <Button type="button" variant="outline" onClick={resetForm}>
+                              Cancel
+                            </Button>
+                          </div>
+                        </form>
+                      </CardContent>
+                    </Card>
+                  )}
                 </div>
               )
             })

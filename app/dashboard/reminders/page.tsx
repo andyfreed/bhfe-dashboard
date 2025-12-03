@@ -5,7 +5,8 @@ import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Plus, Trash2, Edit, Bell, Check, Users, User } from 'lucide-react'
-import { format, addDays, addWeeks, addMonths, addYears } from 'date-fns'
+import { format } from 'date-fns'
+import { RECURRING_PATTERNS, getNextRecurringDate, getRecurringPatternLabel, type RecurringPattern } from '@/lib/recurring-dates'
 
 interface Profile {
   id: string
@@ -177,26 +178,9 @@ export default function RemindersPage() {
     }
 
     // If marking as completed and is recurring, create the next instance
-    if (newIsCompleted && reminder.is_recurring) {
-      let nextDate = new Date(reminder.reminder_date)
-      const interval = 1 // Default interval, could be expanded later to support custom intervals
-
-      switch (reminder.recurring_pattern) {
-        case 'daily':
-          nextDate = addDays(nextDate, interval)
-          break
-        case 'weekly':
-          nextDate = addWeeks(nextDate, interval)
-          break
-        case 'monthly':
-          nextDate = addMonths(nextDate, interval)
-          break
-        case 'yearly':
-          nextDate = addYears(nextDate, interval)
-          break
-        default:
-          nextDate = addDays(nextDate, interval)
-      }
+    if (newIsCompleted && reminder.is_recurring && reminder.recurring_pattern) {
+      const currentDate = new Date(reminder.reminder_date)
+      const nextDate = getNextRecurringDate(currentDate, reminder.recurring_pattern as RecurringPattern)
 
       const { error: createError } = await supabase
         .from('reminders')
@@ -293,10 +277,10 @@ export default function RemindersPage() {
         </div>
       </div>
 
-      {showForm && (
+      {showForm && !editingReminder && (
         <Card>
           <CardHeader>
-            <CardTitle>{editingReminder ? 'Edit Reminder' : 'New Reminder'}</CardTitle>
+            <CardTitle>New Reminder</CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -351,10 +335,11 @@ export default function RemindersPage() {
                     onChange={(e) => setFormData({ ...formData, recurring_pattern: e.target.value })}
                     className="px-3 py-2 border border-gray-300 rounded-md"
                   >
-                    <option value="daily">Daily</option>
-                    <option value="weekly">Weekly</option>
-                    <option value="monthly">Monthly</option>
-                    <option value="yearly">Yearly</option>
+                    {RECURRING_PATTERNS.map((pattern) => (
+                      <option key={pattern.value} value={pattern.value}>
+                        {pattern.label}
+                      </option>
+                    ))}
                   </select>
                 )}
               </div>
@@ -395,69 +380,158 @@ export default function RemindersPage() {
               const isOverdue = new Date(reminder.reminder_date) < new Date()
               const reminderOwner = profiles[reminder.user_id]
               const isOwnReminder = currentUserId === reminder.user_id
+              const isEditing = editingReminder?.id === reminder.id
               
               return (
-                <div
-                  key={reminder.id}
-                  className={`flex items-start gap-3 p-4 border rounded-lg ${
-                    isOverdue ? 'border-red-300 bg-red-50' : 'border-gray-200 hover:bg-gray-50'
-                  }`}
-                >
-                  <button
-                    onClick={() => handleToggleComplete(reminder)}
-                    disabled={!isOwnReminder}
-                    className={`mt-1 h-5 w-5 rounded border-2 border-gray-300 flex items-center justify-center ${
-                      isOwnReminder ? 'hover:border-blue-500 cursor-pointer' : 'cursor-not-allowed opacity-50'
+                <div key={reminder.id} className="space-y-2">
+                  <div
+                    className={`flex items-start gap-3 p-4 border rounded-lg ${
+                      isOverdue ? 'border-red-300 bg-red-50' : 'border-gray-200 hover:bg-gray-50'
                     }`}
                   >
-                    <Check className="h-3 w-3 text-white" />
-                  </button>
-                  <div className="flex-1">
-                    <div className="font-medium flex items-center gap-2 flex-wrap">
-                      <Bell className="h-4 w-4 text-yellow-600" />
-                      {reminder.title}
-                      {showAllUsers && reminderOwner && (
-                        <span className="text-xs px-2 py-0.5 rounded-full flex items-center gap-1"
-                          style={{ 
-                            backgroundColor: `${reminderOwner.user_color || '#3b82f6'}20`,
-                            color: reminderOwner.user_color || '#3b82f6'
-                          }}
-                        >
-                          <div
-                            className="w-2 h-2 rounded-full"
-                            style={{ backgroundColor: reminderOwner.user_color || '#3b82f6' }}
-                          />
-                          {reminderOwner.name}
-                          {!isOwnReminder && <span className="text-gray-500">(Other)</span>}
-                        </span>
+                    <button
+                      onClick={() => handleToggleComplete(reminder)}
+                      disabled={!isOwnReminder}
+                      className={`mt-1 h-5 w-5 rounded border-2 border-gray-300 flex items-center justify-center ${
+                        isOwnReminder ? 'hover:border-blue-500 cursor-pointer' : 'cursor-not-allowed opacity-50'
+                      }`}
+                    >
+                      <Check className="h-3 w-3 text-white" />
+                    </button>
+                    <div className="flex-1">
+                      <div className="font-medium flex items-center gap-2 flex-wrap">
+                        <Bell className="h-4 w-4 text-yellow-600" />
+                        {reminder.title}
+                        {showAllUsers && reminderOwner && (
+                          <span className="text-xs px-2 py-0.5 rounded-full flex items-center gap-1"
+                            style={{ 
+                              backgroundColor: `${reminderOwner.user_color || '#3b82f6'}20`,
+                              color: reminderOwner.user_color || '#3b82f6'
+                            }}
+                          >
+                            <div
+                              className="w-2 h-2 rounded-full"
+                              style={{ backgroundColor: reminderOwner.user_color || '#3b82f6' }}
+                            />
+                            {reminderOwner.name}
+                            {!isOwnReminder && <span className="text-gray-500">(Other)</span>}
+                          </span>
+                        )}
+                        {isOverdue && (
+                          <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded">
+                            Overdue
+                          </span>
+                        )}
+                      </div>
+                      {reminder.description && (
+                        <div className="text-sm text-gray-600 mt-1">{reminder.description}</div>
                       )}
-                      {isOverdue && (
-                        <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded">
-                          Overdue
-                        </span>
-                      )}
+                      <div className="text-xs text-gray-500 mt-2">
+                        {format(new Date(reminder.reminder_date), 'MMM d, yyyy h:mm a')}
+                        {reminder.is_recurring && (
+                          <span className="ml-2 text-blue-600">
+                            (Recurring: {getRecurringPatternLabel(reminder.recurring_pattern)})
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    {reminder.description && (
-                      <div className="text-sm text-gray-600 mt-1">{reminder.description}</div>
+                    {isOwnReminder && !isEditing && (
+                      <div className="flex gap-2">
+                        <button onClick={() => handleEdit(reminder)} className="text-blue-600">
+                          <Edit className="h-4 w-4" />
+                        </button>
+                        <button onClick={() => handleDelete(reminder.id)} className="text-red-600">
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
                     )}
-                    <div className="text-xs text-gray-500 mt-2">
-                      {format(new Date(reminder.reminder_date), 'MMM d, yyyy h:mm a')}
-                      {reminder.is_recurring && (
-                        <span className="ml-2 text-blue-600">
-                          (Recurring: {reminder.recurring_pattern})
-                        </span>
-                      )}
-                    </div>
                   </div>
-                  {isOwnReminder && (
-                    <div className="flex gap-2">
-                      <button onClick={() => handleEdit(reminder)} className="text-blue-600">
-                        <Edit className="h-4 w-4" />
-                      </button>
-                      <button onClick={() => handleDelete(reminder.id)} className="text-red-600">
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
+                  {isEditing && (
+                    <Card className="border-2 border-blue-300">
+                      <CardHeader>
+                        <CardTitle>Edit Reminder</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Title *
+                            </label>
+                            <input
+                              type="text"
+                              value={formData.title}
+                              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                              required
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Description
+                            </label>
+                            <textarea
+                              value={formData.description}
+                              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                              rows={3}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Reminder Date *
+                            </label>
+                            <input
+                              type="datetime-local"
+                              value={formData.reminder_date}
+                              onChange={(e) => setFormData({ ...formData, reminder_date: e.target.value })}
+                              required
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                            />
+                          </div>
+                          <div className="flex items-center gap-4">
+                            <label className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={formData.is_recurring}
+                                onChange={(e) => setFormData({ ...formData, is_recurring: e.target.checked })}
+                                className="rounded"
+                              />
+                              <span className="text-sm text-gray-700">Recurring</span>
+                            </label>
+                            {formData.is_recurring && (
+                              <select
+                                value={formData.recurring_pattern}
+                                onChange={(e) => setFormData({ ...formData, recurring_pattern: e.target.value })}
+                                className="px-3 py-2 border border-gray-300 rounded-md"
+                              >
+                                {RECURRING_PATTERNS.map((pattern) => (
+                                  <option key={pattern.value} value={pattern.value}>
+                                    {pattern.label}
+                                  </option>
+                                ))}
+                              </select>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <label className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={formData.is_super_reminder}
+                                onChange={(e) => setFormData({ ...formData, is_super_reminder: e.target.checked })}
+                                className="rounded"
+                              />
+                              <span className="text-sm text-gray-700 font-medium">Super Reminder</span>
+                            </label>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button type="submit">Update</Button>
+                            <Button type="button" variant="outline" onClick={resetForm}>
+                              Cancel
+                            </Button>
+                          </div>
+                        </form>
+                      </CardContent>
+                    </Card>
                   )}
                 </div>
               )
