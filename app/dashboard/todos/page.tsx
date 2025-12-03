@@ -486,11 +486,14 @@ export default function TodosPage() {
           onClick={() => setShowCompletionGif(false)}
           style={{ pointerEvents: 'auto' }}
         >
-          <div className="relative">
+          <div className="relative bg-white rounded-lg p-4">
+            <div className="text-center mb-2">
+              <p className="text-lg font-semibold text-gray-900">Who completed a todo?</p>
+            </div>
             <img 
               src="/task-complete.gif" 
               alt="Task completed!" 
-              className="max-w-md max-h-md"
+              className="max-w-md max-h-md rounded"
               style={{ animation: 'none' }}
             />
           </div>
