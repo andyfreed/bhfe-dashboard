@@ -23,7 +23,6 @@ interface Todo {
   title: string
   due_date: string | null
   completed: boolean
-  is_company_task: boolean
 }
 
 export default function CalendarPage() {
@@ -64,7 +63,7 @@ export default function CalendarPage() {
         .lte('start_date', monthEnd.toISOString()),
       supabase
         .from('todos')
-        .select('id, title, due_date, completed, is_company_task')
+        .select('id, title, due_date, completed')
         .gte('due_date', monthStart.toISOString())
         .lte('due_date', monthEnd.toISOString())
         .eq('completed', false),
@@ -357,9 +356,7 @@ export default function CalendarPage() {
                     {dayTodos.slice(0, 3).map((todo) => (
                       <div
                         key={todo.id}
-                        className={`text-xs px-1 py-0.5 rounded truncate ${
-                          todo.is_company_task ? 'bg-purple-100 text-purple-700' : 'bg-green-100 text-green-700'
-                        }`}
+                        className="text-xs px-1 py-0.5 rounded truncate bg-blue-100 text-blue-700"
                       >
                         {todo.title}
                       </div>
@@ -436,9 +433,7 @@ export default function CalendarPage() {
                   {getEventsForDate(selectedDate).todos.map((todo) => (
                     <div
                       key={todo.id}
-                      className={`p-3 border rounded-lg ${
-                        todo.is_company_task ? 'border-purple-200 bg-purple-50' : 'border-green-200 bg-green-50'
-                      }`}
+                      className="p-3 border rounded-lg border-blue-200 bg-blue-50"
                     >
                       <div className="font-medium">{todo.title}</div>
                       <div className="text-xs text-gray-500 mt-1">

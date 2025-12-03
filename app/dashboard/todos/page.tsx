@@ -38,13 +38,10 @@ export default function TodosPage() {
   const [profiles, setProfiles] = useState<Record<string, Profile>>({})
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
-  const [showDropdown, setShowDropdown] = useState(false)
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null)
   const [filters, setFilters] = useState({
-    user: 'all',
     assignedTo: 'all',
     tag: 'all',
-    type: 'all', // 'all', 'personal', 'company'
     search: '',
   })
   const [formData, setFormData] = useState({
@@ -54,10 +51,8 @@ export default function TodosPage() {
     reminder_date: '',
     is_recurring: false,
     recurring_pattern: 'daily',
-    is_company_task: false,
     assigned_to: '',
     tags: '',
-    color: '#3b82f6',
   })
   const supabase = createClient()
 
@@ -131,11 +126,6 @@ export default function TodosPage() {
       .map((tag) => tag.trim())
       .filter((tag) => tag.length > 0)
 
-    // Get user color - use profile color for personal tasks, form color for company tasks
-    const userColor = formData.is_company_task 
-      ? formData.color 
-      : (profiles[user.id]?.user_color || '#3b82f6')
-
     // Convert datetime-local to ISO string for reminder_date
     let reminderDateISO = null
     if (formData.reminder_date) {
@@ -177,9 +167,9 @@ export default function TodosPage() {
       assigned_to: formData.assigned_to || null,
       is_recurring: formData.is_recurring,
       recurring_pattern: formData.is_recurring ? formData.recurring_pattern : null,
-      is_company_task: formData.is_company_task,
+      is_company_task: true, // Always true - all todos are company todos
       tags: tagsArray.length > 0 ? tagsArray : null,
-      color: userColor,
+      color: null, // Don't store color - always use assigned user's color
       sort_order: sortOrder,
     }
 
@@ -319,10 +309,8 @@ export default function TodosPage() {
       reminder_date: todo.reminder_date ? format(new Date(todo.reminder_date), "yyyy-MM-dd'T'HH:mm") : '',
       is_recurring: todo.is_recurring,
       recurring_pattern: todo.recurring_pattern || 'daily',
-      is_company_task: todo.is_company_task,
       assigned_to: todo.assigned_to || '',
       tags: todo.tags?.join(', ') || '',
-      color: todo.color || '#3b82f6',
     })
     setShowForm(true)
   }
@@ -360,24 +348,16 @@ export default function TodosPage() {
       reminder_date: '',
       is_recurring: false,
       recurring_pattern: 'daily',
-      is_company_task: false,
       assigned_to: '',
       tags: '',
-      color: '#3b82f6',
     })
     setEditingTodo(null)
     setShowForm(false)
-    setShowDropdown(false)
   }
 
   // Filter todos based on filters
   const getFilteredTodos = (todoList: Todo[]) => {
     return todoList.filter((todo) => {
-      // User filter
-      if (filters.user !== 'all' && todo.user_id !== filters.user) {
-        return false
-      }
-
       // Assigned to filter
       if (filters.assignedTo !== 'all') {
         if (filters.assignedTo === 'unassigned' && todo.assigned_to) {
@@ -395,13 +375,6 @@ export default function TodosPage() {
         }
       }
 
-      // Type filter
-      if (filters.type === 'personal' && todo.is_company_task) {
-        return false
-      }
-      if (filters.type === 'company' && !todo.is_company_task) {
-        return false
-      }
 
       // Search filter
       if (filters.search) {
@@ -430,17 +403,13 @@ export default function TodosPage() {
     )
   ).sort()
 
-  const getUserColor = (userId: string, assignedTo: string | null, isCompanyTask: boolean, todoColor: string | null) => {
-    if (isCompanyTask) {
-      return todoColor || '#9333ea' // Purple for company tasks
-    }
-    // Use the assigned user's color if assigned, otherwise fall back to creator's color
+  const getUserColor = (userId: string, assignedTo: string | null) => {
+    // Always use the assigned user's color if assigned, otherwise fall back to creator's color
     const targetUserId = assignedTo || userId
-    return profiles[targetUserId]?.user_color || todoColor || '#3b82f6'
+    return profiles[targetUserId]?.user_color || '#3b82f6'
   }
 
-  const getUserName = (userId: string, isCompanyTask: boolean) => {
-    if (isCompanyTask) return 'Company'
+  const getUserName = (userId: string) => {
     return profiles[userId]?.name || 'Unknown'
   }
 
@@ -458,65 +427,14 @@ export default function TodosPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">To-Do List</h1>
-          <p className="text-gray-600 mt-1">Unified list of personal and company tasks with tags and colors</p>
+          <p className="text-gray-600 mt-1">Unified list of tasks with tags and colors</p>
         </div>
-        <div className="relative">
-          <Button onClick={() => setShowDropdown(!showDropdown)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Todo
-            <ChevronDown className="h-4 w-4 ml-2" />
-          </Button>
-          {showDropdown && (
-            <>
-              <div 
-                className="fixed inset-0 z-10" 
-                onClick={() => setShowDropdown(false)}
-              />
-              <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
-                <div className="py-1">
-                  <button
-                    onClick={async () => {
-                      const { data: { user } } = await supabase.auth.getUser()
-                      const userColor = user ? (profiles[user.id]?.user_color || '#3b82f6') : '#3b82f6'
-                      setFormData({ 
-                        ...formData, 
-                        is_company_task: false,
-                        color: userColor
-                      })
-                      setShowDropdown(false)
-                      setShowForm(true)
-                    }}
-                    className="w-full px-4 py-3 text-left hover:bg-gray-100 flex items-center gap-3 transition-colors"
-                  >
-                    <User className="h-5 w-5 text-blue-600" />
-                    <div>
-                      <div className="font-medium text-gray-900">Personal Todo</div>
-                      <div className="text-sm text-gray-500">Create a personal task</div>
-                    </div>
-                  </button>
-                  <button
-                    onClick={() => {
-                      setFormData({ 
-                        ...formData, 
-                        is_company_task: true,
-                        color: '#9333ea' // Default purple for company tasks
-                      })
-                      setShowDropdown(false)
-                      setShowForm(true)
-                    }}
-                    className="w-full px-4 py-3 text-left hover:bg-gray-100 flex items-center gap-3 transition-colors border-t border-gray-200"
-                  >
-                    <Building className="h-5 w-5 text-purple-600" />
-                    <div>
-                      <div className="font-medium text-gray-900">Company Todo</div>
-                      <div className="text-sm text-gray-500">Create a company task</div>
-                    </div>
-                  </button>
-                </div>
-              </div>
-            </>
-          )}
-        </div>
+        <Button onClick={() => {
+          setShowForm(true)
+        }}>
+          <Plus className="h-4 w-4 mr-2" />
+          Add Todo
+        </Button>
       </div>
 
       {showForm && !editingTodo && (
@@ -633,19 +551,6 @@ export default function TodosPage() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                 />
               </div>
-              {formData.is_company_task && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Color
-                  </label>
-                  <input
-                    type="color"
-                    value={formData.color}
-                    onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                    className="w-full h-10 border border-gray-300 rounded-md cursor-pointer"
-                  />
-                </div>
-              )}
               <div className="flex gap-2">
                 <Button type="submit">Create</Button>
                 <Button type="button" variant="outline" onClick={resetForm}>
@@ -662,7 +567,7 @@ export default function TodosPage() {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle>All Todos</CardTitle>
-              <CardDescription>Personal and company tasks in one unified list</CardDescription>
+              <CardDescription>All tasks in one unified list</CardDescription>
             </div>
           </div>
           </CardHeader>
@@ -683,21 +588,6 @@ export default function TodosPage() {
                   placeholder="Search todos..."
                   className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md"
                 />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Created By</label>
-                <select
-                  value={filters.user}
-                  onChange={(e) => setFilters({ ...filters, user: e.target.value })}
-                  className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md"
-                >
-                  <option value="all">All Users</option>
-                  {Object.values(profiles).map((profile) => (
-                    <option key={profile.id} value={profile.id}>
-                      {profile.name}
-                    </option>
-                  ))}
-                </select>
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">Assigned To</label>
@@ -730,18 +620,6 @@ export default function TodosPage() {
                   ))}
                 </select>
               </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Type</label>
-                <select
-                  value={filters.type}
-                  onChange={(e) => setFilters({ ...filters, type: e.target.value })}
-                  className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md"
-                >
-                  <option value="all">All</option>
-                  <option value="personal">Personal</option>
-                  <option value="company">Company</option>
-                </select>
-              </div>
             </div>
           </div>
           <div className="space-y-2">
@@ -749,8 +627,8 @@ export default function TodosPage() {
             <p className="text-gray-500 text-center py-4">No active todos yet</p>
           ) : (
             activeTodos.map((todo, index) => {
-              const userColor = getUserColor(todo.user_id, todo.assigned_to, todo.is_company_task, todo.color)
-              const userName = getUserName(todo.user_id, todo.is_company_task)
+              const userColor = getUserColor(todo.user_id, todo.assigned_to)
+              const userName = getUserName(todo.user_id)
               const isEditing = editingTodo?.id === todo.id
               
               return (
@@ -796,11 +674,6 @@ export default function TodosPage() {
                       <span className="text-xs font-medium text-gray-600">
                         {todo.assigned_to ? getAssignedUserName(todo.assigned_to) : userName}
                       </span>
-                      {todo.is_company_task && (
-                        <span className="text-xs px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full">
-                          Company
-                        </span>
-                      )}
                       {todo.reminder_date && (
                         <span className="text-xs px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full flex items-center gap-1">
                           <Bell className="h-3 w-3" />
@@ -853,16 +726,7 @@ export default function TodosPage() {
                       <CardHeader>
                         <CardTitle>Edit Todo</CardTitle>
                         <CardDescription>
-                          <div className="mt-2 text-sm text-gray-600 flex items-center gap-2">
-                            <span>Created by:</span>
-                            <span className="font-medium">
-                              {todo.is_company_task ? 'Company' : (profiles[todo.user_id]?.name || 'Unknown')}
-                            </span>
-                            <div
-                              className="w-3 h-3 rounded-full"
-                              style={{ backgroundColor: profiles[todo.user_id]?.user_color || '#3b82f6' }}
-                            />
-                          </div>
+                          Update your todo item
                         </CardDescription>
                       </CardHeader>
                       <CardContent>
@@ -971,19 +835,6 @@ export default function TodosPage() {
                               className="w-full px-3 py-2 border border-gray-300 rounded-md"
                             />
                           </div>
-                          {formData.is_company_task && (
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Color
-                              </label>
-                              <input
-                                type="color"
-                                value={formData.color}
-                                onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                                className="w-full h-10 border border-gray-300 rounded-md cursor-pointer"
-                              />
-                            </div>
-                          )}
                           <div className="flex gap-2">
                             <Button type="submit">Update</Button>
                             <Button type="button" variant="outline" onClick={resetForm}>
@@ -1010,8 +861,8 @@ export default function TodosPage() {
           </CardHeader>
           <CardContent className="space-y-2">
             {completedTodos.map((todo) => {
-              const userColor = getUserColor(todo.user_id, todo.assigned_to, todo.is_company_task, todo.color)
-              const userName = getUserName(todo.user_id, todo.is_company_task)
+              const userColor = getUserColor(todo.user_id, todo.assigned_to)
+              const userName = getUserName(todo.user_id)
               
               return (
               <div
@@ -1031,11 +882,6 @@ export default function TodosPage() {
                       <span className="text-xs font-medium text-gray-600">
                         {todo.assigned_to ? getAssignedUserName(todo.assigned_to) : userName}
                       </span>
-                      {todo.is_company_task && (
-                        <span className="text-xs px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full">
-                          Company
-                        </span>
-                      )}
                       {todo.reminder_date && (
                         <span className="text-xs px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full flex items-center gap-1">
                           <Bell className="h-3 w-3" />
