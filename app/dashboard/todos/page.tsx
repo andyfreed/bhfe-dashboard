@@ -924,7 +924,7 @@ export default function TodosPage() {
                         style={{ backgroundColor: userColor }}
                       />
                       <span className="text-xs font-medium text-gray-600">
-                        {todo.assigned_to ? getAssignedUserName(todo.assigned_to) : userName}
+                        {todo.assigned_to ? getAssignedUserName(todo.assigned_to) : `Unassigned (Created by ${userName})`}
                       </span>
                       {currentUserId && todo.assigned_to === currentUserId && todo.user_id !== currentUserId && (
                         <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full">
@@ -1195,7 +1195,7 @@ export default function TodosPage() {
                         style={{ backgroundColor: userColor }}
                       />
                       <span className="text-xs font-medium text-gray-600">
-                        {todo.assigned_to ? getAssignedUserName(todo.assigned_to) : userName}
+                        {todo.assigned_to ? getAssignedUserName(todo.assigned_to) : `Unassigned (Created by ${userName})`}
                       </span>
                       {currentUserId && todo.assigned_to === currentUserId && todo.user_id !== currentUserId && (
                         <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full">
@@ -1240,4 +1240,3 @@ export default function TodosPage() {
     </>
   )
 }
-
