@@ -21,12 +21,14 @@ import {
   ChevronRight,
   Settings,
   User,
+  SlidersHorizontal,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { name: 'Chat', href: '/dashboard/chat', icon: MessageSquare },
   { name: 'To-Do Lists', href: '/dashboard/todos', icon: CheckSquare },
   { name: 'Calendar', href: '/dashboard/calendar', icon: Calendar },
   { name: 'Reminders', href: '/dashboard/reminders', icon: Bell },
@@ -35,10 +37,10 @@ const navigation = [
   { name: 'Notes', href: '/dashboard/notes', icon: FileText },
   { name: 'Active Courses', href: '/dashboard/courses', icon: BookOpen },
   { name: 'Regulatory', href: '/dashboard/regulatory/cpa', icon: MapPin, hasSubmenu: true },
-  { name: 'Chat', href: '/dashboard/chat', icon: MessageSquare },
   { name: 'Operations', href: '/dashboard/operations', icon: Settings },
   { name: 'Links', href: '/dashboard/links', icon: ExternalLink },
   { name: 'Profile', href: '/dashboard/profile', icon: User },
+  { name: 'Settings', href: '/dashboard/settings', icon: SlidersHorizontal },
 ]
 
 const regulatorySubmenu = [
@@ -54,7 +56,7 @@ const regulatorySubmenu = [
 export function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
-  const [hasUnreadMessages, setHasUnreadMessages] = useState(false)
+  const [unreadMessageCount, setUnreadMessageCount] = useState(0)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isRegulatoryExpanded, setIsRegulatoryExpanded] = useState(false)
   const [coursesNotInSitemapCount, setCoursesNotInSitemapCount] = useState<number | null>(null)
@@ -94,24 +96,23 @@ export function Sidebar() {
   const checkUnreadMessages = async () => {
     // Don't check if we're on the chat page
     if (pathname === '/dashboard/chat') {
-      setHasUnreadMessages(false)
+      setUnreadMessageCount(0)
       return
     }
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
-    const { data, error } = await supabase
+    const { data, error, count } = await supabase
       .from('chat_messages')
-      .select('id')
+      .select('id', { count: 'exact' })
       .eq('receiver_id', user.id)
       .eq('is_read', false)
-      .limit(1)
 
-    if (!error && data && data.length > 0) {
-      setHasUnreadMessages(true)
+    if (!error && count !== null) {
+      setUnreadMessageCount(count)
     } else {
-      setHasUnreadMessages(false)
+      setUnreadMessageCount(0)
     }
   }
 
@@ -170,7 +171,7 @@ export function Sidebar() {
           {navigation.map((item) => {
             const isActive = pathname === item.href || (item.href === '/dashboard/regulatory/cpa' && pathname.startsWith('/dashboard/regulatory'))
             const isChat = item.name === 'Chat'
-            const showGlow = isChat && hasUnreadMessages && !isActive
+            const showGlow = isChat && unreadMessageCount > 0 && !isActive
             const isRegulatory = item.name === 'Regulatory'
             
             if (isRegulatory && item.hasSubmenu) {
@@ -261,6 +262,16 @@ export function Sidebar() {
                       : "bg-red-500 text-white"
                   )}>
                     {coursesNotInSitemapCount}
+                  </span>
+                )}
+                {isChat && unreadMessageCount > 0 && (
+                  <span className={cn(
+                    "px-2 py-0.5 rounded-full text-xs font-bold",
+                    isActive 
+                      ? "bg-white/20 text-white" 
+                      : "bg-red-500 text-white"
+                  )}>
+                    {unreadMessageCount}
                   </span>
                 )}
                 {isActive && (

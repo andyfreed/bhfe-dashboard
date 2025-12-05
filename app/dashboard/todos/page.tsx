@@ -57,13 +57,23 @@ export default function TodosPage() {
   const [tagInput, setTagInput] = useState('')
   const [showTagSuggestions, setShowTagSuggestions] = useState(false)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+  const [showUnassignedConfirm, setShowUnassignedConfirm] = useState(false)
+  const [pendingSubmit, setPendingSubmit] = useState<(() => void) | null>(null)
+  const [unassignedColor, setUnassignedColor] = useState('#9ca3af')
   const supabase = createClient()
 
   useEffect(() => {
     loadCurrentUser()
     loadProfiles()
     loadTodos()
-    subscribeToTodos()
+    const unsubscribeTodos = subscribeToTodos()
+    loadUnassignedColor()
+    const unsubscribeSettings = subscribeToSettings()
+    
+    return () => {
+      if (unsubscribeTodos) unsubscribeTodos()
+      if (unsubscribeSettings) unsubscribeSettings()
+    }
   }, [supabase])
 
   const loadCurrentUser = async () => {
@@ -88,6 +98,18 @@ export default function TodosPage() {
       profilesMap[profile.id] = profile
     })
     setProfiles(profilesMap)
+  }
+
+  const loadUnassignedColor = async () => {
+    const { data, error } = await supabase
+      .from('app_settings')
+      .select('value')
+      .eq('key', 'unassigned_todo_color')
+      .single()
+
+    if (!error && data) {
+      setUnassignedColor(data.value || '#9ca3af')
+    }
   }
 
   const loadTodos = async () => {
@@ -126,10 +148,48 @@ export default function TodosPage() {
     }
   }
 
+  const subscribeToSettings = () => {
+    const channel = supabase
+      .channel('settings-changes')
+      .on(
+        'postgres_changes',
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'app_settings',
+          filter: 'key=eq.unassigned_todo_color'
+        },
+        () => {
+          loadUnassignedColor()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
+
+    // Check if todo is unassigned and show confirmation
+    if (!formData.assigned_to) {
+      setShowUnassignedConfirm(true)
+      setPendingSubmit(() => () => {
+        performSubmit(user.id)
+      })
+      return
+    }
+
+    performSubmit(user.id)
+  }
+
+  const performSubmit = async (userId: string) => {
+    setShowUnassignedConfirm(false)
+    setPendingSubmit(null)
 
     // Tags are already an array
     const tagsArray = formData.tags.filter((tag) => tag.trim().length > 0)
@@ -169,7 +229,7 @@ export default function TodosPage() {
     const todoData = {
       title: formData.title,
       description: formData.description || null,
-      user_id: user.id,
+      user_id: userId,
       due_date: dueDateISO,
       reminder_date: reminderDateISO,
       assigned_to: formData.assigned_to || null,
@@ -225,7 +285,7 @@ export default function TodosPage() {
 
       // Set reminder user_id to assigned user, or creator if unassigned
       // The RLS policy will allow this if the user created the todo or is assigned to it
-      const reminderUserId = formData.assigned_to || user.id
+      const reminderUserId = formData.assigned_to || userId
       const reminderData = {
         title: formData.title,
         description: formData.description || null,
@@ -447,9 +507,12 @@ export default function TodosPage() {
   }
 
   const getUserColor = (userId: string, assignedTo: string | null) => {
-    // Always use the assigned user's color if assigned, otherwise fall back to creator's color
-    const targetUserId = assignedTo || userId
-    return profiles[targetUserId]?.user_color || '#3b82f6'
+    // If assigned, use assigned user's color
+    if (assignedTo) {
+      return profiles[assignedTo]?.user_color || '#3b82f6'
+    }
+    // If unassigned, use the unassigned color from settings
+    return unassignedColor
   }
 
   const getUserName = (userId: string) => {
@@ -467,6 +530,49 @@ export default function TodosPage() {
 
   return (
     <div className="space-y-6">
+      {/* Unassigned Todo Confirmation Dialog */}
+      {showUnassignedConfirm && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+          onClick={() => {
+            setShowUnassignedConfirm(false)
+            setPendingSubmit(null)
+          }}
+        >
+          <div
+            className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Unassigned Todo
+            </h3>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to leave this todo unassigned?
+            </p>
+            <div className="flex justify-end gap-3">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowUnassignedConfirm(false)
+                  setPendingSubmit(null)
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  if (pendingSubmit) {
+                    pendingSubmit()
+                  }
+                }}
+              >
+                Yes, Continue
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">To-Do List</h1>
