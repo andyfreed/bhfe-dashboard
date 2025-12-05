@@ -221,16 +221,45 @@ export default function CoursesPage() {
       setGeneratingSitemap(true)
       setError(null)
       
-      // Generate sitemap XML from the course list
+      // Static URLs to always include in sitemap
+      const staticUrls = [
+        'https://www.bhfe.com/',
+        'https://www.bhfe.com/contact-us/',
+        'https://www.bhfe.com/courses/',
+        'https://www.bhfe.com/courses/ethics-courses-for-accountants/',
+        'https://www.bhfe.com/courses/cfp-courses/',
+        'https://www.bhfe.com/courses/all-cpa-courses/',
+        'https://www.bhfe.com/courses/all-cdfa-courses/',
+        'https://www.bhfe.com/eaotrp-courses/',
+        'https://www.bhfe.com/erpa-courses/',
+        'https://www.bhfe.com/courses/iwi-cima-courses/',
+        'https://www.bhfe.com/courses/all-iar-courses/',
+        'https://www.bhfe.com/about-us/',
+        'https://www.bhfe.com/support/'
+      ]
+      
+      // Generate sitemap XML from static URLs and course list
       const baseUrl = wordpressUrl.replace(/\/$/, '')
-      const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${courses.map(course => `  <url>
+      const today = new Date().toISOString().split('T')[0]
+      
+      const staticUrlEntries = staticUrls.map(url => `  <url>
+    <loc>${url}</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>1.0</priority>
+  </url>`).join('\n')
+      
+      const courseUrlEntries = courses.map(course => `  <url>
     <loc>${course.permalink}</loc>
     <lastmod>${new Date(course.updated_at).toISOString().split('T')[0]}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
-  </url>`).join('\n')}
+  </url>`).join('\n')
+      
+      const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${staticUrlEntries}
+${courseUrlEntries}
 </urlset>`
       
       // Create a blob and download it
