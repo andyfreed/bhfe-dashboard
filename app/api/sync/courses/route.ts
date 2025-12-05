@@ -76,6 +76,24 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(data, { status: 200 })
     }
     
+    if (endpoint === 'processing-orders') {
+      // Fetch processing orders endpoint
+      const ordersUrl = `${wordpressUrl.replace(/\/$/, '')}/wp-json/bhfe/v1/processing-orders`
+      const headers: HeadersInit = {}
+      if (apiKey) {
+        headers['X-BHFE-API-Key'] = apiKey
+      }
+      
+      const response = await fetch(ordersUrl, { headers })
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: response.statusText }))
+        throw new Error(errorData.error || `Failed to fetch processing orders: ${response.statusText}`)
+      }
+      
+      const data = await response.json()
+      return NextResponse.json(data, { status: 200 })
+    }
+    
     if (endpoint === 'sitemap') {
       // Fetch sitemap with cache-busting to ensure fresh content
       const sitemapUrl = `${wordpressUrl.replace(/\/$/, '')}/sitemap.xml?_t=${Date.now()}`
