@@ -57,6 +57,7 @@ export default function TodosPage() {
   const [tagInput, setTagInput] = useState('')
   const [showTagSuggestions, setShowTagSuggestions] = useState(false)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+  const [showCompletionGif, setShowCompletionGif] = useState(false)
   const [showUnassignedConfirm, setShowUnassignedConfirm] = useState(false)
   const [pendingSubmit, setPendingSubmit] = useState<(() => void) | null>(null)
   const [unassignedColor, setUnassignedColor] = useState('#9ca3af')
@@ -339,6 +340,8 @@ export default function TodosPage() {
   }
 
   const handleToggleComplete = async (todo: Todo) => {
+    const wasIncomplete = !todo.completed
+    
     const { error } = await supabase
       .from('todos')
       .update({ completed: !todo.completed })
@@ -347,6 +350,15 @@ export default function TodosPage() {
     if (error) {
       console.error('Error updating todo:', error)
       return
+    }
+
+    // Show GIF if task was just completed (going from incomplete to complete)
+    if (wasIncomplete) {
+      setShowCompletionGif(true)
+      // Hide the GIF after animation completes
+      setTimeout(() => {
+        setShowCompletionGif(false)
+      }, 5000) // 5 seconds
     }
 
     loadTodos()
@@ -529,6 +541,37 @@ export default function TodosPage() {
   }
 
   return (
+    <>
+      {/* Completion GIF Overlay */}
+      {showCompletionGif && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          onClick={() => setShowCompletionGif(false)}
+          style={{ 
+            pointerEvents: 'auto',
+            backgroundColor: 'rgba(0, 0, 0, 0.5)'
+          }}
+        >
+          <div className="relative bg-white rounded-lg p-6 shadow-2xl border-2 border-gray-300">
+            <div className="text-center mb-3">
+              <p className="text-lg font-semibold text-gray-900">Who completed a todo?</p>
+            </div>
+            <div className="flex justify-center">
+              <img 
+                src="/task-complete.gif" 
+                alt="Task completed!" 
+                className="rounded"
+                style={{ 
+                  width: '165px',
+                  height: '231px',
+                  animation: 'none'
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+      
     <div className="space-y-6">
       {/* Unassigned Todo Confirmation Dialog */}
       {showUnassignedConfirm && (
@@ -1194,6 +1237,7 @@ export default function TodosPage() {
         </Card>
       )}
     </div>
+    </>
   )
 }
 
