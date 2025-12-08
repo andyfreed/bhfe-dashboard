@@ -30,6 +30,7 @@ interface Todo {
   tags: string[] | null
   color: string | null
   sort_order: number | null
+  priority: 'low' | 'medium' | 'high' | null
   created_at: string
 }
 
@@ -42,6 +43,7 @@ export default function TodosPage() {
   const [filters, setFilters] = useState({
     assignedTo: 'all',
     tag: 'all',
+    priority: 'all',
     search: '',
   })
   const [formData, setFormData] = useState({
@@ -53,6 +55,7 @@ export default function TodosPage() {
     recurring_pattern: 'daily',
     assigned_to: '',
     tags: [] as string[],
+    priority: 'medium' as 'low' | 'medium' | 'high',
   })
   const [tagInput, setTagInput] = useState('')
   const [showTagSuggestions, setShowTagSuggestions] = useState(false)
@@ -240,6 +243,7 @@ export default function TodosPage() {
       tags: tagsArray.length > 0 ? tagsArray : null,
       color: null, // Don't store color - always use assigned user's color
       sort_order: sortOrder,
+      priority: formData.priority || 'medium',
     }
 
     let todoId: string | null = null
@@ -387,6 +391,7 @@ export default function TodosPage() {
       recurring_pattern: todo.recurring_pattern || 'daily',
       assigned_to: todo.assigned_to || '',
       tags: todo.tags || [],
+      priority: (todo.priority || 'medium') as 'low' | 'medium' | 'high',
     })
     setTagInput('')
     setShowTagSuggestions(false)
@@ -455,6 +460,14 @@ export default function TodosPage() {
         }
       }
 
+      // Priority filter
+      if (filters.priority !== 'all') {
+        const todoPriority = todo.priority || 'medium'
+        if (todoPriority !== filters.priority) {
+          return false
+        }
+      }
+
       // Search filter
       if (filters.search) {
         const searchLower = filters.search.toLowerCase()
@@ -468,7 +481,7 @@ export default function TodosPage() {
 
       return true
     })
-  }, [filters.assignedTo, filters.tag, filters.search])
+  }, [filters.assignedTo, filters.tag, filters.priority, filters.search])
 
   // Memoize filtered todos to avoid unnecessary recalculations
   const incompleteTodos = useMemo(() => todos.filter((t) => !t.completed), [todos])
@@ -691,25 +704,41 @@ export default function TodosPage() {
                   />
                 </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Assign To
-                </label>
-                <select
-                  value={formData.assigned_to}
-                  onChange={(e) => setFormData({ ...formData, assigned_to: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                >
-                  <option value="">Unassigned</option>
-                  {Object.values(profiles).map((profile) => (
-                    <option key={profile.id} value={profile.id}>
-                      {profile.name}
-                    </option>
-                  ))}
-                </select>
-                <p className="text-xs text-gray-500 mt-1">
-                  {formData.assigned_to ? `Task will be assigned to ${profiles[formData.assigned_to]?.name || 'selected user'}` : 'Task will be unassigned'}
-                </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Assign To
+                  </label>
+                  <select
+                    value={formData.assigned_to}
+                    onChange={(e) => setFormData({ ...formData, assigned_to: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  >
+                    <option value="">Unassigned</option>
+                    {Object.values(profiles).map((profile) => (
+                      <option key={profile.id} value={profile.id}>
+                        {profile.name}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {formData.assigned_to ? `Task will be assigned to ${profiles[formData.assigned_to]?.name || 'selected user'}` : 'Task will be unassigned'}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Priority
+                  </label>
+                  <select
+                    value={formData.priority}
+                    onChange={(e) => setFormData({ ...formData, priority: e.target.value as 'low' | 'medium' | 'high' })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  >
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                  </select>
+                </div>
               </div>
               <div className="flex items-center gap-4">
                 <label className="flex items-center gap-2">
@@ -832,7 +861,7 @@ export default function TodosPage() {
               <Filter className="h-4 w-4 text-gray-600" />
               <span className="text-sm font-medium text-gray-700">Filters</span>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-3">
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">Search</label>
                 <input
@@ -872,6 +901,19 @@ export default function TodosPage() {
                       {tag}
                     </option>
                   ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Priority</label>
+                <select
+                  value={filters.priority}
+                  onChange={(e) => setFilters({ ...filters, priority: e.target.value })}
+                  className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md"
+                >
+                  <option value="all">All Priorities</option>
+                  <option value="high">High</option>
+                  <option value="medium">Medium</option>
+                  <option value="low">Low</option>
                 </select>
               </div>
             </div>
@@ -1038,25 +1080,41 @@ export default function TodosPage() {
                               />
                             </div>
                           </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Assign To
-                            </label>
-                            <select
-                              value={formData.assigned_to}
-                              onChange={(e) => setFormData({ ...formData, assigned_to: e.target.value })}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                            >
-                              <option value="">Unassigned</option>
-                              {Object.values(profiles).map((profile) => (
-                                <option key={profile.id} value={profile.id}>
-                                  {profile.name}
-                                </option>
-                              ))}
-                            </select>
-                            <p className="text-xs text-gray-500 mt-1">
-                              {formData.assigned_to ? `Task will be assigned to ${profiles[formData.assigned_to]?.name || 'selected user'}` : 'Task will be unassigned'}
-                            </p>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Assign To
+                              </label>
+                              <select
+                                value={formData.assigned_to}
+                                onChange={(e) => setFormData({ ...formData, assigned_to: e.target.value })}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                              >
+                                <option value="">Unassigned</option>
+                                {Object.values(profiles).map((profile) => (
+                                  <option key={profile.id} value={profile.id}>
+                                    {profile.name}
+                                  </option>
+                                ))}
+                              </select>
+                              <p className="text-xs text-gray-500 mt-1">
+                                {formData.assigned_to ? `Task will be assigned to ${profiles[formData.assigned_to]?.name || 'selected user'}` : 'Task will be unassigned'}
+                              </p>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Priority
+                              </label>
+                              <select
+                                value={formData.priority}
+                                onChange={(e) => setFormData({ ...formData, priority: e.target.value as 'low' | 'medium' | 'high' })}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                              >
+                                <option value="low">Low</option>
+                                <option value="medium">Medium</option>
+                                <option value="high">High</option>
+                              </select>
+                            </div>
                           </div>
                           <div className="flex items-center gap-4">
                             <label className="flex items-center gap-2">
