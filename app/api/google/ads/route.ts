@@ -140,10 +140,31 @@ export async function GET(request: NextRequest) {
       }),
     })
 
-    // Use the same endpoint URL that worked for current period (or fallback)
-    const finalEndpointUrl = actualResponse.ok ? endpointUrl.replace(':searchStream', ':search') : endpointUrl.replace(':searchStream', ':search')
+    // If searchStream fails with 404, try :search endpoint
+    let actualResponse = currentResponse
+    if (currentResponse.status === 404 && endpointUrl.includes(':searchStream')) {
+      console.log('[Ads API] searchStream returned 404, trying :search endpoint')
+      const fallbackUrl = endpointUrl.replace(':searchStream', ':search')
+      actualResponse = await fetch(fallbackUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'developer-token': developerToken,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          query,
+        }),
+      })
+      console.log('[Ads API] Fallback request URL:', fallbackUrl, 'Status:', actualResponse.status)
+    }
     
-    // Fetch previous period data
+    // Determine which endpoint URL worked for current period
+    const workingEndpointUrl = actualResponse.ok ? 
+      (endpointUrl.includes(':searchStream') ? endpointUrl.replace(':searchStream', ':search') : endpointUrl) :
+      endpointUrl.replace(':searchStream', ':search')
+    
+    // Fetch previous period data using the same endpoint that worked
     const previousQuery = `
       SELECT
         metrics.cost_micros,
@@ -158,7 +179,7 @@ export async function GET(request: NextRequest) {
         AND segments.date <= '${formatDateForAds(prevEnd)}'
     `.trim()
     
-    let previousResponse = await fetch(finalEndpointUrl.includes(':searchStream') ? finalEndpointUrl : finalEndpointUrl.replace(':search', ':searchStream'), {
+    let previousResponse = await fetch(workingEndpointUrl, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${accessToken}`,
@@ -170,9 +191,11 @@ export async function GET(request: NextRequest) {
       }),
     })
     
-    // If searchStream fails, try search
-    if (previousResponse.status === 404 && finalEndpointUrl.includes(':searchStream')) {
-      const fallbackPreviousUrl = finalEndpointUrl.replace(':searchStream', ':search')
+    // If previous period request fails with 404, try the other endpoint
+    if (previousResponse.status === 404) {
+      const fallbackPreviousUrl = workingEndpointUrl.includes(':search') ? 
+        workingEndpointUrl.replace(':search', ':searchStream') : 
+        workingEndpointUrl.replace(':searchStream', ':search')
       previousResponse = await fetch(fallbackPreviousUrl, {
         method: 'POST',
         headers: {
@@ -186,7 +209,7 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    if (!currentResponse.ok) {
+    if (!actualResponse.ok) {
       const errorText = await currentResponse.text()
       let errorData: any
       try {
@@ -205,21 +228,29 @@ export async function GET(request: NextRequest) {
       const errorDetails = errorData.error || errorData
       
       console.error('[Ads API] Error response:', {
-        status: currentResponse.status,
-        statusText: currentResponse.statusText,
+        status: actualResponse.status,
+        statusText: actualResponse.statusText,
         customerId: cleanCustomerId,
+        endpoint: endpointUrl,
         error: errorDetails,
         fullResponse: errorText.substring(0, 500), // First 500 chars
       })
       
+      // Provide helpful error message
+      let userFriendlyError = errorMessage
+      if (actualResponse.status === 404) {
+        userFriendlyError = `Customer ID ${customerId} not found or not accessible. Verify the Customer ID is correct. You mentioned it might be 720-967-8421 - try updating the configuration. Also ensure your OAuth token has access to this account.`
+      }
+      
       return NextResponse.json(
         { 
-          error: errorMessage, 
+          error: userFriendlyError, 
           details: errorDetails,
-          customerId: cleanCustomerId, // Include for debugging
-          status: currentResponse.status,
+          customerId: cleanCustomerId,
+          originalCustomerId: customerId,
+          status: actualResponse.status,
         },
-        { status: currentResponse.status }
+        { status: actualResponse.status }
       )
     }
 
