@@ -22,6 +22,7 @@ import {
   Settings,
   User,
   SlidersHorizontal,
+  BarChart3,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
@@ -35,6 +36,7 @@ const navigation = [
   { name: 'Projects', href: '/dashboard/projects', icon: FolderKanban },
   { name: 'Notes', href: '/dashboard/notes', icon: FileText },
   { name: 'Active Courses', href: '/dashboard/courses', icon: BookOpen },
+  { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
   { name: 'Regulatory', href: '/dashboard/regulatory/cpa', icon: MapPin, hasSubmenu: true },
   { name: 'Operations', href: '/dashboard/operations', icon: Settings, hasSubmenu: true },
   { name: 'Profile', href: '/dashboard/profile', icon: User },
@@ -316,16 +318,7 @@ export function Sidebar() {
                   showGlow && 'shadow-lg shadow-blue-400/60 ring-2 ring-blue-400/40 ring-opacity-50 animate-pulse'
                 )}
                 style={showGlow ? {
-                  boxShadow: '0 0 20px rgba(96, 165, 250, 0.6), 0 0 40px rgba(96, 165, 250, 0.4)',
-                } : {}}
-              >
-                <item.icon className={cn(
-                  "h-5 w-5 transition-transform duration-200",
-                  isActive ? "text-white drop-shadow-md" : "text-slate-500 group-hover:text-slate-700",
-                  !isActive && "group-hover:scale-110"
-                )} />
-                <span className="flex-1">{item.name}</span>
-                {isActiveCourses && coursesNotInSitemapCount !== null && coursesNotInSitemapCount > 0 && (
+                  boxShadow: '0 0 20px rgba(96, 165, 250, 0.6), 0 0 40px rgba(96, 165, accountCount !== null && coursesNotInSitemapCount > 0 && (
                   <span className={cn(
                     "px-2 py-0.5 rounded-full text-xs font-bold",
                     isActive 
