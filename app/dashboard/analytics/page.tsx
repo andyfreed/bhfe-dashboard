@@ -417,7 +417,7 @@ export default function AnalyticsPage() {
           <p className="text-gray-600 mt-1">Performance metrics and comparisons</p>
         </div>
         <div className="flex items-center gap-3">
-          {isConnected && metrics && (
+          {isConnected && (
             <Button
               variant="outline"
               onClick={() => setShowChat(!showChat)}

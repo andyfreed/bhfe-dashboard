@@ -161,6 +161,41 @@ export async function POST(request: NextRequest) {
         }
 
         if (dataTypes.includes('analytics_pages')) {
+          // Build dimension filter if pageUrl is specified
+          let dimensionFilter: any = undefined
+          if (filters?.pageUrl) {
+            // Remove trailing slash and ensure it starts with /
+            const pagePath = filters.pageUrl.replace(/\/$/, '') || '/'
+            dimensionFilter = {
+              filter: {
+                fieldName: 'pagePath',
+                stringFilter: {
+                  matchType: 'EXACT',
+                  value: pagePath,
+                },
+              },
+            }
+          }
+
+          const requestBody: any = {
+            dateRanges: [{
+              startDate: formatDateForGA(start),
+              endDate: formatDateForGA(end),
+            }],
+            dimensions: [{ name: 'pagePath' }],
+            metrics: [
+              { name: 'screenPageViews' },
+              { name: 'activeUsers' },
+              { name: 'sessions' },
+              { name: 'eventCount' },
+            ],
+            limit: filters?.pageUrl ? 100 : 1000, // Get more data for site-wide queries
+          }
+
+          if (dimensionFilter) {
+            requestBody.dimensionFilter = dimensionFilter
+          }
+
           const response = await fetch(
             `https://analyticsdata.googleapis.com/v1beta/properties/${propertyId}:runReport`,
             {
@@ -169,24 +204,14 @@ export async function POST(request: NextRequest) {
                 'Authorization': `Bearer ${accessToken}`,
                 'Content-Type': 'application/json',
               },
-              body: JSON.stringify({
-                dateRanges: [{
-                  startDate: formatDateForGA(start),
-                  endDate: formatDateForGA(end),
-                }],
-                dimensions: [{ name: 'pagePath' }],
-                metrics: [
-                  { name: 'screenPageViews' },
-                  { name: 'activeUsers' },
-                  { name: 'sessions' },
-                  { name: 'eventCount' },
-                ],
-                limit: filters?.pageUrl ? 100 : 500,
-              }),
+              body: JSON.stringify(requestBody),
             }
           )
           if (response.ok) {
             results.analytics_pages = await response.json()
+          } else {
+            const error = await response.text()
+            console.error('Analytics pages fetch error:', error)
           }
         }
 

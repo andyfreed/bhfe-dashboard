@@ -41,21 +41,29 @@ ${dateRangeInfo}
 IMPORTANT: You have the ability to fetch specific data on-demand. Instead of receiving all data upfront, you can request only what you need.
 
 HOW TO FETCH SPECIFIC DATA:
-You have access to a fetch endpoint. When you need data not in the current metrics, make an internal API call.
-
-IMPORTANT: You cannot make HTTP requests directly. Instead, you must analyze the question and respond with a special JSON format to request data:
-
-If you need to fetch data, respond ONLY with this exact JSON format (no other text):
+When you need data not in the current metrics, respond with this exact JSON format (no other text):
 {
   "action": "fetch_data",
   "dataTypes": ["keywords", "pages", "sources", "events", "analytics_pages", etc.],
   "dateRange": { "startDate": "2025-06-01", "endDate": "2025-06-30" },
-  "filters": { "pageUrl": "/path" } // optional
+  "filters": { "pageUrl": "/path" } // optional - use the PATH part only, not full URL
 }
 
+CRITICAL NOTES:
+1. For page URL questions: Extract the PATH from the full URL. 
+   - "https://www.bhfe.com/courses/cfp-courses/" → filter: { "pageUrl": "/courses/cfp-courses/" }
+   - "https://www.bhfe.com/course/advisors-guide-to-investment-planning-4/" → filter: { "pageUrl": "/course/advisors-guide-to-investment-planning-4/" }
+2. For total site visits, use "analytics_pages" dataType without pageUrl filter to get all pages
+3. Always parse dates correctly:
+   - "August 2025" = "2025-08-01" to "2025-08-31"
+   - "November 2025" = "2025-11-01" to "2025-11-30"
+4. For page visits: use "analytics_pages" dataType
+5. For site-wide visits: use "analytics_pages" without filter, then sum all page views
+
 Examples:
-- Question: "top keyword for June 2025" → Request: {"action":"fetch_data","dataTypes":["keywords"],"dateRange":{"startDate":"2025-06-01","endDate":"2025-06-30"}}
-- Question: "how many people visited /cfp-courses/ in August" → Request: {"action":"fetch_data","dataTypes":["analytics_pages"],"dateRange":{"startDate":"2025-08-01","endDate":"2025-08-31"},"filters":{"pageUrl":"/cfp-courses/"}}
+- "top keyword for June 2025" → {"action":"fetch_data","dataTypes":["keywords"],"dateRange":{"startDate":"2025-06-01","endDate":"2025-06-30"}}
+- "how many people visited https://www.bhfe.com/courses/cfp-courses/ in August" → {"action":"fetch_data","dataTypes":["analytics_pages"],"dateRange":{"startDate":"2025-08-01","endDate":"2025-08-31"},"filters":{"pageUrl":"/courses/cfp-courses/"}}
+- "how many people visited the site in November" → {"action":"fetch_data","dataTypes":["analytics_pages"],"dateRange":{"startDate":"2025-11-01","endDate":"2025-11-30"}}
 
 CONFIGURATION:
 - propertyId: ${config?.propertyId || 'not configured'}
