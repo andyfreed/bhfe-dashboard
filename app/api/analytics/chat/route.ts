@@ -42,7 +42,9 @@ CURRENT METRICS DATA (for selected date range):
 ${JSON.stringify(metrics, null, 2)}
 
 COMPREHENSIVE DATA (ALL AVAILABLE HISTORICAL DATA - use this for answering questions about any time period):
-${comprehensiveData ? JSON.stringify(comprehensiveData, null, 2) : 'Not available'}
+${comprehensiveData ? JSON.stringify(comprehensiveData, null, 1) : 'Not available'}
+
+NOTE: The comprehensive data includes aggregated historical data. For specific page URLs, dates, or keywords, search through the data arrays (keywords, pages, etc.) to find matching entries. The data structure matches the Search Console and Analytics API formats - look for arrays of objects with keys like "query", "page", "country", etc.
 
 Your role:
 - Answer questions about the analytics data provided, including specific keywords from Search Console
@@ -108,7 +110,7 @@ Format your responses clearly with bullet points or numbered lists when appropri
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini', // Using gpt-4o-mini for cost efficiency
+        model: 'gpt-4o', // Using gpt-4o for larger context window (128k tokens)
         messages: openAIMessages,
         temperature: 0.7,
         max_tokens: 1000,

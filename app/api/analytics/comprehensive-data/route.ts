@@ -61,36 +61,36 @@ export async function POST(request: NextRequest) {
           return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
         }
 
-        // Fetch ALL keywords (increase limit to get more)
+        // Fetch top keywords (reduced to stay within token limits)
         const allKeywordsResponse = await searchConsole.searchanalytics.query({
           siteUrl,
           requestBody: {
             startDate: formatDateForSC(maxStartDate),
             endDate: formatDateForSC(now),
             dimensions: ['query'],
-            rowLimit: 1000, // Get up to 1000 keywords
+            rowLimit: 500, // Top 500 keywords
           },
         })
 
-        // Fetch ALL pages
+        // Fetch top pages
         const allPagesResponse = await searchConsole.searchanalytics.query({
           siteUrl,
           requestBody: {
             startDate: formatDateForSC(maxStartDate),
             endDate: formatDateForSC(now),
             dimensions: ['page'],
-            rowLimit: 1000,
+            rowLimit: 500, // Top 500 pages
           },
         })
 
-        // Fetch ALL countries
+        // Fetch top countries
         const allCountriesResponse = await searchConsole.searchanalytics.query({
           siteUrl,
           requestBody: {
             startDate: formatDateForSC(maxStartDate),
             endDate: formatDateForSC(now),
             dimensions: ['country'],
-            rowLimit: 200,
+            rowLimit: 100, // Top 100 countries
           },
         })
 
@@ -184,7 +184,7 @@ export async function POST(request: NextRequest) {
                 { name: 'sessions' },
                 { name: 'eventCount' },
               ],
-              limit: 1000,
+              limit: 500,
             }),
           }
         )
@@ -235,7 +235,7 @@ export async function POST(request: NextRequest) {
                 { name: 'sessions' },
                 { name: 'screenPageViews' },
               ],
-              limit: 200,
+              limit: 100,
             }),
           }
         )
