@@ -151,7 +151,7 @@ Format your responses clearly with bullet points or numbered lists when appropri
         model: 'gpt-4o-2024-08-06', // Using latest gpt-4o model
         messages: openAIMessages,
         temperature: 0.7,
-        max_tokens: 1000,
+        max_tokens: 2000,
       }),
     })
 
@@ -165,7 +165,65 @@ Format your responses clearly with bullet points or numbered lists when appropri
     }
 
     const data = await response.json()
-    const aiMessage = data.choices[0]?.message?.content || 'Sorry, I could not generate a response.'
+    let aiMessage = data.choices[0]?.message?.content || 'Sorry, I could not generate a response.'
+
+    // Check if AI wants to fetch specific data (looks for JSON with action: "fetch_data")
+    const fetchMatch = aiMessage.match(/\{[\s\S]*"action"[\s\S]*"fetch_data"[\s\S]*\}/)
+    if (fetchMatch) {
+      try {
+        const fetchRequest = JSON.parse(fetchMatch[0])
+        if (fetchRequest.action === 'fetch_data') {
+          // Fetch the specific data
+          const fetchUrl = new URL(request.url)
+          const fetchResponse = await fetch(`${fetchUrl.protocol}//${fetchUrl.host}/api/analytics/fetch-specific-data`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              propertyId: config?.propertyId,
+              customerId: config?.customerId,
+              siteUrl: config?.siteUrl,
+              dataTypes: fetchRequest.dataTypes,
+              dateRange: fetchRequest.dateRange,
+              filters: fetchRequest.filters,
+            }),
+          })
+
+          const fetchedData = await fetchResponse.ok ? await fetchResponse.json() : null
+
+          // Ask AI again with the fetched data
+          const followUpMessages = [
+            ...openAIMessages.slice(0, -1), // Remove last user message
+            { role: 'user', content: messages[messages.length - 1].content },
+            { role: 'assistant', content: `Fetching data: ${JSON.stringify(fetchRequest)}` },
+            { role: 'user', content: `Here is the fetched data: ${JSON.stringify(fetchedData, null, 1)}. Now answer the original question using this data.` },
+          ]
+
+          const followUpResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${apiKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: 'gpt-4o-2024-08-06',
+              messages: followUpMessages,
+              temperature: 0.7,
+              max_tokens: 2000,
+            }),
+          })
+
+          if (followUpResponse.ok) {
+            const followUpData = await followUpResponse.json()
+            aiMessage = followUpData.choices[0]?.message?.content || aiMessage
+          }
+        }
+      } catch (e) {
+        // Not a valid fetch request, use original message
+        console.error('Error parsing fetch request:', e)
+      }
+    }
 
     return NextResponse.json(
       { message: aiMessage },
