@@ -22,6 +22,7 @@ import {
   Settings,
   User,
   SlidersHorizontal,
+  BarChart3,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
@@ -33,12 +34,11 @@ const navigation = [
   { name: 'Calendar', href: '/dashboard/calendar', icon: Calendar },
   { name: 'Reminders', href: '/dashboard/reminders', icon: Bell },
   { name: 'Projects', href: '/dashboard/projects', icon: FolderKanban },
-  { name: 'Contacts', href: '/dashboard/contacts', icon: Users },
   { name: 'Notes', href: '/dashboard/notes', icon: FileText },
   { name: 'Active Courses', href: '/dashboard/courses', icon: BookOpen },
+  { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
   { name: 'Regulatory', href: '/dashboard/regulatory/cpa', icon: MapPin, hasSubmenu: true },
-  { name: 'Operations', href: '/dashboard/operations', icon: Settings },
-  { name: 'Links', href: '/dashboard/links', icon: ExternalLink },
+  { name: 'Operations', href: '/dashboard/operations', icon: Settings, hasSubmenu: true },
   { name: 'Profile', href: '/dashboard/profile', icon: User },
   { name: 'Settings', href: '/dashboard/settings', icon: SlidersHorizontal },
 ]
@@ -53,12 +53,19 @@ const regulatorySubmenu = [
   { name: 'CDFA', href: '/dashboard/regulatory/cdfa' },
 ]
 
+const operationsSubmenu = [
+  { name: 'Operations', href: '/dashboard/operations' },
+  { name: 'Contacts', href: '/dashboard/contacts' },
+  { name: 'Links', href: '/dashboard/links' },
+]
+
 export function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const [unreadMessageCount, setUnreadMessageCount] = useState(0)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isRegulatoryExpanded, setIsRegulatoryExpanded] = useState(false)
+  const [isOperationsExpanded, setIsOperationsExpanded] = useState(false)
   const [coursesNotInSitemapCount, setCoursesNotInSitemapCount] = useState<number | null>(null)
   const supabase = createClient()
 
@@ -67,6 +74,14 @@ export function Sidebar() {
     const unsubscribe = subscribeToMessages()
     // Close mobile menu when navigating
     setIsMobileMenuOpen(false)
+    
+    // Auto-expand submenus based on current path
+    if (pathname.startsWith('/dashboard/regulatory')) {
+      setIsRegulatoryExpanded(true)
+    }
+    if (pathname.startsWith('/dashboard/operations') || pathname === '/dashboard/contacts' || pathname === '/dashboard/links') {
+      setIsOperationsExpanded(true)
+    }
     
     // Load courses not in sitemap count from localStorage
     const count = localStorage.getItem('bhfe_courses_not_in_sitemap_count')
@@ -169,10 +184,13 @@ export function Sidebar() {
         {/* Navigation */}
         <nav className="flex-1 space-y-2 px-3 py-6 overflow-y-auto bg-gradient-to-b from-slate-50 to-white">
           {navigation.map((item) => {
-            const isActive = pathname === item.href || (item.href === '/dashboard/regulatory/cpa' && pathname.startsWith('/dashboard/regulatory'))
+            const isActive = pathname === item.href || 
+              (item.href === '/dashboard/regulatory/cpa' && pathname.startsWith('/dashboard/regulatory')) ||
+              (item.href === '/dashboard/operations' && (pathname.startsWith('/dashboard/operations') || pathname === '/dashboard/contacts' || pathname === '/dashboard/links'))
             const isChat = item.name === 'Chat'
             const showGlow = isChat && unreadMessageCount > 0 && !isActive
             const isRegulatory = item.name === 'Regulatory'
+            const isOperations = item.name === 'Operations'
             
             if (isRegulatory && item.hasSubmenu) {
               return (
@@ -206,6 +224,61 @@ export function Sidebar() {
                   {isRegulatoryExpanded && (
                     <div className="ml-4 mt-2 space-y-1">
                       {regulatorySubmenu.map((subItem) => {
+                        const subIsActive = pathname === subItem.href
+                        return (
+                          <Link
+                            key={subItem.name}
+                            href={subItem.href}
+                            onClick={() => setIsMobileMenuOpen(false)}
+                            className={cn(
+                              'group flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-medium transition-all duration-200',
+                              subIsActive
+                                ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                            )}
+                          >
+                            <span>{subItem.name}</span>
+                          </Link>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )
+            }
+            
+            if (isOperations && item.hasSubmenu) {
+              return (
+                <div key={item.name}>
+                  <button
+                    onClick={() => {
+                      setIsOperationsExpanded(!isOperationsExpanded)
+                      if (!isOperationsExpanded && !pathname.startsWith('/dashboard/operations') && pathname !== '/dashboard/contacts' && pathname !== '/dashboard/links') {
+                        router.push('/dashboard/operations')
+                      }
+                    }}
+                    className={cn(
+                      'group w-full flex items-center gap-3 rounded-xl px-4 py-3.5 text-sm font-bold transition-all duration-200 shadow-sm relative',
+                      isActive
+                        ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/40 scale-[1.02]'
+                        : 'text-slate-700 bg-white border-2 border-slate-200 hover:bg-slate-100 hover:text-slate-900 hover:scale-[1.01] hover:shadow-md'
+                    )}
+                  >
+                    <item.icon className={cn(
+                      "h-5 w-5 transition-transform duration-200",
+                      isActive ? "text-white drop-shadow-md" : "text-slate-500 group-hover:text-slate-700",
+                      !isActive && "group-hover:scale-110"
+                    )} />
+                    <span className="flex-1 text-left">{item.name}</span>
+                    {isOperationsExpanded ? (
+                      <ChevronDown className="h-4 w-4" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4" />
+                    )}
+                  </button>
+                  {isOperationsExpanded && (
+                    <div className="ml-4 mt-2 space-y-1">
+                      {operationsSubmenu.map((subItem) => {
                         const subIsActive = pathname === subItem.href
                         return (
                           <Link
