@@ -88,10 +88,6 @@ export async function fetchSearchConsoleData(
       rowLimit: 100, // Get top 100 keywords
       orderBys: [
         {
-          dimension: 'query',
-          sortOrder: 'DESCENDING',
-        },
-        {
           metric: {
             metric: 'CLICKS',
           },
@@ -110,10 +106,6 @@ export async function fetchSearchConsoleData(
       dimensions: ['query'],
       rowLimit: 100, // Get top 100 keywords
       orderBys: [
-        {
-          dimension: 'query',
-          sortOrder: 'DESCENDING',
-        },
         {
           metric: {
             metric: 'CLICKS',
