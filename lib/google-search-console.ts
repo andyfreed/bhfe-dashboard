@@ -20,6 +20,30 @@ export interface SearchConsoleKeyword {
   position: number
 }
 
+export interface SearchConsolePage {
+  page: string
+  clicks: number
+  impressions: number
+  ctr: number
+  position: number
+}
+
+export interface SearchConsoleCountry {
+  country: string
+  clicks: number
+  impressions: number
+  ctr: number
+  position: number
+}
+
+export interface SearchConsoleDevice {
+  device: string
+  clicks: number
+  impressions: number
+  ctr: number
+  position: number
+}
+
 /**
  * Fetch Search Console data
  */
@@ -40,6 +64,18 @@ export async function fetchSearchConsoleData(
   keywords: {
     current: SearchConsoleKeyword[]
     previous: SearchConsoleKeyword[]
+  }
+  pages: {
+    current: SearchConsolePage[]
+    previous: SearchConsolePage[]
+  }
+  countries: {
+    current: SearchConsoleCountry[]
+    previous: SearchConsoleCountry[]
+  }
+  devices: {
+    current: SearchConsoleDevice[]
+    previous: SearchConsoleDevice[]
   }
 }> {
   const auth = new google.auth.OAuth2()
@@ -119,6 +155,85 @@ export async function fetchSearchConsoleData(
   const currentKeywords = processKeywordData(currentKeywordsResponse.data.rows || [])
   const previousKeywords = processKeywordData(previousKeywordsResponse.data.rows || [])
 
+  // Fetch top pages for current period
+  const currentPagesResponse = await searchConsole.searchanalytics.query({
+    siteUrl,
+    requestBody: {
+      startDate: formatDateForSC(currentStart),
+      endDate: formatDateForSC(currentEnd),
+      dimensions: ['page'],
+      rowLimit: 100,
+      orderBys: [{ metric: { metric: 'CLICKS' }, sortOrder: 'DESCENDING' }],
+    },
+  })
+
+  // Fetch top pages for previous period
+  const previousPagesResponse = await searchConsole.searchanalytics.query({
+    siteUrl,
+    requestBody: {
+      startDate: formatDateForSC(prevStart),
+      endDate: formatDateForSC(prevEnd),
+      dimensions: ['page'],
+      rowLimit: 100,
+      orderBys: [{ metric: { metric: 'CLICKS' }, sortOrder: 'DESCENDING' }],
+    },
+  })
+
+  // Fetch countries for current period
+  const currentCountriesResponse = await searchConsole.searchanalytics.query({
+    siteUrl,
+    requestBody: {
+      startDate: formatDateForSC(currentStart),
+      endDate: formatDateForSC(currentEnd),
+      dimensions: ['country'],
+      rowLimit: 50,
+      orderBys: [{ metric: { metric: 'CLICKS' }, sortOrder: 'DESCENDING' }],
+    },
+  })
+
+  // Fetch countries for previous period
+  const previousCountriesResponse = await searchConsole.searchanalytics.query({
+    siteUrl,
+    requestBody: {
+      startDate: formatDateForSC(prevStart),
+      endDate: formatDateForSC(prevEnd),
+      dimensions: ['country'],
+      rowLimit: 50,
+      orderBys: [{ metric: { metric: 'CLICKS' }, sortOrder: 'DESCENDING' }],
+    },
+  })
+
+  // Fetch devices for current period
+  const currentDevicesResponse = await searchConsole.searchanalytics.query({
+    siteUrl,
+    requestBody: {
+      startDate: formatDateForSC(currentStart),
+      endDate: formatDateForSC(currentEnd),
+      dimensions: ['device'],
+      rowLimit: 10,
+      orderBys: [{ metric: { metric: 'CLICKS' }, sortOrder: 'DESCENDING' }],
+    },
+  })
+
+  // Fetch devices for previous period
+  const previousDevicesResponse = await searchConsole.searchanalytics.query({
+    siteUrl,
+    requestBody: {
+      startDate: formatDateForSC(prevStart),
+      endDate: formatDateForSC(prevEnd),
+      dimensions: ['device'],
+      rowLimit: 10,
+      orderBys: [{ metric: { metric: 'CLICKS' }, sortOrder: 'DESCENDING' }],
+    },
+  })
+
+  const currentPages = processPageData(currentPagesResponse.data.rows || [])
+  const previousPages = processPageData(previousPagesResponse.data.rows || [])
+  const currentCountries = processCountryData(currentCountriesResponse.data.rows || [])
+  const previousCountries = processCountryData(previousCountriesResponse.data.rows || [])
+  const currentDevices = processDeviceData(currentDevicesResponse.data.rows || [])
+  const previousDevices = processDeviceData(previousDevicesResponse.data.rows || [])
+
   return {
     current,
     previous,
@@ -131,6 +246,18 @@ export async function fetchSearchConsoleData(
     keywords: {
       current: currentKeywords,
       previous: previousKeywords,
+    },
+    pages: {
+      current: currentPages,
+      previous: previousPages,
+    },
+    countries: {
+      current: currentCountries,
+      previous: previousCountries,
+    },
+    devices: {
+      current: currentDevices,
+      previous: previousDevices,
     },
   }
 }
@@ -167,7 +294,37 @@ function processKeywordData(rows: any[]): SearchConsoleKeyword[] {
     impressions: row.impressions || 0,
     ctr: row.impressions > 0 ? (row.clicks / row.impressions) * 100 : 0,
     position: row.position || 0,
-  })).sort((a, b) => b.clicks - a.clicks) // Sort by clicks descending
+  })).sort((a, b) => b.clicks - a.clicks)
+}
+
+function processPageData(rows: any[]): SearchConsolePage[] {
+  return rows.map((row: any) => ({
+    page: row.keys?.[0] || '',
+    clicks: row.clicks || 0,
+    impressions: row.impressions || 0,
+    ctr: row.impressions > 0 ? (row.clicks / row.impressions) * 100 : 0,
+    position: row.position || 0,
+  })).sort((a, b) => b.clicks - a.clicks)
+}
+
+function processCountryData(rows: any[]): SearchConsoleCountry[] {
+  return rows.map((row: any) => ({
+    country: row.keys?.[0] || '',
+    clicks: row.clicks || 0,
+    impressions: row.impressions || 0,
+    ctr: row.impressions > 0 ? (row.clicks / row.impressions) * 100 : 0,
+    position: row.position || 0,
+  })).sort((a, b) => b.clicks - a.clicks)
+}
+
+function processDeviceData(rows: any[]): SearchConsoleDevice[] {
+  return rows.map((row: any) => ({
+    device: row.keys?.[0] || '',
+    clicks: row.clicks || 0,
+    impressions: row.impressions || 0,
+    ctr: row.impressions > 0 ? (row.clicks / row.impressions) * 100 : 0,
+    position: row.position || 0,
+  })).sort((a, b) => b.clicks - a.clicks)
 }
 
 

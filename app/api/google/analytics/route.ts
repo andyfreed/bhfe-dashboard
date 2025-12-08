@@ -85,7 +85,6 @@ export async function GET(request: NextRequest) {
             { name: 'totalUsers' },
             { name: 'sessions' },
           ],
-          // Group by event name to get conversion breakdown
           orderBys: [
             {
               metric: {
