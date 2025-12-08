@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Settings, Palette, Check } from 'lucide-react'
+import { Settings, Palette, Check, Globe, Key } from 'lucide-react'
 
 // Predefined color palette
 const COLOR_OPTIONS = [
@@ -37,6 +37,8 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [unassignedColor, setUnassignedColor] = useState('#9ca3af')
+  const [wordpressUrl, setWordpressUrl] = useState('')
+  const [wordpressApiKey, setWordpressApiKey] = useState('')
   const [saveSuccess, setSaveSuccess] = useState(false)
   const supabase = createClient()
 
@@ -45,19 +47,38 @@ export default function SettingsPage() {
   }, [])
 
   const loadSettings = async () => {
+    let urlFromDb = ''
+    let keyFromDb = ''
+    
     const { data, error } = await supabase
       .from('app_settings')
       .select('*')
-      .eq('key', 'unassigned_todo_color')
-      .single()
+      .in('key', ['unassigned_todo_color', 'wordpress_url', 'wordpress_api_key'])
 
     if (error) {
       console.error('Error loading settings:', error)
-      // If setting doesn't exist, use default
-      setUnassignedColor('#9ca3af')
     } else if (data) {
-      setUnassignedColor(data.value || '#9ca3af')
+      data.forEach((setting) => {
+        if (setting.key === 'unassigned_todo_color') {
+          setUnassignedColor(setting.value || '#9ca3af')
+        } else if (setting.key === 'wordpress_url') {
+          urlFromDb = setting.value || ''
+          setWordpressUrl(urlFromDb)
+        } else if (setting.key === 'wordpress_api_key') {
+          keyFromDb = setting.value || ''
+          setWordpressApiKey(keyFromDb)
+        }
+      })
     }
+    
+    // Fallback to localStorage if not in database (for backwards compatibility)
+    if (!urlFromDb) {
+      const localUrl = localStorage.getItem('bhfe_wordpress_url')
+      const localKey = localStorage.getItem('bhfe_api_key')
+      if (localUrl) setWordpressUrl(localUrl)
+      if (localKey) setWordpressApiKey(localKey)
+    }
+    
     setLoading(false)
   }
 
@@ -65,21 +86,44 @@ export default function SettingsPage() {
     setSaving(true)
     setSaveSuccess(false)
 
-    // Update or insert the setting
-    const { error: upsertError } = await supabase
-      .from('app_settings')
-      .upsert({
+    // Update or insert all settings
+    const settingsToSave = [
+      {
         key: 'unassigned_todo_color',
         value: unassignedColor,
         description: 'Color for unassigned todos',
         updated_at: new Date().toISOString(),
-      }, {
+      },
+      {
+        key: 'wordpress_url',
+        value: wordpressUrl.trim(),
+        description: 'WordPress site URL for course sync and order monitoring',
+        updated_at: new Date().toISOString(),
+      },
+      {
+        key: 'wordpress_api_key',
+        value: wordpressApiKey.trim(),
+        description: 'API key for WordPress REST API authentication',
+        updated_at: new Date().toISOString(),
+      },
+    ]
+
+    const { error: upsertError } = await supabase
+      .from('app_settings')
+      .upsert(settingsToSave, {
         onConflict: 'key'
       })
 
     if (upsertError) {
       console.error('Error saving settings:', upsertError)
     } else {
+      // Also sync to localStorage for backwards compatibility
+      if (wordpressUrl.trim()) {
+        localStorage.setItem('bhfe_wordpress_url', wordpressUrl.trim())
+      }
+      if (wordpressApiKey.trim()) {
+        localStorage.setItem('bhfe_api_key', wordpressApiKey.trim())
+      }
       setSaveSuccess(true)
       setTimeout(() => setSaveSuccess(false), 3000)
     }
@@ -195,7 +239,67 @@ export default function SettingsPage() {
           </div>
         </CardContent>
       </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Globe className="h-5 w-5" />
+            WordPress Integration
+          </CardTitle>
+          <CardDescription>
+            Configure WordPress URL and API key for course syncing and order monitoring. These settings apply to all users.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              WordPress Site URL
+            </label>
+            <input
+              type="url"
+              value={wordpressUrl}
+              onChange={(e) => setWordpressUrl(e.target.value)}
+              placeholder="https://yoursite.com"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              The base URL of your WordPress site (e.g., https://www.bhfe.com)
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              API Key
+            </label>
+            <input
+              type="password"
+              value={wordpressApiKey}
+              onChange={(e) => setWordpressApiKey(e.target.value)}
+              placeholder="Leave empty if not configured"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              API key configured in WordPress Settings &gt; BHFE Course Sync
+            </p>
+          </div>
+
+          <div className="flex items-center justify-end gap-3 pt-4 border-t">
+            {saveSuccess && (
+              <div className="flex items-center gap-2 text-green-600">
+                <Check className="h-4 w-4" />
+                <span className="text-sm font-medium">Settings saved!</span>
+              </div>
+            )}
+            <Button
+              onClick={handleSave}
+              disabled={saving}
+              className="min-w-[100px]"
+            >
+              {saving ? 'Saving...' : 'Save All Settings'}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }
-

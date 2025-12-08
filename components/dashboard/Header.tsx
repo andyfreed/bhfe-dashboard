@@ -105,39 +105,81 @@ export function Header() {
 
   useEffect(() => {
     const checkProcessingOrders = async () => {
-      // Get WordPress URL and API key from localStorage (same as courses page)
-      const wordpressUrl = localStorage.getItem('bhfe_wordpress_url')
-      const apiKey = localStorage.getItem('bhfe_api_key')
-
-      if (!wordpressUrl) {
-        return // No WordPress URL configured, skip checking
-      }
+      // Get WordPress URL and API key from database (app_settings)
+      // Fallback to localStorage for backwards compatibility
+      let wordpressUrl: string | null = null
+      let apiKey: string | null = null
 
       try {
-        const params = new URLSearchParams({
-          wordpress_url: wordpressUrl,
-          endpoint: 'processing-orders',
-        })
-        if (apiKey) {
-          params.append('api_key', apiKey)
+        // Try to get from database first
+        const { data: settingsData } = await supabase
+          .from('app_settings')
+          .select('key, value')
+          .in('key', ['wordpress_url', 'wordpress_api_key'])
+
+        if (settingsData && settingsData.length > 0) {
+          settingsData.forEach((setting) => {
+            if (setting.key === 'wordpress_url') {
+              wordpressUrl = setting.value
+            } else if (setting.key === 'wordpress_api_key') {
+              apiKey = setting.value
+            }
+          })
         }
 
-        const response = await fetch(`/api/sync/courses?${params.toString()}`)
-        
-        if (!response.ok) {
-          // Silently fail - don't show errors for order checking
-          return
+        // Fallback to localStorage if not in database
+        if (!wordpressUrl) {
+          wordpressUrl = localStorage.getItem('bhfe_wordpress_url')
+          apiKey = localStorage.getItem('bhfe_api_key')
         }
 
-        const data = await response.json()
-        if (data.success && data.orders) {
-          setProcessingOrders(data.orders)
-        } else {
+        if (!wordpressUrl) {
+          console.log('[Orders] No WordPress URL configured. Configure it in Settings or Courses page.')
+          return // No WordPress URL configured, skip checking
+        }
+
+        try {
+          const params = new URLSearchParams({
+            wordpress_url: wordpressUrl,
+            endpoint: 'processing-orders',
+          })
+          if (apiKey) {
+            params.append('api_key', apiKey)
+          }
+
+          const response = await fetch(`/api/sync/courses?${params.toString()}`)
+          
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ error: response.statusText }))
+            console.error('[Orders] Failed to fetch processing orders:', response.status, errorData)
+            // Don't show error to user, but log it for debugging
+            setProcessingOrders([])
+            return
+          }
+
+          const data = await response.json()
+          if (data.success && data.orders) {
+            console.log('[Orders] Found', data.orders.length, 'processing orders')
+            setProcessingOrders(data.orders)
+          } else {
+            console.log('[Orders] No processing orders found or invalid response:', data)
+            setProcessingOrders([])
+          }
+        } catch (error) {
+          console.error('[Orders] Error checking processing orders:', error)
           setProcessingOrders([])
         }
-      } catch (error) {
-        // Silently fail - don't show errors for order checking
-        setProcessingOrders([])
+      } catch (dbError) {
+        console.error('[Orders] Error fetching settings from database:', dbError)
+        // Try localStorage as fallback
+        const localUrl = localStorage.getItem('bhfe_wordpress_url')
+        const localKey = localStorage.getItem('bhfe_api_key')
+        if (localUrl) {
+          wordpressUrl = localUrl
+          apiKey = localKey
+        } else {
+          return
+        }
       }
     }
 
@@ -150,7 +192,7 @@ export function Header() {
     return () => {
       clearInterval(orderInterval)
     }
-  }, [])
+  }, [supabase])
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
