@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -8,21 +8,17 @@ import {
   Activity,
   AlertCircle,
   BarChart3, 
-  Bot,
   CheckCircle,
   DollarSign,
   Eye,
   Link as LinkIcon,
-  MessageSquare,
   MousePointerClick,
   RefreshCw,
-  Send,
   Settings,
   ShoppingCart,
   TrendingDown,
   TrendingUp,
   Users,
-  X,
 } from 'lucide-react'
 import { formatPercentChange, calculatePercentChange } from '@/lib/utils/metrics'
 
@@ -86,11 +82,6 @@ export default function AnalyticsPage() {
     siteUrl: 'https://www.bhfe.com',
   })
   const [showConfig, setShowConfig] = useState(false)
-  const [showChat, setShowChat] = useState(false)
-  const [chatMessages, setChatMessages] = useState<Array<{ role: 'user' | 'assistant'; content: string }>>([])
-  const [chatInput, setChatInput] = useState('')
-  const [chatLoading, setChatLoading] = useState(false)
-  const chatEndRef = useRef<HTMLDivElement>(null)
   const supabase = createClient()
 
   useEffect(() => {
@@ -343,63 +334,6 @@ export default function AnalyticsPage() {
     }
   }
 
-  const handleChatSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!chatInput.trim() || chatLoading) return
-
-    const userMessage = chatInput.trim()
-    setChatInput('')
-    
-    // Add user message to chat
-    const newUserMessage = { role: 'user' as const, content: userMessage }
-    setChatMessages(prev => [...prev, newUserMessage])
-    setChatLoading(true)
-
-    try {
-      const response = await fetch('/api/analytics/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          messages: [...chatMessages, newUserMessage],
-          metrics,
-          config: {
-            propertyId: config.propertyId,
-            customerId: config.customerId,
-            siteUrl: config.siteUrl,
-          },
-          dateRange: {
-            startDate: dateRange.startDate,
-            endDate: dateRange.endDate,
-          },
-        }),
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to get AI response')
-      }
-
-      const data = await response.json()
-      const aiMessage = { role: 'assistant' as const, content: data.message }
-      setChatMessages(prev => [...prev, aiMessage])
-    } catch (err) {
-      const errorMessage = {
-        role: 'assistant' as const,
-        content: `Error: ${err instanceof Error ? err.message : 'Failed to get response. Please make sure OpenAI API key is configured.'}`,
-      }
-      setChatMessages(prev => [...prev, errorMessage])
-    } finally {
-      setChatLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    if (chatEndRef.current) {
-      chatEndRef.current.scrollIntoView({ behavior: 'smooth' })
-    }
-  }, [chatMessages])
 
   if (loading) {
     return (
@@ -417,16 +351,6 @@ export default function AnalyticsPage() {
           <p className="text-gray-600 mt-1">Performance metrics and comparisons</p>
         </div>
         <div className="flex items-center gap-3">
-          {isConnected && (
-            <Button
-              variant="outline"
-              onClick={() => setShowChat(!showChat)}
-              className="flex items-center gap-2"
-            >
-              <Bot className="h-4 w-4" />
-              {showChat ? 'Hide' : 'Ask'} AI Assistant
-            </Button>
-          )}
           {!isConnected && (
             <Button onClick={handleConnect}>
               <LinkIcon className="h-4 w-4 mr-2" />
