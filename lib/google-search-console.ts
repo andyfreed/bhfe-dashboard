@@ -12,6 +12,14 @@ export interface SearchConsoleMetrics {
   position: number
 }
 
+export interface SearchConsoleKeyword {
+  query: string
+  clicks: number
+  impressions: number
+  ctr: number
+  position: number
+}
+
 /**
  * Fetch Search Console data
  */
@@ -28,6 +36,10 @@ export async function fetchSearchConsoleData(
     impressions: number
     ctr: number
     position: number
+  }
+  keywords: {
+    current: SearchConsoleKeyword[]
+    previous: SearchConsoleKeyword[]
   }
 }> {
   const auth = new google.auth.OAuth2()
@@ -66,6 +78,55 @@ export async function fetchSearchConsoleData(
   const current = aggregateSearchConsoleMetrics(currentResponse.data.rows || [])
   const previous = aggregateSearchConsoleMetrics(previousResponse.data.rows || [])
 
+  // Fetch keyword/query data for current period
+  const currentKeywordsResponse = await searchConsole.searchanalytics.query({
+    siteUrl,
+    requestBody: {
+      startDate: formatDateForSC(currentStart),
+      endDate: formatDateForSC(currentEnd),
+      dimensions: ['query'],
+      rowLimit: 100, // Get top 100 keywords
+      orderBys: [
+        {
+          dimension: 'query',
+          sortOrder: 'DESCENDING',
+        },
+        {
+          metric: {
+            metric: 'CLICKS',
+          },
+          sortOrder: 'DESCENDING',
+        },
+      ],
+    },
+  })
+
+  // Fetch keyword/query data for previous period
+  const previousKeywordsResponse = await searchConsole.searchanalytics.query({
+    siteUrl,
+    requestBody: {
+      startDate: formatDateForSC(prevStart),
+      endDate: formatDateForSC(prevEnd),
+      dimensions: ['query'],
+      rowLimit: 100, // Get top 100 keywords
+      orderBys: [
+        {
+          dimension: 'query',
+          sortOrder: 'DESCENDING',
+        },
+        {
+          metric: {
+            metric: 'CLICKS',
+          },
+          sortOrder: 'DESCENDING',
+        },
+      ],
+    },
+  })
+
+  const currentKeywords = processKeywordData(currentKeywordsResponse.data.rows || [])
+  const previousKeywords = processKeywordData(previousKeywordsResponse.data.rows || [])
+
   return {
     current,
     previous,
@@ -74,6 +135,10 @@ export async function fetchSearchConsoleData(
       impressions: calculatePercentChange(current.impressions, previous.impressions),
       ctr: calculatePercentChange(current.ctr, previous.ctr),
       position: calculatePercentChange(current.position, previous.position),
+    },
+    keywords: {
+      current: currentKeywords,
+      previous: previousKeywords,
     },
   }
 }
@@ -101,6 +166,16 @@ function aggregateSearchConsoleMetrics(rows: any[]): SearchConsoleMetrics {
     ctr: totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0,
     position: rowCount > 0 ? totalPosition / rowCount : 0,
   }
+}
+
+function processKeywordData(rows: any[]): SearchConsoleKeyword[] {
+  return rows.map((row: any) => ({
+    query: row.keys?.[0] || '',
+    clicks: row.clicks || 0,
+    impressions: row.impressions || 0,
+    ctr: row.impressions > 0 ? (row.clicks / row.impressions) * 100 : 0,
+    position: row.position || 0,
+  })).sort((a, b) => b.clicks - a.clicks) // Sort by clicks descending
 }
 
 
