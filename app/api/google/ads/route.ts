@@ -140,6 +140,9 @@ export async function GET(request: NextRequest) {
       }),
     })
 
+    // Use the same endpoint URL that worked for current period (or fallback)
+    const finalEndpointUrl = actualResponse.ok ? endpointUrl.replace(':searchStream', ':search') : endpointUrl.replace(':searchStream', ':search')
+    
     // Fetch previous period data
     const previousQuery = `
       SELECT
@@ -155,7 +158,7 @@ export async function GET(request: NextRequest) {
         AND segments.date <= '${formatDateForAds(prevEnd)}'
     `.trim()
     
-    const previousResponse = await fetch(endpointUrl, {
+    let previousResponse = await fetch(finalEndpointUrl.includes(':searchStream') ? finalEndpointUrl : finalEndpointUrl.replace(':search', ':searchStream'), {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${accessToken}`,
@@ -166,6 +169,22 @@ export async function GET(request: NextRequest) {
         query: previousQuery,
       }),
     })
+    
+    // If searchStream fails, try search
+    if (previousResponse.status === 404 && finalEndpointUrl.includes(':searchStream')) {
+      const fallbackPreviousUrl = finalEndpointUrl.replace(':searchStream', ':search')
+      previousResponse = await fetch(fallbackPreviousUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'developer-token': developerToken,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          query: previousQuery,
+        }),
+      })
+    }
 
     if (!currentResponse.ok) {
       const errorText = await currentResponse.text()
