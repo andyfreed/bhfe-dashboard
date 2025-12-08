@@ -242,9 +242,46 @@ export default function AnalyticsPage() {
           const analyticsResponse = await fetch(`/api/google/analytics?${analyticsParams.toString()}`)
           if (analyticsResponse.ok) {
             const analyticsData = await analyticsResponse.json()
-            // Process Analytics data to extract conversion breakdown
-            // This will be used to populate the conversion breakdown if Ads doesn't have it
-            results.analytics = analyticsData.data
+            // Process Analytics data - the API returns data in GA4 format
+            const gaData = analyticsData.data
+            
+            // Extract metrics from GA4 response
+            // The response has rows with dimensions (eventName) and metrics
+            let currentUsers = 0
+            let previousUsers = 0
+            let currentSessions = 0
+            let previousSessions = 0
+            let currentEventCount = 0
+            let previousEventCount = 0
+            let currentConversions = 0
+            let previousConversions = 0
+            
+            // Process rows for current and previous periods
+            if (gaData.rows) {
+              gaData.rows.forEach((row: any) => {
+                const dateRanges = row.metricValues || []
+                // Current period is first, previous is second
+                if (dateRanges[0]) {
+                  currentUsers += parseFloat(dateRanges[0].values?.[2] || 0) // totalUsers metric
+                  currentSessions += parseFloat(dateRanges[0].values?.[3] || 0) // sessions metric
+                  currentEventCount += parseFloat(dateRanges[0].values?.[0] || 0) // eventCount metric
+                  currentConversions += parseFloat(dateRanges[0].values?.[1] || 0) // conversions metric
+                }
+                if (dateRanges[1]) {
+                  previousUsers += parseFloat(dateRanges[1].values?.[2] || 0)
+                  previousSessions += parseFloat(dateRanges[1].values?.[3] || 0)
+                  previousEventCount += parseFloat(dateRanges[1].values?.[0] || 0)
+                  previousConversions += parseFloat(dateRanges[1].values?.[1] || 0)
+                }
+              })
+            }
+            
+            results.analytics = {
+              users: { current: currentUsers, previous: previousUsers },
+              sessions: { current: currentSessions, previous: previousSessions },
+              eventCount: { current: currentEventCount, previous: previousEventCount },
+              conversions: { current: currentConversions, previous: previousConversions },
+            }
           } else {
             const errorData = await analyticsResponse.json().catch(() => ({ error: 'Failed to fetch Analytics data' }))
             console.error('Analytics API error:', errorData)
@@ -452,8 +489,47 @@ export default function AnalyticsPage() {
             </CardContent>
           </Card>
 
-          {metrics && metrics.ads ? (
+          {metrics && (
             <div className="space-y-6">
+              {/* Google Analytics Section */}
+              {metrics.analytics && (
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-4">Google Analytics</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <MetricsCard
+                      title="Users"
+                      current={metrics.analytics.users.current}
+                      previous={metrics.analytics.users.previous}
+                      format={(v) => Math.round(v).toLocaleString()}
+                      icon={<Users className="h-5 w-5" />}
+                    />
+                    <MetricsCard
+                      title="Sessions"
+                      current={metrics.analytics.sessions.current}
+                      previous={metrics.analytics.sessions.previous}
+                      format={(v) => Math.round(v).toLocaleString()}
+                      icon={<Activity className="h-5 w-5" />}
+                    />
+                    <MetricsCard
+                      title="Events"
+                      current={metrics.analytics.eventCount.current}
+                      previous={metrics.analytics.eventCount.previous}
+                      format={(v) => Math.round(v).toLocaleString()}
+                      icon={<MousePointerClick className="h-5 w-5" />}
+                    />
+                    <MetricsCard
+                      title="Conversions"
+                      current={metrics.analytics.conversions.current}
+                      previous={metrics.analytics.conversions.previous}
+                      format={(v) => Math.round(v).toLocaleString()}
+                      icon={<CheckCircle className="h-5 w-5" />}
+                    />
+                  </div>
+                </div>
+              )}
+              
+              {/* Google Ads Section */}
+              {metrics.ads ? (
               <div>
                 <h2 className="text-2xl font-bold text-gray-900 mb-4">Google Ads Performance</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -528,17 +604,29 @@ export default function AnalyticsPage() {
                   ))}
                 </div>
               </div>
+              ) : config.customerId && (
+                <Card className="border-orange-300 bg-orange-50">
+                  <CardContent className="pt-6">
+                    <div className="flex items-center gap-2 text-orange-700">
+                      <AlertCircle className="h-5 w-5" />
+                      <div>
+                        <p className="font-semibold">No Google Ads data available.</p>
+                        <p className="text-sm mt-1">
+                          Ads API returned an error. Check your Customer ID format and developer token configuration.
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
-          ) : metrics && (
+          )}
+          
+          {!metrics && isConnected && (
             <Card>
               <CardContent className="pt-6">
                 <div className="text-center text-gray-500">
-                  <p>No Google Ads data available.</p>
-                  {config.customerId && (
-                    <p className="text-sm text-orange-600 mt-2">
-                      Ads API returned an error. Check your Customer ID format and developer token configuration.
-                    </p>
-                  )}
+                  <p>No data available. Click "Fetch Data" to load metrics.</p>
                 </div>
               </CardContent>
             </Card>
