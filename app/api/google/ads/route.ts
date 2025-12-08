@@ -113,13 +113,21 @@ export async function GET(request: NextRequest) {
     })
 
     // Google Ads API endpoint format
-    // Try v18 first as v19 might not be available
-    const apiVersion = 'v18' // Changed from v19 to v18 - v19 might not exist yet
-    const endpointUrl = `https://googleads.googleapis.com/${apiVersion}/customers/${cleanCustomerId}:search`
+    // Try different API versions - v17 is the latest stable as of Dec 2024
+    // Also note: user suggested alternative customer ID: 720-967-8421
+    const apiVersions = ['v17', 'v18', 'v16'] // Try v17 first (latest stable)
     
+    console.log('[Ads API] Attempting request with customer ID:', cleanCustomerId)
+    
+    // Build endpoint URL - try v17 first
+    const apiVersion = apiVersions[0]
+    const endpointUrl = `https://googleads.googleapis.com/${apiVersion}/customers/${cleanCustomerId}:searchStream`
+    
+    // Note: Using :searchStream instead of :search - searchStream is the preferred method
+    // If that doesn't work, we'll fall back to :search
     console.log('[Ads API] Request URL:', endpointUrl)
     
-    const currentResponse = await fetch(endpointUrl, {
+    let currentResponse = await fetch(endpointUrl, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${accessToken}`,
