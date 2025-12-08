@@ -5,19 +5,20 @@ import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { 
+  Activity,
+  AlertCircle,
   BarChart3, 
-  TrendingUp, 
-  TrendingDown, 
-  DollarSign, 
-  MousePointerClick, 
-  Eye, 
-  Users, 
-  ShoppingCart,
   CheckCircle,
+  DollarSign,
+  Eye,
   Link as LinkIcon,
+  MousePointerClick,
   RefreshCw,
   Settings,
-  AlertCircle
+  ShoppingCart,
+  TrendingDown,
+  TrendingUp,
+  Users,
 } from 'lucide-react'
 import { formatPercentChange, calculatePercentChange } from '@/lib/utils/metrics'
 
