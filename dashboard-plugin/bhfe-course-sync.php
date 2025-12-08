@@ -84,6 +84,13 @@ add_action('rest_api_init', function () {
             ),
         ),
     ));
+    
+    // Endpoint to check for processing WooCommerce orders
+    register_rest_route('bhfe/v1', '/processing-orders', array(
+        'methods' => 'GET',
+        'callback' => 'bhfe_get_processing_orders',
+        'permission_callback' => 'bhfe_verify_api_key',
+    ));
 });
 
 /**
@@ -636,6 +643,51 @@ function bhfe_inspect_courses($request) {
         'courses' => $courses_data,
         'common_meta' => $common_meta,
         'all_meta_keys_found' => $all_meta_keys,
+    ), 200);
+}
+
+/**
+ * Get WooCommerce orders in processing state
+ */
+function bhfe_get_processing_orders($request) {
+    // Check if WooCommerce is active
+    if (!class_exists('WooCommerce')) {
+        return new WP_Error(
+            'woocommerce_not_active',
+            'WooCommerce is not installed or activated.',
+            array('status' => 500)
+        );
+    }
+    
+    // Query orders with processing status
+    $args = array(
+        'status' => 'processing',
+        'limit' => -1, // Get all processing orders
+        'orderby' => 'date',
+        'order' => 'DESC',
+    );
+    
+    $orders = wc_get_orders($args);
+    
+    $orders_data = array();
+    foreach ($orders as $order) {
+        $orders_data[] = array(
+            'id' => $order->get_id(),
+            'order_number' => $order->get_order_number(),
+            'date_created' => $order->get_date_created()->date('c'),
+            'total' => $order->get_total(),
+            'currency' => $order->get_currency(),
+            'billing_name' => trim($order->get_billing_first_name() . ' ' . $order->get_billing_last_name()),
+            'billing_email' => $order->get_billing_email(),
+            'order_url' => admin_url('post.php?post=' . $order->get_id() . '&action=edit'),
+            'view_url' => $order->get_view_order_url(),
+        );
+    }
+    
+    return new WP_REST_Response(array(
+        'success' => true,
+        'count' => count($orders_data),
+        'orders' => $orders_data,
     ), 200);
 }
 

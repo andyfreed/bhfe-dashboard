@@ -1,10 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Plus, Trash2, Edit, Check, X, ChevronDown, User, Building, ChevronUp, Tag, Filter, Bell } from 'lucide-react'
+import { Plus, Trash2, Edit, Check, X, ChevronDown, ChevronUp, Tag, Filter, Bell } from 'lucide-react'
 import { format } from 'date-fns'
 import { RECURRING_PATTERNS, getRecurringPatternLabel, type RecurringPattern } from '@/lib/recurring-dates'
 
@@ -306,8 +306,6 @@ export default function TodosPage() {
 
         if (updateError) {
           console.error('Error updating reminder:', updateError)
-        } else {
-          console.log('Reminder updated successfully')
         }
       } else {
         // Create new reminder
@@ -319,8 +317,6 @@ export default function TodosPage() {
 
         if (insertError) {
           console.error('Error creating reminder:', insertError)
-        } else {
-          console.log('Reminder created successfully:', newReminder)
         }
       }
     } else if (todoId && editingTodo && !reminderDateISO) {
@@ -439,8 +435,8 @@ export default function TodosPage() {
     setShowTagSuggestions(false)
   }
 
-  // Filter todos based on filters
-  const getFilteredTodos = (todoList: Todo[]) => {
+  // Filter todos based on filters - memoized for performance
+  const getFilteredTodos = useCallback((todoList: Todo[]) => {
     return todoList.filter((todo) => {
       // Assigned to filter
       if (filters.assignedTo !== 'all') {
@@ -459,7 +455,6 @@ export default function TodosPage() {
         }
       }
 
-
       // Search filter
       if (filters.search) {
         const searchLower = filters.search.toLowerCase()
@@ -473,27 +468,34 @@ export default function TodosPage() {
 
       return true
     })
-  }
+  }, [filters.assignedTo, filters.tag, filters.search])
 
-  const activeTodos = getFilteredTodos(todos.filter((t) => !t.completed))
-  const completedTodos = getFilteredTodos(todos.filter((t) => t.completed))
+  // Memoize filtered todos to avoid unnecessary recalculations
+  const incompleteTodos = useMemo(() => todos.filter((t) => !t.completed), [todos])
+  const completedTodosList = useMemo(() => todos.filter((t) => t.completed), [todos])
+  
+  const activeTodos = useMemo(() => getFilteredTodos(incompleteTodos), [getFilteredTodos, incompleteTodos])
+  const completedTodos = useMemo(() => getFilteredTodos(completedTodosList), [getFilteredTodos, completedTodosList])
 
-  // Get all unique tags from todos
-  const allTags = Array.from(
+  // Get all unique tags from todos - memoized
+  const allTags = useMemo(() => Array.from(
     new Set(
       todos
         .flatMap((todo) => todo.tags || [])
         .filter((tag) => tag.length > 0)
     )
-  ).sort()
+  ).sort(), [todos])
 
-  // Filter tags based on input for autocomplete
-  const filteredTags = tagInput.trim()
-    ? allTags.filter(tag => 
+  // Filter tags based on input for autocomplete - memoized
+  const filteredTags = useMemo(() => {
+    if (tagInput.trim()) {
+      return allTags.filter(tag => 
         tag.toLowerCase().includes(tagInput.toLowerCase()) &&
         !formData.tags.includes(tag)
       )
-    : allTags.filter(tag => !formData.tags.includes(tag))
+    }
+    return allTags.filter(tag => !formData.tags.includes(tag))
+  }, [allTags, tagInput, formData.tags])
 
   const handleAddTag = (tag: string) => {
     const trimmedTag = tag.trim()
@@ -924,7 +926,7 @@ export default function TodosPage() {
                         style={{ backgroundColor: userColor }}
                       />
                       <span className="text-xs font-medium text-gray-600">
-                        {todo.assigned_to ? getAssignedUserName(todo.assigned_to) : userName}
+                        {todo.assigned_to ? getAssignedUserName(todo.assigned_to) : `Unassigned (Created by ${userName})`}
                       </span>
                       {currentUserId && todo.assigned_to === currentUserId && todo.user_id !== currentUserId && (
                         <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full">
@@ -1195,7 +1197,7 @@ export default function TodosPage() {
                         style={{ backgroundColor: userColor }}
                       />
                       <span className="text-xs font-medium text-gray-600">
-                        {todo.assigned_to ? getAssignedUserName(todo.assigned_to) : userName}
+                        {todo.assigned_to ? getAssignedUserName(todo.assigned_to) : `Unassigned (Created by ${userName})`}
                       </span>
                       {currentUserId && todo.assigned_to === currentUserId && todo.user_id !== currentUserId && (
                         <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full">
@@ -1240,4 +1242,3 @@ export default function TodosPage() {
     </>
   )
 }
-

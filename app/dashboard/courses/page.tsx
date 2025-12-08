@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { BookOpen, RefreshCw, ExternalLink, DollarSign, Package, CheckCircle2, XCircle, FileText, Search, Database, X, Settings, ChevronDown, ChevronUp, ArrowUpDown } from 'lucide-react'
 import { WordPressCourse } from '@/lib/wordpress-sync'
+import { MetaKeysResponse, InspectionResponse, MetaKeyData } from './types'
 
 export default function CoursesPage() {
   const [courses, setCourses] = useState<WordPressCourse[]>([])
@@ -17,12 +18,12 @@ export default function CoursesPage() {
   const [checkingSitemap, setCheckingSitemap] = useState(false)
   const [generatingSitemap, setGeneratingSitemap] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
-  const [metaKeys, setMetaKeys] = useState<any>(null)
+  const [metaKeys, setMetaKeys] = useState<MetaKeysResponse | null>(null)
   const [loadingMetaKeys, setLoadingMetaKeys] = useState(false)
   const [showMetaKeys, setShowMetaKeys] = useState(false)
   const [showConfig, setShowConfig] = useState(false)
   const [sortBy, setSortBy] = useState<'sitemap' | 'alphabetical'>('sitemap')
-  const [inspectionData, setInspectionData] = useState<any>(null)
+  const [inspectionData, setInspectionData] = useState<InspectionResponse | null>(null)
   const [inspecting, setInspecting] = useState(false)
 
   useEffect(() => {
@@ -58,9 +59,6 @@ export default function CoursesPage() {
       }
       
       const data = await response.json()
-      console.log('[Courses] API Response:', data)
-      console.log('[Courses] Courses array:', data.courses)
-      console.log('[Courses] Courses count:', data.courses?.length || 0)
       
       // Handle different response structures
       const coursesArray = data.courses || data.data?.courses || []
@@ -195,8 +193,6 @@ export default function CoursesPage() {
         }
       }
       
-      console.log('[Courses] Loaded', urls.size, 'URL variations from sitemap')
-      console.log('[Courses] Sample sitemap URLs:', Array.from(urls).slice(0, 5))
       setSitemapUrls(urls)
     } catch (err) {
       console.error('[Courses] Error checking sitemap:', err)
@@ -294,7 +290,6 @@ ${courseUrlEntries}
     for (const permalinkVar of permalinkVariations) {
       // Direct match
       if (sitemapUrls.has(permalinkVar)) {
-        console.log('[Courses] Found match:', permalinkVar)
         return true
       }
       
@@ -307,7 +302,6 @@ ${courseUrlEntries}
           if (permalinkVar === sitemapVar || 
               permalinkVar.endsWith(sitemapVar) || 
               sitemapVar.endsWith(permalinkVar)) {
-            console.log('[Courses] Found match:', permalinkVar, '===', sitemapVar)
             return true
           }
         }
@@ -391,7 +385,6 @@ ${courseUrlEntries}
       
       const data = await response.json()
       setInspectionData(data)
-      console.log('[Courses] Inspection data:', data)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to inspect courses')
       console.error('[Courses] Error inspecting courses:', err)
@@ -625,7 +618,7 @@ ${courseUrlEntries}
               <div className="mb-6">
                 <h3 className="font-semibold text-gray-900 mb-2">Common Meta Fields (shared by all):</h3>
                 <div className="space-y-2">
-                  {Object.entries(inspectionData.common_meta).map(([key, value]: [string, any]) => (
+                  {Object.entries(inspectionData.common_meta || {}).map(([key, value]: [string, unknown]) => (
                     <div key={key} className="p-3 border border-gray-200 rounded-lg bg-yellow-50">
                       <code className="text-sm font-mono font-semibold text-gray-900">{key}:</code>
                       <pre className="text-xs mt-1 text-gray-700 whitespace-pre-wrap break-words">
@@ -639,7 +632,7 @@ ${courseUrlEntries}
             
             <h3 className="font-semibold text-gray-900 mb-4">Individual Course Details:</h3>
             <div className="space-y-4 max-h-[600px] overflow-y-auto">
-              {inspectionData.courses?.map((course: any) => (
+              {inspectionData.courses?.map((course) => (
                 <div key={course.id} className="p-4 border border-gray-200 rounded-lg bg-gray-50">
                   <div className="mb-2">
                     <span className="font-semibold text-gray-900">ID: {course.id}</span>
@@ -661,7 +654,7 @@ ${courseUrlEntries}
                       All Meta Fields ({Object.keys(course.all_meta || {}).length})
                     </summary>
                     <div className="mt-2 space-y-2">
-                      {Object.entries(course.all_meta || {}).map(([key, value]: [string, any]) => (
+                      {Object.entries(course.all_meta || {}).map(([key, value]: [string, unknown]) => (
                         <div key={key} className="p-2 border border-gray-300 rounded bg-white">
                           <code className="text-xs font-mono font-semibold text-gray-900">{key}:</code>
                           <pre className="text-xs mt-1 text-gray-600 whitespace-pre-wrap break-words">
@@ -715,7 +708,7 @@ ${courseUrlEntries}
             
             <h3 className="font-semibold text-gray-900 mb-4">Meta Keys:</h3>
             <div className="space-y-3 max-h-[600px] overflow-y-auto">
-              {Object.entries(metaKeys.meta_keys || {}).map(([key, data]: [string, any]) => (
+              {Object.entries(metaKeys.meta_keys || {}).map(([key, data]: [string, MetaKeyData]) => (
                 <div key={key} className="p-4 border border-gray-200 rounded-lg bg-gray-50">
                   <div className="flex items-start justify-between mb-2">
                     <code className="text-sm font-mono font-semibold text-gray-900">{key}</code>
