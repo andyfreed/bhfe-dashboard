@@ -533,10 +533,10 @@ export default function AnalyticsPage() {
             <Card>
               <CardContent className="pt-6">
                 <div className="text-center text-gray-500">
-                  <p>No data available yet. Configure your service IDs and click "Fetch Data".</p>
+                  <p>No Google Ads data available.</p>
                   {config.customerId && (
-                    <p className="text-sm text-red-600 mt-2">
-                      Note: Ads API returned an error. Check your Customer ID and developer token.
+                    <p className="text-sm text-orange-600 mt-2">
+                      Ads API returned an error. Check your Customer ID format and developer token configuration.
                     </p>
                   )}
                 </div>
