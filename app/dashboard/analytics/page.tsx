@@ -96,6 +96,27 @@ export default function AnalyticsPage() {
     })
   }, [])
 
+  const formatDateInput = (date: Date): string => {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+  }
+
+  const checkConnection = async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      setLoading(false)
+      return
+    }
+
+    const { data } = await supabase
+      .from('app_settings')
+      .select('value')
+      .eq('key', `google_tokens_${user.id}`)
+      .single()
+
+    setIsConnected(!!data)
+    setLoading(false)
+  }
+
   const loadConfig = async () => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
@@ -153,27 +174,6 @@ export default function AnalyticsPage() {
     setShowConfig(false)
   }
 
-  const formatDateInput = (date: Date): string => {
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
-  }
-
-  const checkConnection = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      setLoading(false)
-      return
-    }
-
-    const { data } = await supabase
-      .from('app_settings')
-      .select('value')
-      .eq('key', `google_tokens_${user.id}`)
-      .single()
-
-    setIsConnected(!!data)
-    setLoading(false)
-  }
-
   const handleConnect = () => {
     window.location.href = '/api/google/auth'
   }
@@ -216,11 +216,18 @@ export default function AnalyticsPage() {
               },
             }
           } else {
-            const errorData = await adsResponse.json()
+            const errorData = await adsResponse.json().catch(() => ({ error: 'Failed to fetch Ads data' }))
             console.error('Ads API error:', errorData)
+            // Show error but don't crash - continue with other data sources
+            if (!error) {
+              setError(`Ads API: ${errorData.error || 'Failed to fetch data'}. Other services will still load.`)
+            }
           }
         } catch (err) {
           console.error('Error fetching Ads data:', err)
+          if (!error) {
+            setError(`Ads API error: ${err instanceof Error ? err.message : 'Failed to fetch data'}. Other services will still load.`)
+          }
         }
       }
 
@@ -238,6 +245,9 @@ export default function AnalyticsPage() {
             // Process Analytics data to extract conversion breakdown
             // This will be used to populate the conversion breakdown if Ads doesn't have it
             results.analytics = analyticsData.data
+          } else {
+            const errorData = await analyticsResponse.json().catch(() => ({ error: 'Failed to fetch Analytics data' }))
+            console.error('Analytics API error:', errorData)
           }
         } catch (err) {
           console.error('Error fetching Analytics data:', err)
@@ -256,31 +266,12 @@ export default function AnalyticsPage() {
           if (scResponse.ok) {
             const scData = await scResponse.json()
             results.searchConsole = scData.data
+          } else {
+            const errorData = await scResponse.json().catch(() => ({ error: 'Failed to fetch Search Console data' }))
+            console.error('Search Console API error:', errorData)
           }
         } catch (err) {
           console.error('Error fetching Search Console data:', err)
-        }
-      }
-
-      // Use Analytics conversion data to populate breakdown if Ads doesn't have it
-      if (results.ads && results.analytics) {
-        // Extract conversion events from Analytics
-        const conversionEvents: Record<string, { current: number; previous: number }> = {}
-        if (results.analytics.rows) {
-          // Process Analytics rows to extract conversion events
-          // This is a simplified version - you may need to adjust based on actual Analytics response structure
-          results.analytics.rows.forEach((row: any) => {
-            const eventName = row.dimensionValues?.[0]?.value
-            if (eventName) {
-              // Match event names to conversion types
-              const normalizedName = eventName.toLowerCase().replace(/[^a-z0-9]/g, '_')
-              if (!conversionEvents[normalizedName]) {
-                conversionEvents[normalizedName] = { current: 0, previous: 0 }
-              }
-              // Aggregate metrics based on date range
-              // This is simplified - actual implementation needs to check which date range
-            }
-          })
         }
       }
 
@@ -335,11 +326,11 @@ export default function AnalyticsPage() {
       </div>
 
       {error && (
-        <Card className="border-red-300 bg-red-50">
+        <Card className="border-orange-300 bg-orange-50">
           <CardContent className="pt-6">
-            <div className="flex items-center gap-2 text-red-700">
+            <div className="flex items-center gap-2 text-orange-700">
               <AlertCircle className="h-5 w-5" />
-              <span className="font-semibold">Error: {error}</span>
+              <span className="font-semibold">{error}</span>
             </div>
           </CardContent>
         </Card>
@@ -461,7 +452,7 @@ export default function AnalyticsPage() {
             </CardContent>
           </Card>
 
-          {metrics && (
+          {metrics && metrics.ads ? (
             <div className="space-y-6">
               <div>
                 <h2 className="text-2xl font-bold text-gray-900 mb-4">Google Ads Performance</h2>
@@ -538,10 +529,22 @@ export default function AnalyticsPage() {
                 </div>
               </div>
             </div>
+          ) : metrics && (
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-center text-gray-500">
+                  <p>No data available yet. Configure your service IDs and click "Fetch Data".</p>
+                  {config.customerId && (
+                    <p className="text-sm text-red-600 mt-2">
+                      Note: Ads API returned an error. Check your Customer ID and developer token.
+                    </p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           )}
         </>
       )}
     </div>
   )
 }
-
