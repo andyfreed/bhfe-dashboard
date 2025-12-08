@@ -60,8 +60,23 @@ export async function GET(request: NextRequest) {
       accessToken = await refreshGoogleToken(tokens.refresh_token)
     }
 
-    // Format customer ID (Google Ads API uses customer ID without dashes)
+    // Format customer ID for Google Ads API
+    // Google Ads API expects customer ID without dashes, exactly 10 digits
     const cleanCustomerId = customerId.replace(/-/g, '')
+    
+    // Validate customer ID format (must be exactly 10 digits)
+    if (!/^\d{10}$/.test(cleanCustomerId)) {
+      return NextResponse.json(
+        { error: `Invalid Customer ID format. Expected 10 digits, got: ${customerId} (${cleanCustomerId.length} digits after removing dashes)` },
+        { status: 400 }
+      )
+    }
+    
+    console.log('[Ads API] Using customer ID:', {
+      original: customerId,
+      cleaned: cleanCustomerId,
+      formatted: `${cleanCustomerId.slice(0, 3)}-${cleanCustomerId.slice(3, 6)}-${cleanCustomerId.slice(6)}`,
+    })
 
     // Calculate previous period (same length, one year before)
     const currentStart = new Date(startDate)
@@ -97,50 +112,52 @@ export async function GET(request: NextRequest) {
       queryLength: query.length,
     })
 
-    const currentResponse = await fetch(
-      `https://googleads.googleapis.com/v19/customers/${cleanCustomerId}:search`,
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'developer-token': developerToken,
-          'Content-Type': 'application/json',
-          'login-customer-id': cleanCustomerId, // May be needed for MCC accounts
-        },
-        body: JSON.stringify({
-          query,
-        }),
-      }
-    )
+    // Google Ads API endpoint format
+    // Try v18 first as v19 might not be available
+    const apiVersion = 'v18' // Changed from v19 to v18 - v19 might not exist yet
+    const endpointUrl = `https://googleads.googleapis.com/${apiVersion}/customers/${cleanCustomerId}:search`
+    
+    console.log('[Ads API] Request URL:', endpointUrl)
+    
+    const currentResponse = await fetch(endpointUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'developer-token': developerToken,
+        'Content-Type': 'application/json',
+        // 'login-customer-id' header is only needed for MCC accounts, may cause issues if not MCC
+      },
+      body: JSON.stringify({
+        query,
+      }),
+    })
 
     // Fetch previous period data
-    const previousResponse = await fetch(
-      `https://googleads.googleapis.com/v19/customers/${cleanCustomerId}:search`,
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'developer-token': developerToken,
-          'Content-Type': 'application/json',
-          'login-customer-id': cleanCustomerId,
-        },
-        body: JSON.stringify({
-          query: `
-            SELECT
-              metrics.cost_micros,
-              metrics.clicks,
-              metrics.impressions,
-              metrics.all_conversions,
-              metrics.all_conversions_value,
-              metrics.cost_per_all_conversions,
-              segments.date
-            FROM campaign
-            WHERE segments.date >= '${formatDateForAds(prevStart)}' 
-              AND segments.date <= '${formatDateForAds(prevEnd)}'
-          `.trim(),
-        }),
-      }
-    )
+    const previousQuery = `
+      SELECT
+        metrics.cost_micros,
+        metrics.clicks,
+        metrics.impressions,
+        metrics.all_conversions,
+        metrics.all_conversions_value,
+        metrics.cost_per_all_conversions,
+        segments.date
+      FROM campaign
+      WHERE segments.date >= '${formatDateForAds(prevStart)}' 
+        AND segments.date <= '${formatDateForAds(prevEnd)}'
+    `.trim()
+    
+    const previousResponse = await fetch(endpointUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'developer-token': developerToken,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        query: previousQuery,
+      }),
+    })
 
     if (!currentResponse.ok) {
       const errorText = await currentResponse.text()
@@ -177,6 +194,31 @@ export async function GET(request: NextRequest) {
         },
         { status: currentResponse.status }
       )
+<<<<<<< HEAD
+=======
+    }
+
+    if (!previousResponse.ok) {
+      const errorText = await previousResponse.text()
+      let errorData: any
+      try {
+        errorData = JSON.parse(errorText)
+      } catch {
+        errorData = { error: errorText || previousResponse.statusText }
+      }
+      
+      const errorMessage = errorData.error?.message || errorData.error || 'Failed to fetch Google Ads data'
+      console.error('[Ads API] Error response (previous period):', {
+        status: previousResponse.status,
+        statusText: previousResponse.statusText,
+        error: errorData,
+      })
+      
+      return NextResponse.json(
+        { error: errorMessage, details: errorData },
+        { status: previousResponse.status }
+      )
+>>>>>>> c105783 (Fix Google Ads API: use v18, validate customer ID, remove duplicate query, fix endpoint URL)
     }
 
     if (!previousResponse.ok) {
@@ -280,8 +322,7 @@ export async function GET(request: NextRequest) {
 
     try {
       // Fetch current period conversion breakdown
-      const currentConvResponse = await fetch(
-        `https://googleads.googleapis.com/v19/customers/${cleanCustomerId}:search`,
+      const currentConvResponse = await fetch(endpointUrl,
         {
           method: 'POST',
           headers: {
@@ -327,8 +368,7 @@ export async function GET(request: NextRequest) {
       }
 
       // Fetch previous period conversion breakdown
-      const prevConvResponse = await fetch(
-        `https://googleads.googleapis.com/v19/customers/${cleanCustomerId}:search`,
+      const prevConvResponse = await fetch(endpointUrl,
         {
           method: 'POST',
           headers: {
