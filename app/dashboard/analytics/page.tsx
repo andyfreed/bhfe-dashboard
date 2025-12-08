@@ -531,80 +531,82 @@ export default function AnalyticsPage() {
               
               {/* Google Ads Section */}
               {metrics.ads ? (
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-4">Google Ads Performance</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <MetricsCard
-                    title="Spend"
-                    current={metrics.ads.spend.current}
-                    previous={metrics.ads.spend.previous}
-                    format={(v) => `$${v.toFixed(2)}`}
-                    icon={<DollarSign className="h-5 w-5" />}
-                    positiveIsGood={false}
-                  />
-                  <MetricsCard
-                    title="Clicks"
-                    current={metrics.ads.clicks.current}
-                    previous={metrics.ads.clicks.previous}
-                    icon={<MousePointerClick className="h-5 w-5" />}
-                  />
-                  <MetricsCard
-                    title="Impressions"
-                    current={metrics.ads.impressions.current}
-                    previous={metrics.ads.impressions.previous}
-                    icon={<Eye className="h-5 w-5" />}
-                  />
-                  <MetricsCard
-                    title="Avg CPC"
-                    current={metrics.ads.avgCpc.current}
-                    previous={metrics.ads.avgCpc.previous}
-                    format={(v) => `$${v.toFixed(2)}`}
-                    positiveIsGood={false}
-                  />
-                  <MetricsCard
-                    title="Avg CTR"
-                    current={metrics.ads.avgCtr.current}
-                    previous={metrics.ads.avgCtr.previous}
-                    format={(v) => `${v.toFixed(2)}%`}
-                  />
-                  <MetricsCard
-                    title="Conversions"
-                    current={metrics.ads.conversions.current}
-                    previous={metrics.ads.conversions.previous}
-                    format={(v) => v.toFixed(2)}
-                    icon={<CheckCircle className="h-5 w-5" />}
-                  />
-                  <MetricsCard
-                    title="Cost Per Conversion"
-                    current={metrics.ads.costPerConversion.current}
-                    previous={metrics.ads.costPerConversion.previous}
-                    format={(v) => `$${v.toFixed(2)}`}
-                    positiveIsGood={false}
-                  />
-                  <MetricsCard
-                    title="ROAS"
-                    current={metrics.ads.roas.current}
-                    previous={metrics.ads.roas.previous}
-                    format={(v) => `$${v.toFixed(2)}:1`}
-                  />
-                </div>
-              </div>
+                <>
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900 mb-4">Google Ads Performance</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                      <MetricsCard
+                        title="Spend"
+                        current={metrics.ads.spend.current}
+                        previous={metrics.ads.spend.previous}
+                        format={(v) => `$${v.toFixed(2)}`}
+                        icon={<DollarSign className="h-5 w-5" />}
+                        positiveIsGood={false}
+                      />
+                      <MetricsCard
+                        title="Clicks"
+                        current={metrics.ads.clicks.current}
+                        previous={metrics.ads.clicks.previous}
+                        icon={<MousePointerClick className="h-5 w-5" />}
+                      />
+                      <MetricsCard
+                        title="Impressions"
+                        current={metrics.ads.impressions.current}
+                        previous={metrics.ads.impressions.previous}
+                        icon={<Eye className="h-5 w-5" />}
+                      />
+                      <MetricsCard
+                        title="Avg CPC"
+                        current={metrics.ads.avgCpc.current}
+                        previous={metrics.ads.avgCpc.previous}
+                        format={(v) => `$${v.toFixed(2)}`}
+                        positiveIsGood={false}
+                      />
+                      <MetricsCard
+                        title="Avg CTR"
+                        current={metrics.ads.avgCtr.current}
+                        previous={metrics.ads.avgCtr.previous}
+                        format={(v) => `${v.toFixed(2)}%`}
+                      />
+                      <MetricsCard
+                        title="Conversions"
+                        current={metrics.ads.conversions.current}
+                        previous={metrics.ads.conversions.previous}
+                        format={(v) => v.toFixed(2)}
+                        icon={<CheckCircle className="h-5 w-5" />}
+                      />
+                      <MetricsCard
+                        title="Cost Per Conversion"
+                        current={metrics.ads.costPerConversion.current}
+                        previous={metrics.ads.costPerConversion.previous}
+                        format={(v) => `$${v.toFixed(2)}`}
+                        positiveIsGood={false}
+                      />
+                      <MetricsCard
+                        title="ROAS"
+                        current={metrics.ads.roas.current}
+                        previous={metrics.ads.roas.previous}
+                        format={(v) => `$${v.toFixed(2)}:1`}
+                      />
+                    </div>
+                  </div>
 
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-4">Conversion Breakdown</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {Object.entries(metrics.ads.conversionsBreakdown).map(([key, value]: [string, any]) => (
-                    <MetricsCard
-                      key={key}
-                      title={key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                      current={value.current}
-                      previous={value.previous}
-                      format={(v) => v.toFixed(2)}
-                      icon={<ShoppingCart className="h-5 w-5" />}
-                    />
-                  ))}
-                </div>
-              </div>
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900 mb-4">Conversion Breakdown</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {Object.entries(metrics.ads.conversionsBreakdown).map(([key, value]: [string, any]) => (
+                        <MetricsCard
+                          key={key}
+                          title={key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                          current={value.current}
+                          previous={value.previous}
+                          format={(v) => v.toFixed(2)}
+                          icon={<ShoppingCart className="h-5 w-5" />}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </>
               ) : config.customerId && (
                 <Card className="border-orange-300 bg-orange-50">
                   <CardContent className="pt-6">
