@@ -239,7 +239,15 @@ export async function GET(request: NextRequest) {
       // Provide helpful error message
       let userFriendlyError = errorMessage
       if (actualResponse.status === 404) {
-        userFriendlyError = `Customer ID ${customerId} not found or not accessible. Verify the Customer ID is correct. You mentioned it might be 720-967-8421 - try updating the configuration. Also ensure your OAuth token has access to this account.`
+        // Check if error indicates test account access level issue
+        const errorTextLower = errorText.toLowerCase()
+        if (errorTextLower.includes('test') || errorTextLower.includes('test account')) {
+          userFriendlyError = `Your developer token is at "Test Account Access" level, which can only access test accounts, not production accounts. You need to apply for at least "Explorer Access" or "Basic Access" level to access production customer accounts. See: https://developers.google.com/google-ads/api/docs/api-policy/access-levels`
+        } else {
+          userFriendlyError = `Customer ID ${customerId} not found or not accessible. Possible issues: (1) Your developer token is at "Test Account Access" level - you need Explorer/Basic/Standard Access for production accounts, (2) Verify the Customer ID is correct (you mentioned it might be 720-967-8421), (3) Ensure your OAuth token has access to this account.`
+        }
+      } else if (actualResponse.status === 403) {
+        userFriendlyError = `Access denied. Your developer token may not have permission to access this customer account. Verify your developer token access level and that your OAuth token has access to this Google Ads account.`
       }
       
       return NextResponse.json(
