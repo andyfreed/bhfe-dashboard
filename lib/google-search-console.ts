@@ -122,14 +122,6 @@ export async function fetchSearchConsoleData(
       endDate: formatDateForSC(currentEnd),
       dimensions: ['query'],
       rowLimit: 100, // Get top 100 keywords
-      orderBys: [
-        {
-          metric: {
-            metric: 'CLICKS',
-          },
-          sortOrder: 'DESCENDING',
-        },
-      ],
     },
   })
 
@@ -141,14 +133,6 @@ export async function fetchSearchConsoleData(
       endDate: formatDateForSC(prevEnd),
       dimensions: ['query'],
       rowLimit: 100, // Get top 100 keywords
-      orderBys: [
-        {
-          metric: {
-            metric: 'CLICKS',
-          },
-          sortOrder: 'DESCENDING',
-        },
-      ],
     },
   })
 
@@ -163,7 +147,6 @@ export async function fetchSearchConsoleData(
       endDate: formatDateForSC(currentEnd),
       dimensions: ['page'],
       rowLimit: 100,
-      orderBys: [{ metric: { metric: 'CLICKS' }, sortOrder: 'DESCENDING' }],
     },
   })
 
@@ -175,7 +158,6 @@ export async function fetchSearchConsoleData(
       endDate: formatDateForSC(prevEnd),
       dimensions: ['page'],
       rowLimit: 100,
-      orderBys: [{ metric: { metric: 'CLICKS' }, sortOrder: 'DESCENDING' }],
     },
   })
 
@@ -187,7 +169,6 @@ export async function fetchSearchConsoleData(
       endDate: formatDateForSC(currentEnd),
       dimensions: ['country'],
       rowLimit: 50,
-      orderBys: [{ metric: { metric: 'CLICKS' }, sortOrder: 'DESCENDING' }],
     },
   })
 
@@ -199,7 +180,6 @@ export async function fetchSearchConsoleData(
       endDate: formatDateForSC(prevEnd),
       dimensions: ['country'],
       rowLimit: 50,
-      orderBys: [{ metric: { metric: 'CLICKS' }, sortOrder: 'DESCENDING' }],
     },
   })
 
@@ -211,7 +191,6 @@ export async function fetchSearchConsoleData(
       endDate: formatDateForSC(currentEnd),
       dimensions: ['device'],
       rowLimit: 10,
-      orderBys: [{ metric: { metric: 'CLICKS' }, sortOrder: 'DESCENDING' }],
     },
   })
 
@@ -223,7 +202,6 @@ export async function fetchSearchConsoleData(
       endDate: formatDateForSC(prevEnd),
       dimensions: ['device'],
       rowLimit: 10,
-      orderBys: [{ metric: { metric: 'CLICKS' }, sortOrder: 'DESCENDING' }],
     },
   })
 
