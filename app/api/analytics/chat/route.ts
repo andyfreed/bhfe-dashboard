@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/server'
  */
 export async function POST(request: NextRequest) {
   try {
-    const { messages, metrics } = await request.json()
+    const { messages, metrics, comprehensiveData, dateRange } = await request.json()
 
     // Get OpenAI API key from environment
     const apiKey = process.env.OPENAI_API_KEY
@@ -30,10 +30,19 @@ export async function POST(request: NextRequest) {
     }
 
     // Build system prompt with metrics context
+    const dateRangeInfo = dateRange 
+      ? `Selected Date Range: ${dateRange.startDate} to ${dateRange.endDate}`
+      : 'Date range not specified'
+    
     const systemPrompt = `You are an analytics assistant helping users understand their Google Analytics, Google Ads, and Google Search Console data.
 
-Current metrics data:
+${dateRangeInfo}
+
+CURRENT METRICS DATA (for selected date range):
 ${JSON.stringify(metrics, null, 2)}
+
+COMPREHENSIVE DATA (ALL AVAILABLE HISTORICAL DATA - use this for answering questions about any time period):
+${comprehensiveData ? JSON.stringify(comprehensiveData, null, 2) : 'Not available'}
 
 Your role:
 - Answer questions about the analytics data provided, including specific keywords from Search Console
@@ -68,7 +77,17 @@ You can answer questions about:
 - Search query performance and trends
 - Any combination of these dimensions
 
-When comparing periods, note that "current" refers to the selected date range, and "previous" refers to the same period one year earlier, unless otherwise specified.
+IMPORTANT DATA ACCESS:
+- You have TWO datasets available:
+  1. "metrics" - Current selected date range data (for dashboard display)
+  2. "comprehensiveData" - ALL historical data available (Search Console: up to 16 months, Analytics: up to 2+ years)
+
+- When users ask about ANY time period (past months, specific dates, etc.), use the comprehensiveData
+- The comprehensiveData includes ALL keywords, pages, countries, devices, browsers, events, sources, and date trends
+- You can answer questions about any historical period within the comprehensive data date range
+- The comprehensiveData structure is the same as metrics but contains ALL available data, not just the selected range
+- For questions like "top keyword for June 2025", search through comprehensiveData.searchConsole.keywords or comprehensiveData.analytics data
+- Use comprehensiveData to provide insights about trends, historical performance, and any specific time periods users ask about
 
 Format your responses clearly with bullet points or numbered lists when appropriate.`
 
