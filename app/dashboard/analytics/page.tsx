@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -8,17 +8,21 @@ import {
   Activity,
   AlertCircle,
   BarChart3, 
+  Bot,
   CheckCircle,
   DollarSign,
   Eye,
   Link as LinkIcon,
+  MessageSquare,
   MousePointerClick,
   RefreshCw,
+  Send,
   Settings,
   ShoppingCart,
   TrendingDown,
   TrendingUp,
   Users,
+  X,
 } from 'lucide-react'
 import { formatPercentChange, calculatePercentChange } from '@/lib/utils/metrics'
 
@@ -342,6 +346,16 @@ export default function AnalyticsPage() {
           <p className="text-gray-600 mt-1">Performance metrics and comparisons</p>
         </div>
         <div className="flex items-center gap-3">
+          {isConnected && metrics && (
+            <Button
+              variant="outline"
+              onClick={() => setShowChat(!showChat)}
+              className="flex items-center gap-2"
+            >
+              <Bot className="h-4 w-4" />
+              {showChat ? 'Hide' : 'Ask'} AI Assistant
+            </Button>
+          )}
           {!isConnected && (
             <Button onClick={handleConnect}>
               <LinkIcon className="h-4 w-4 mr-2" />
