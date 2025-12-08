@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/server'
  */
 export async function POST(request: NextRequest) {
   try {
-    const { messages, metrics, comprehensiveData, dateRange } = await request.json()
+    const { messages, metrics, config, dateRange } = await request.json()
 
     // Get OpenAI API key from environment
     const apiKey = process.env.OPENAI_API_KEY
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Build system prompt with metrics context
+    // Build system prompt - tell AI how to fetch data dynamically
     const dateRangeInfo = dateRange 
       ? `Selected Date Range: ${dateRange.startDate} to ${dateRange.endDate}`
       : 'Date range not specified'
@@ -38,13 +38,31 @@ export async function POST(request: NextRequest) {
 
 ${dateRangeInfo}
 
-CURRENT METRICS DATA (for selected date range):
-${JSON.stringify(metrics, null, 2)}
+IMPORTANT: You have the ability to fetch specific data on-demand. Instead of receiving all data upfront, you can request only what you need.
 
-COMPREHENSIVE DATA (ALL AVAILABLE HISTORICAL DATA - use this for answering questions about any time period):
-${comprehensiveData ? JSON.stringify(comprehensiveData, null, 1) : 'Not available'}
+HOW TO FETCH SPECIFIC DATA:
+You have access to a fetch endpoint. When you need data not in the current metrics, make an internal API call.
 
-NOTE: The comprehensive data includes aggregated historical data. For specific page URLs, dates, or keywords, search through the data arrays (keywords, pages, etc.) to find matching entries. The data structure matches the Search Console and Analytics API formats - look for arrays of objects with keys like "query", "page", "country", etc.
+IMPORTANT: You cannot make HTTP requests directly. Instead, you must analyze the question and respond with a special JSON format to request data:
+
+If you need to fetch data, respond ONLY with this exact JSON format (no other text):
+{
+  "action": "fetch_data",
+  "dataTypes": ["keywords", "pages", "sources", "events", "analytics_pages", etc.],
+  "dateRange": { "startDate": "2025-06-01", "endDate": "2025-06-30" },
+  "filters": { "pageUrl": "/path" } // optional
+}
+
+Examples:
+- Question: "top keyword for June 2025" → Request: {"action":"fetch_data","dataTypes":["keywords"],"dateRange":{"startDate":"2025-06-01","endDate":"2025-06-30"}}
+- Question: "how many people visited /cfp-courses/ in August" → Request: {"action":"fetch_data","dataTypes":["analytics_pages"],"dateRange":{"startDate":"2025-08-01","endDate":"2025-08-31"},"filters":{"pageUrl":"/cfp-courses/"}}
+
+CONFIGURATION:
+- propertyId: ${config?.propertyId || 'not configured'}
+- siteUrl: ${config?.siteUrl || 'not configured'}
+
+CURRENT AVAILABLE DATA (if provided):
+${metrics ? JSON.stringify(metrics, null, 1) : 'No current data available'}
 
 Your role:
 - Answer questions about the analytics data provided, including specific keywords from Search Console
@@ -79,17 +97,37 @@ You can answer questions about:
 - Search query performance and trends
 - Any combination of these dimensions
 
-IMPORTANT DATA ACCESS:
-- You have TWO datasets available:
-  1. "metrics" - Current selected date range data (for dashboard display)
-  2. "comprehensiveData" - ALL historical data available (Search Console: up to 16 months, Analytics: up to 2+ years)
+DATA FETCHING STRATEGY:
+1. First, analyze the user's question to determine:
+   - What type of data is needed (keywords, pages, traffic sources, etc.)
+   - What date range is specified (if any)
+   - What specific filters apply (page URL, keyword, country, etc.)
 
-- When users ask about ANY time period (past months, specific dates, etc.), use the comprehensiveData
-- The comprehensiveData includes ALL keywords, pages, countries, devices, browsers, events, sources, and date trends
-- You can answer questions about any historical period within the comprehensive data date range
-- The comprehensiveData structure is the same as metrics but contains ALL available data, not just the selected range
-- For questions like "top keyword for June 2025", search through comprehensiveData.searchConsole.keywords or comprehensiveData.analytics data
-- Use comprehensiveData to provide insights about trends, historical performance, and any specific time periods users ask about
+2. If the question requires data not in the current metrics, use the fetch-specific-data endpoint:
+   POST /api/analytics/fetch-specific-data
+   Body: {
+     propertyId: string (if Analytics data needed),
+     siteUrl: string (if Search Console data needed),
+     dataTypes: ['keywords', 'pages', etc.],
+     dateRange: { startDate: 'YYYY-MM-DD', endDate: 'YYYY-MM-DD' },
+     filters: { pageUrl: '...', keyword: '...' } // optional
+   }
+
+3. Then answer the question using the fetched data.
+
+SEARCH CONSOLE DATA STRUCTURE:
+- keywords: Array of { keys: ['query'], clicks, impressions, ctr, position }
+- pages: Array of { keys: ['page'], clicks, impressions, ctr, position }
+- countries: Array of { keys: ['country'], clicks, impressions, ctr, position }
+- devices: Array of { keys: ['device'], clicks, impressions, ctr, position }
+
+ANALYTICS DATA STRUCTURE:
+- events: { rows: Array of { dimensionValues: [{ value: 'eventName' }], metricValues: [...] } }
+- analytics_pages: { rows: Array of { dimensionValues: [{ value: 'pagePath' }], metricValues: [...] } }
+- sources: { rows: Array of { dimensionValues: [{ value: 'source/medium' }], metricValues: [...] } }
+- analytics_countries: { rows: Array of { dimensionValues: [{ value: 'country' }], metricValues: [...] } }
+- analytics_devices: { rows: Array of { dimensionValues: [{ value: 'device' }], metricValues: [...] } }
+- browsers: { rows: Array of { dimensionValues: [{ value: 'browser' }], metricValues: [...] } }
 
 Format your responses clearly with bullet points or numbered lists when appropriate.`
 
@@ -110,7 +148,7 @@ Format your responses clearly with bullet points or numbered lists when appropri
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o', // Using gpt-4o for larger context window (128k tokens)
+        model: 'gpt-4o-2024-08-06', // Using latest gpt-4o model
         messages: openAIMessages,
         temperature: 0.7,
         max_tokens: 1000,

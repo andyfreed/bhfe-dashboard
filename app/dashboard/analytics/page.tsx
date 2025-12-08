@@ -356,24 +356,6 @@ export default function AnalyticsPage() {
     setChatLoading(true)
 
     try {
-      // Fetch ALL comprehensive data for the chatbot (independent of date range)
-      const allDataResponse = await fetch('/api/analytics/comprehensive-data', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          propertyId: config.propertyId,
-          customerId: config.customerId,
-          siteUrl: config.siteUrl,
-        }),
-      })
-
-      let comprehensiveData = null
-      if (allDataResponse.ok) {
-        comprehensiveData = await allDataResponse.json()
-      }
-
       const response = await fetch('/api/analytics/chat', {
         method: 'POST',
         headers: {
@@ -382,7 +364,11 @@ export default function AnalyticsPage() {
         body: JSON.stringify({
           messages: [...chatMessages, newUserMessage],
           metrics,
-          comprehensiveData,
+          config: {
+            propertyId: config.propertyId,
+            customerId: config.customerId,
+            siteUrl: config.siteUrl,
+          },
           dateRange: {
             startDate: dateRange.startDate,
             endDate: dateRange.endDate,
