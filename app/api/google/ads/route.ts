@@ -194,31 +194,6 @@ export async function GET(request: NextRequest) {
         },
         { status: currentResponse.status }
       )
-<<<<<<< HEAD
-=======
-    }
-
-    if (!previousResponse.ok) {
-      const errorText = await previousResponse.text()
-      let errorData: any
-      try {
-        errorData = JSON.parse(errorText)
-      } catch {
-        errorData = { error: errorText || previousResponse.statusText }
-      }
-      
-      const errorMessage = errorData.error?.message || errorData.error || 'Failed to fetch Google Ads data'
-      console.error('[Ads API] Error response (previous period):', {
-        status: previousResponse.status,
-        statusText: previousResponse.statusText,
-        error: errorData,
-      })
-      
-      return NextResponse.json(
-        { error: errorMessage, details: errorData },
-        { status: previousResponse.status }
-      )
->>>>>>> c105783 (Fix Google Ads API: use v18, validate customer ID, remove duplicate query, fix endpoint URL)
     }
 
     if (!previousResponse.ok) {
