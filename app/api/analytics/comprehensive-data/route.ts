@@ -283,7 +283,7 @@ export async function POST(request: NextRequest) {
                 { name: 'activeUsers' },
                 { name: 'sessions' },
               ],
-              limit: 100,
+              limit: 50,
             }),
           }
         )
