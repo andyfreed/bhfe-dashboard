@@ -19,6 +19,10 @@ Add these to your `.env.local` file (and Vercel):
 GOOGLE_CLIENT_ID=your-client-id-here
 GOOGLE_CLIENT_SECRET=your-client-secret-here
 
+# Google Ads Developer Token (required for Ads API)
+# Get from: https://ads.google.com/aw/apicenter
+GOOGLE_ADS_DEVELOPER_TOKEN=your-developer-token-here
+
 # Optional: If using service account instead of OAuth
 GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account-key.json
 ```
@@ -41,19 +45,27 @@ GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account-key.json
 ## Google Ads API Additional Setup
 
 The Google Ads API requires additional setup:
-1. **Developer Token**: Get from your Google Ads account
-2. **Customer ID**: Your 10-digit Google Ads account ID (format: XXX-XXX-XXXX)
-3. **Test Account**: Recommended for development
+1. **Developer Token**: 
+   - Get from: https://ads.google.com/aw/apicenter
+   - Add to environment variables as `GOOGLE_ADS_DEVELOPER_TOKEN`
+2. **Customer ID**: Your 10-digit Google Ads account ID (format: XXX-XXX-XXXX or just 10 digits)
+   - Configure in the Analytics dashboard settings
+3. **Test Account**: Recommended for development to avoid affecting live campaigns
 
 ## Usage
 
 1. Navigate to `/dashboard/analytics`
 2. Click "Connect Google Account"
 3. Authorize the requested permissions
-4. Once connected, you can fetch data from Analytics, Ads, and Search Console
+4. Once connected, configure your:
+   - Google Analytics Property ID
+   - Google Ads Customer ID
+   - Search Console Site URL
+5. Select a date range and click "Fetch Data"
 
 ## Data Storage
 
 - OAuth tokens are stored in `app_settings` table with key `google_tokens_{user_id}`
+- Configuration (Property ID, Customer ID, Site URL) is stored in `app_settings`
 - Tokens are automatically refreshed when expired
 - Each user can connect their own Google account
