@@ -622,6 +622,44 @@ export default function AnalyticsPage() {
                   </CardContent>
                 </Card>
               )}
+              
+              {/* Google Search Console Section */}
+              {metrics.searchConsole && (
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-4">Google Search Console</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <MetricsCard
+                      title="Clicks"
+                      current={metrics.searchConsole.current.clicks}
+                      previous={metrics.searchConsole.previous.clicks}
+                      format={(v) => Math.round(v).toLocaleString()}
+                      icon={<MousePointerClick className="h-5 w-5" />}
+                    />
+                    <MetricsCard
+                      title="Impressions"
+                      current={metrics.searchConsole.current.impressions}
+                      previous={metrics.searchConsole.previous.impressions}
+                      format={(v) => Math.round(v).toLocaleString()}
+                      icon={<Eye className="h-5 w-5" />}
+                    />
+                    <MetricsCard
+                      title="CTR"
+                      current={metrics.searchConsole.current.ctr}
+                      previous={metrics.searchConsole.previous.ctr}
+                      format={(v) => `${v.toFixed(2)}%`}
+                      icon={<BarChart3 className="h-5 w-5" />}
+                    />
+                    <MetricsCard
+                      title="Avg Position"
+                      current={metrics.searchConsole.current.position}
+                      previous={metrics.searchConsole.previous.position}
+                      format={(v) => v.toFixed(1)}
+                      icon={<TrendingUp className="h-5 w-5" />}
+                      positiveIsGood={false}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           )}
           
