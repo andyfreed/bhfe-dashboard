@@ -44,7 +44,7 @@ export async function fetchSearchConsoleData(
   prevEnd.setFullYear(currentEnd.getFullYear() - 1)
 
   // Fetch current period data
-  const [currentResponse] = await searchConsole.searchanalytics.query({
+  const currentResponse = await searchConsole.searchanalytics.query({
     siteUrl,
     requestBody: {
       startDate: formatDateForSC(currentStart),
@@ -54,7 +54,7 @@ export async function fetchSearchConsoleData(
   })
 
   // Fetch previous period data
-  const [previousResponse] = await searchConsole.searchanalytics.query({
+  const previousResponse = await searchConsole.searchanalytics.query({
     siteUrl,
     requestBody: {
       startDate: formatDateForSC(prevStart),
@@ -63,8 +63,8 @@ export async function fetchSearchConsoleData(
     },
   })
 
-  const current = aggregateSearchConsoleMetrics(currentResponse.rows || [])
-  const previous = aggregateSearchConsoleMetrics(previousResponse.rows || [])
+  const current = aggregateSearchConsoleMetrics(currentResponse.data.rows || [])
+  const previous = aggregateSearchConsoleMetrics(previousResponse.data.rows || [])
 
   return {
     current,
