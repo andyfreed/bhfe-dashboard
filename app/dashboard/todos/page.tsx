@@ -433,6 +433,7 @@ export default function TodosPage() {
       recurring_pattern: 'daily',
       assigned_to: '',
       tags: [],
+      priority: 'medium',
     })
     setEditingTodo(null)
     setShowForm(false)
