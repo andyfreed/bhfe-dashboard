@@ -158,7 +158,7 @@ export async function POST(request: NextRequest) {
                 { name: 'totalUsers' },
                 { name: 'sessions' },
               ],
-              limit: 500,
+              limit: 200,
             }),
           }
         )
@@ -210,7 +210,7 @@ export async function POST(request: NextRequest) {
                 { name: 'eventCount' },
                 { name: 'conversions' },
               ],
-              limit: 500,
+              limit: 200,
             }),
           }
         )
