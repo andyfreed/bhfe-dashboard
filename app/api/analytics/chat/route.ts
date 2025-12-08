@@ -199,13 +199,39 @@ Format your responses clearly with bullet points or numbered lists when appropri
           })
 
           const fetchedData = await fetchResponse.ok ? await fetchResponse.json() : null
+          
+          // Log for debugging
+          console.log('Fetch request:', fetchRequest)
+          console.log('Fetched data:', fetchedData)
+          console.log('Response status:', fetchResponse.status)
 
           // Ask AI again with the fetched data
           const followUpMessages = [
             ...openAIMessages.slice(0, -1), // Remove last user message
             { role: 'user', content: messages[messages.length - 1].content },
-            { role: 'assistant', content: `Fetching data: ${JSON.stringify(fetchRequest)}` },
-            { role: 'user', content: `Here is the fetched data: ${JSON.stringify(fetchedData, null, 1)}. Now answer the original question using this data.` },
+            { role: 'assistant', content: `I need to fetch data for this question.` },
+            { role: 'user', content: `Here is the fetched data from the API: ${JSON.stringify(fetchedData, null, 2)}
+
+CRITICAL DATA INTERPRETATION:
+1. analytics_pages response structure:
+   - Response has a "rows" array (may be empty [])
+   - Each row: { dimensionValues: [{ value: "pagePath" }], metricValues: [{ values: [screenPageViews, activeUsers, sessions, eventCount] }] }
+   - values[0] = screenPageViews, values[1] = activeUsers, values[2] = sessions, values[3] = eventCount
+
+2. For specific page questions:
+   - Find row where dimensionValues[0].value matches the requested pagePath
+   - Extract activeUsers (values[1]) or screenPageViews (values[0]) from that row
+
+3. For site-wide questions:
+   - Sum all screenPageViews or activeUsers from all rows
+   - Or use rowCount if available
+
+4. If rows is empty or null:
+   - No data exists for that date range/page
+   - Check if propertyId is configured
+   - Verify date range is valid (not in the future)
+
+Now answer: "${messages[messages.length - 1].content}". Provide actual numbers from the data or explain why data is missing.` },
           ]
 
           const followUpResponse = await fetch('https://api.openai.com/v1/chat/completions', {
