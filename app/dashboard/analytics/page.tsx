@@ -86,6 +86,11 @@ export default function AnalyticsPage() {
     siteUrl: 'https://www.bhfe.com',
   })
   const [showConfig, setShowConfig] = useState(false)
+  const [showChat, setShowChat] = useState(false)
+  const [chatMessages, setChatMessages] = useState<Array<{ role: 'user' | 'assistant'; content: string }>>([])
+  const [chatInput, setChatInput] = useState('')
+  const [chatLoading, setChatLoading] = useState(false)
+  const chatEndRef = useRef<HTMLDivElement>(null)
   const supabase = createClient()
 
   useEffect(() => {
@@ -329,6 +334,55 @@ export default function AnalyticsPage() {
       setFetching(false)
     }
   }
+
+  const handleChatSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!chatInput.trim() || !metrics || chatLoading) return
+
+    const userMessage = chatInput.trim()
+    setChatInput('')
+    
+    // Add user message to chat
+    const newUserMessage = { role: 'user' as const, content: userMessage }
+    setChatMessages(prev => [...prev, newUserMessage])
+    setChatLoading(true)
+
+    try {
+      const response = await fetch('/api/analytics/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: [...chatMessages, newUserMessage],
+          metrics,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to get AI response')
+      }
+
+      const data = await response.json()
+      const aiMessage = { role: 'assistant' as const, content: data.message }
+      setChatMessages(prev => [...prev, aiMessage])
+    } catch (err) {
+      const errorMessage = {
+        role: 'assistant' as const,
+        content: `Error: ${err instanceof Error ? err.message : 'Failed to get response. Please make sure OpenAI API key is configured.'}`,
+      }
+      setChatMessages(prev => [...prev, errorMessage])
+    } finally {
+      setChatLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (chatEndRef.current) {
+      chatEndRef.current.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [chatMessages])
 
   if (loading) {
     return (
@@ -682,6 +736,105 @@ export default function AnalyticsPage() {
               <CardContent className="pt-6">
                 <div className="text-center text-gray-500">
                   <p>No data available. Click "Fetch Data" to load metrics.</p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* AI Chat Assistant */}
+          {showChat && isConnected && (
+            <Card className="mt-6">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Bot className="h-5 w-5 text-blue-600" />
+                    <CardTitle>Analytics AI Assistant</CardTitle>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setShowChat(false)
+                      setChatMessages([])
+                    }}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+                <CardDescription>
+                  Ask questions about your analytics, ads, and search console data
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {/* Chat Messages */}
+                  <div className="h-96 overflow-y-auto border border-gray-200 rounded-lg p-4 space-y-4 bg-gray-50">
+                    {chatMessages.length === 0 ? (
+                      <div className="text-center text-gray-500 py-8">
+                        <Bot className="h-12 w-12 mx-auto mb-3 text-gray-400" />
+                        <p>Ask me anything about your analytics data!</p>
+                        <p className="text-sm mt-2">Try: "What are the top performing metrics?" or "Compare clicks vs impressions"</p>
+                      </div>
+                    ) : (
+                      chatMessages.map((msg, idx) => (
+                        <div
+                          key={idx}
+                          className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                        >
+                          <div
+                            className={`max-w-[80%] rounded-lg p-3 ${
+                              msg.role === 'user'
+                                ? 'bg-blue-600 text-white'
+                                : 'bg-white border border-gray-200 text-gray-900'
+                            }`}
+                          >
+                            {msg.role === 'assistant' && (
+                              <div className="flex items-center gap-2 mb-1">
+                                <Bot className="h-4 w-4 text-blue-600" />
+                                <span className="text-xs font-medium text-gray-500">AI Assistant</span>
+                              </div>
+                            )}
+                            <div className="whitespace-pre-wrap text-sm">{msg.content}</div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                    {chatLoading && (
+                      <div className="flex justify-start">
+                        <div className="bg-white border border-gray-200 rounded-lg p-3">
+                          <div className="flex items-center gap-2">
+                            <Bot className="h-4 w-4 text-blue-600 animate-pulse" />
+                            <span className="text-sm text-gray-500">Thinking...</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    <div ref={chatEndRef} />
+                  </div>
+
+                  {/* Chat Input */}
+                  <form onSubmit={handleChatSubmit} className="flex gap-2">
+                    <input
+                      type="text"
+                      value={chatInput}
+                      onChange={(e) => setChatInput(e.target.value)}
+                      placeholder="Ask about your analytics data..."
+                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      disabled={chatLoading || !metrics}
+                    />
+                    <Button
+                      type="submit"
+                      disabled={!chatInput.trim() || chatLoading || !metrics}
+                      className="px-6"
+                    >
+                      <Send className="h-4 w-4" />
+                    </Button>
+                  </form>
+                  {!metrics && (
+                    <p className="text-xs text-gray-500 text-center">
+                      Fetch data first to enable the AI assistant
+                    </p>
+                  )}
                 </div>
               </CardContent>
             </Card>
