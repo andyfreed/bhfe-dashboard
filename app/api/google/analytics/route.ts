@@ -102,8 +102,197 @@ export async function GET(request: NextRequest) {
       throw new Error(error.error?.message || 'Failed to fetch Analytics data')
     }
 
-    const data = await response.json()
-    return NextResponse.json({ data }, { status: 200 })
+    const eventData = await response.json()
+
+    // Fetch comprehensive Analytics data with multiple dimensions
+    // Fetch pages data
+    const pagesResponse = await fetch(
+      `https://analyticsdata.googleapis.com/v1beta/properties/${propertyId}:runReport`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          dateRanges: [
+            {
+              startDate: dateRanges.current.startDate,
+              endDate: dateRanges.current.endDate,
+              name: 'current',
+            },
+            {
+              startDate: dateRanges.previous.startDate,
+              endDate: dateRanges.previous.endDate,
+              name: 'previous',
+            },
+          ],
+          dimensions: [{ name: 'pagePath' }],
+          metrics: [
+            { name: 'screenPageViews' },
+            { name: 'activeUsers' },
+            { name: 'sessions' },
+            { name: 'eventCount' },
+          ],
+          limit: 100,
+          orderBys: [{ metric: { metricName: 'screenPageViews' }, desc: true }],
+        }),
+      }
+    )
+
+    const pagesData = pagesResponse.ok ? await pagesResponse.json() : null
+
+    // Fetch traffic sources
+    const sourcesResponse = await fetch(
+      `https://analyticsdata.googleapis.com/v1beta/properties/${propertyId}:runReport`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          dateRanges: [
+            {
+              startDate: dateRanges.current.startDate,
+              endDate: dateRanges.current.endDate,
+              name: 'current',
+            },
+            {
+              startDate: dateRanges.previous.startDate,
+              endDate: dateRanges.previous.endDate,
+              name: 'previous',
+            },
+          ],
+          dimensions: [{ name: 'sessionSourceMedium' }],
+          metrics: [
+            { name: 'sessions' },
+            { name: 'activeUsers' },
+            { name: 'eventCount' },
+            { name: 'conversions' },
+          ],
+          limit: 50,
+          orderBys: [{ metric: { metricName: 'sessions' }, desc: true }],
+        }),
+      }
+    )
+
+    const sourcesData = sourcesResponse.ok ? await sourcesResponse.json() : null
+
+    // Fetch countries
+    const countriesResponse = await fetch(
+      `https://analyticsdata.googleapis.com/v1beta/properties/${propertyId}:runReport`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          dateRanges: [
+            {
+              startDate: dateRanges.current.startDate,
+              endDate: dateRanges.current.endDate,
+              name: 'current',
+            },
+            {
+              startDate: dateRanges.previous.startDate,
+              endDate: dateRanges.previous.endDate,
+              name: 'previous',
+            },
+          ],
+          dimensions: [{ name: 'country' }],
+          metrics: [
+            { name: 'activeUsers' },
+            { name: 'sessions' },
+            { name: 'screenPageViews' },
+          ],
+          limit: 50,
+          orderBys: [{ metric: { metricName: 'activeUsers' }, desc: true }],
+        }),
+      }
+    )
+
+    const countriesData = countriesResponse.ok ? await countriesResponse.json() : null
+
+    // Fetch devices
+    const devicesResponse = await fetch(
+      `https://analyticsdata.googleapis.com/v1beta/properties/${propertyId}:runReport`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          dateRanges: [
+            {
+              startDate: dateRanges.current.startDate,
+              endDate: dateRanges.current.endDate,
+              name: 'current',
+            },
+            {
+              startDate: dateRanges.previous.startDate,
+              endDate: dateRanges.previous.endDate,
+              name: 'previous',
+            },
+          ],
+          dimensions: [{ name: 'deviceCategory' }],
+          metrics: [
+            { name: 'activeUsers' },
+            { name: 'sessions' },
+            { name: 'screenPageViews' },
+          ],
+          orderBys: [{ metric: { metricName: 'activeUsers' }, desc: true }],
+        }),
+      }
+    )
+
+    const devicesData = devicesResponse.ok ? await devicesResponse.json() : null
+
+    // Fetch browsers
+    const browsersResponse = await fetch(
+      `https://analyticsdata.googleapis.com/v1beta/properties/${propertyId}:runReport`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          dateRanges: [
+            {
+              startDate: dateRanges.current.startDate,
+              endDate: dateRanges.current.endDate,
+              name: 'current',
+            },
+            {
+              startDate: dateRanges.previous.startDate,
+              endDate: dateRanges.previous.endDate,
+              name: 'previous',
+            },
+          ],
+          dimensions: [{ name: 'browser' }],
+          metrics: [
+            { name: 'activeUsers' },
+            { name: 'sessions' },
+          ],
+          limit: 20,
+          orderBys: [{ metric: { metricName: 'activeUsers' }, desc: true }],
+        }),
+      }
+    )
+
+    const browsersData = browsersResponse.ok ? await browsersResponse.json() : null
+
+    return NextResponse.json({ 
+      data: eventData,
+      pages: pagesData,
+      sources: sourcesData,
+      countries: countriesData,
+      devices: devicesData,
+      browsers: browsersData,
+    }, { status: 200 })
   } catch (error) {
     console.error('Error fetching Analytics data:', error)
     return NextResponse.json(

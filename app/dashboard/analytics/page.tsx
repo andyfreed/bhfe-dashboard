@@ -252,7 +252,7 @@ export default function AnalyticsPage() {
           const analyticsResponse = await fetch(`/api/google/analytics?${analyticsParams.toString()}`)
           if (analyticsResponse.ok) {
             const analyticsData = await analyticsResponse.json()
-            // Process Analytics data - the API returns data in GA4 format
+            // Process Analytics data - the API returns comprehensive data in GA4 format
             const gaData = analyticsData.data
             
             // Extract metrics from GA4 response
@@ -286,11 +286,19 @@ export default function AnalyticsPage() {
               })
             }
             
+            // Store all comprehensive Analytics data for AI access
             results.analytics = {
               users: { current: currentUsers, previous: previousUsers },
               sessions: { current: currentSessions, previous: previousSessions },
               eventCount: { current: currentEventCount, previous: previousEventCount },
               conversions: { current: currentConversions, previous: previousConversions },
+              // Include all comprehensive data for AI
+              events: analyticsData.data, // Event breakdown
+              pages: analyticsData.pages, // Top pages
+              sources: analyticsData.sources, // Traffic sources
+              countries: analyticsData.countries, // Countries
+              devices: analyticsData.devices, // Devices
+              browsers: analyticsData.browsers, // Browsers
             }
           } else {
             const errorData = await analyticsResponse.json().catch(() => ({ error: 'Failed to fetch Analytics data' }))
