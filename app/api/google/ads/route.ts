@@ -60,9 +60,8 @@ export async function GET(request: NextRequest) {
       accessToken = await refreshGoogleToken(tokens.refresh_token)
     }
 
-    // Format customer ID (remove dashes if present, then format as XXX-XXX-XXXX)
+    // Format customer ID (Google Ads API uses customer ID without dashes)
     const cleanCustomerId = customerId.replace(/-/g, '')
-    const formattedCustomerId = `${cleanCustomerId.slice(0, 3)}-${cleanCustomerId.slice(3, 6)}-${cleanCustomerId.slice(6)}`
 
     // Calculate previous period (same length, one year before)
     const currentStart = new Date(startDate)
@@ -76,24 +75,28 @@ export async function GET(request: NextRequest) {
       return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
     }
 
-    // GAQL query to fetch campaign performance metrics
+    // Fetch current period data
+    // Note: Google Ads API requires customer ID in format: customers/{customer_id}
     const query = `
       SELECT
         metrics.cost_micros,
         metrics.clicks,
         metrics.impressions,
-        metrics.conversions,
-        metrics.value_per_all_conversions,
-        metrics.cost_per_all_conversions,
+        metrics.all_conversions,
         metrics.all_conversions_value,
+        metrics.cost_per_all_conversions,
         segments.date
       FROM campaign
-      WHERE segments.date BETWEEN '${formatDateForAds(currentStart)}' AND '${formatDateForAds(currentEnd)}'
-        OR segments.date BETWEEN '${formatDateForAds(prevStart)}' AND '${formatDateForAds(prevEnd)}'
-    `
+      WHERE segments.date >= '${formatDateForAds(currentStart)}' 
+        AND segments.date <= '${formatDateForAds(currentEnd)}'
+    `.trim()
 
-    // Fetch current period data
-    // Note: Google Ads API requires customer ID in format: customers/{customer_id}
+    console.log('[Ads API] Fetching current period data:', {
+      customerId: cleanCustomerId,
+      dateRange: `${formatDateForAds(currentStart)} to ${formatDateForAds(currentEnd)}`,
+      queryLength: query.length,
+    })
+
     const currentResponse = await fetch(
       `https://googleads.googleapis.com/v19/customers/${cleanCustomerId}:search`,
       {
@@ -105,19 +108,7 @@ export async function GET(request: NextRequest) {
           'login-customer-id': cleanCustomerId, // May be needed for MCC accounts
         },
         body: JSON.stringify({
-          query: `
-            SELECT
-              metrics.cost_micros,
-              metrics.clicks,
-              metrics.impressions,
-              metrics.all_conversions,
-              metrics.all_conversions_value,
-              metrics.cost_per_all_conversions,
-              segments.date
-            FROM campaign
-            WHERE segments.date >= '${formatDateForAds(currentStart)}' 
-              AND segments.date <= '${formatDateForAds(currentEnd)}'
-          `,
+          query,
         }),
       }
     )
@@ -146,21 +137,87 @@ export async function GET(request: NextRequest) {
             FROM campaign
             WHERE segments.date >= '${formatDateForAds(prevStart)}' 
               AND segments.date <= '${formatDateForAds(prevEnd)}'
-          `,
+          `.trim(),
         }),
       }
     )
 
-    if (!currentResponse.ok || !previousResponse.ok) {
-      const error = !currentResponse.ok 
-        ? await currentResponse.json().catch(() => ({ error: currentResponse.statusText }))
-        : await previousResponse.json().catch(() => ({ error: previousResponse.statusText }))
+    if (!currentResponse.ok) {
+      const errorText = await currentResponse.text()
+      let errorData: any
+      try {
+        errorData = JSON.parse(errorText)
+      } catch {
+        errorData = { error: errorText || currentResponse.statusText }
+      }
       
-      throw new Error(error.error?.message || 'Failed to fetch Google Ads data')
+      // Extract detailed error information
+      const errorMessage = errorData.error?.message || 
+                          errorData.error?.status || 
+                          errorData.error || 
+                          errorText ||
+                          'Failed to fetch Google Ads data'
+      
+      const errorDetails = errorData.error || errorData
+      
+      console.error('[Ads API] Error response:', {
+        status: currentResponse.status,
+        statusText: currentResponse.statusText,
+        customerId: cleanCustomerId,
+        error: errorDetails,
+        fullResponse: errorText.substring(0, 500), // First 500 chars
+      })
+      
+      return NextResponse.json(
+        { 
+          error: errorMessage, 
+          details: errorDetails,
+          customerId: cleanCustomerId, // Include for debugging
+          status: currentResponse.status,
+        },
+        { status: currentResponse.status }
+      )
     }
 
-    const currentData = await currentResponse.json()
-    const previousData = await previousResponse.json()
+    if (!previousResponse.ok) {
+      const errorText = await previousResponse.text()
+      let errorData: any
+      try {
+        errorData = JSON.parse(errorText)
+      } catch {
+        errorData = { error: errorText || previousResponse.statusText }
+      }
+      
+      const errorMessage = errorData.error?.message || errorData.error?.status || errorData.error || 'Failed to fetch Google Ads data'
+      const errorDetails = errorData.error || errorData
+      
+      console.error('[Ads API] Error response (previous period):', {
+        status: previousResponse.status,
+        statusText: previousResponse.statusText,
+        customerId: cleanCustomerId,
+        error: errorDetails,
+        fullResponse: errorText.substring(0, 500),
+      })
+      
+      return NextResponse.json(
+        { 
+          error: errorMessage, 
+          details: errorDetails,
+          customerId: cleanCustomerId,
+          status: previousResponse.status,
+        },
+        { status: previousResponse.status }
+      )
+    }
+
+    const currentData = await currentResponse.json().catch(async () => {
+      const text = await currentResponse.text()
+      throw new Error(`Failed to parse current period response: ${text}`)
+    })
+    const previousData = await previousResponse.json().catch(async () => {
+      const text = await previousResponse.text()
+      throw new Error(`Failed to parse previous period response: ${text}`)
+    })
 
     // Aggregate metrics from results
     const aggregateMetrics = (results: any[]) => {
@@ -170,14 +227,30 @@ export async function GET(request: NextRequest) {
       let totalConversions = 0
       let totalConversionValue = 0
 
+      if (!results || results.length === 0) {
+        // Return zeros if no data
+        return {
+          spend: 0,
+          clicks: 0,
+          impressions: 0,
+          avgCpc: 0,
+          avgCtr: 0,
+          conversions: 0,
+          costPerConversion: 0,
+          conversionValue: 0,
+          roas: 0,
+        }
+      }
+
       results.forEach((row: any) => {
         // Google Ads API returns data in this structure
-        const metrics = row.metrics || {}
-        totalCost += parseFloat(metrics.costMicros || 0) / 1000000 // Convert micros to dollars
+        // The response structure varies - try different possible structures
+        const metrics = row.metrics || row.campaign?.metrics || {}
+        totalCost += parseFloat(metrics.costMicros || metrics.cost_micros || 0) / 1000000 // Convert micros to dollars
         totalClicks += parseFloat(metrics.clicks || 0)
         totalImpressions += parseFloat(metrics.impressions || 0)
-        totalConversions += parseFloat(metrics.allConversions || 0)
-        totalConversionValue += parseFloat(metrics.allConversionsValue || 0)
+        totalConversions += parseFloat(metrics.allConversions || metrics.all_conversions || 0)
+        totalConversionValue += parseFloat(metrics.allConversionsValue || metrics.all_conversions_value || 0)
       })
 
       const avgCpc = totalClicks > 0 ? totalCost / totalClicks : 0
@@ -225,7 +298,7 @@ export async function GET(request: NextRequest) {
               FROM conversion_action
               WHERE segments.date >= '${formatDateForAds(currentStart)}' 
                 AND segments.date <= '${formatDateForAds(currentEnd)}'
-            `,
+            `.trim(),
           }),
         }
       )
@@ -272,7 +345,7 @@ export async function GET(request: NextRequest) {
               FROM conversion_action
               WHERE segments.date >= '${formatDateForAds(prevStart)}' 
                 AND segments.date <= '${formatDateForAds(prevEnd)}'
-            `,
+            `.trim(),
           }),
         }
       )
@@ -378,4 +451,3 @@ async function refreshGoogleToken(refreshToken: string): Promise<string> {
 
   return tokens.access_token
 }
-
