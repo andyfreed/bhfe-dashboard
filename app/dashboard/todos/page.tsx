@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Plus, Trash2, Edit, Check, X, ChevronDown, ChevronUp, Tag, Filter, Bell } from 'lucide-react'
+import { Plus, Trash2, Edit, Check, X, ChevronDown, ChevronUp, Tag, Filter, Bell, Zap } from 'lucide-react'
 import { format } from 'date-fns'
 import { RECURRING_PATTERNS, getRecurringPatternLabel, type RecurringPattern } from '@/lib/recurring-dates'
 
@@ -31,6 +31,7 @@ interface Todo {
   color: string | null
   sort_order: number | null
   priority: 'low' | 'medium' | 'high' | null
+  is_super_reminder: boolean | null
   created_at: string
 }
 
@@ -56,6 +57,7 @@ export default function TodosPage() {
     assigned_to: '',
     tags: [] as string[],
     priority: 'medium' as 'low' | 'medium' | 'high',
+    is_super_reminder: false,
   })
   const [tagInput, setTagInput] = useState('')
   const [showTagSuggestions, setShowTagSuggestions] = useState(false)
@@ -244,6 +246,7 @@ export default function TodosPage() {
       color: null, // Don't store color - always use assigned user's color
       sort_order: sortOrder,
       priority: formData.priority || 'medium',
+      is_super_reminder: formData.is_super_reminder || false,
     }
 
     let todoId: string | null = null
@@ -392,6 +395,7 @@ export default function TodosPage() {
       assigned_to: todo.assigned_to || '',
       tags: todo.tags || [],
       priority: (todo.priority || 'medium') as 'low' | 'medium' | 'high',
+      is_super_reminder: todo.is_super_reminder || false,
     })
     setTagInput('')
     setShowTagSuggestions(false)
@@ -434,6 +438,7 @@ export default function TodosPage() {
       assigned_to: '',
       tags: [],
       priority: 'medium',
+      is_super_reminder: false,
     })
     setEditingTodo(null)
     setShowForm(false)
@@ -741,7 +746,7 @@ export default function TodosPage() {
                   </select>
                 </div>
               </div>
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-4 flex-wrap">
                 <label className="flex items-center gap-2">
                   <input
                     type="checkbox"
@@ -764,6 +769,15 @@ export default function TodosPage() {
                     ))}
                   </select>
                 )}
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={formData.is_super_reminder}
+                    onChange={(e) => setFormData({ ...formData, is_super_reminder: e.target.checked })}
+                    className="rounded"
+                  />
+                  <span className="text-sm text-gray-700 font-medium">Super Reminder</span>
+                </label>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -982,6 +996,12 @@ export default function TodosPage() {
                           Reminder
                         </span>
                       )}
+                      {todo.is_super_reminder && (
+                        <span className="text-xs px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded-full flex items-center gap-1" title="Super Reminder">
+                          <Zap className="h-3 w-3" />
+                          Super
+                        </span>
+                      )}
                     </div>
                     <div className="font-medium">{todo.title}</div>
                     {todo.description && (
@@ -1117,7 +1137,7 @@ export default function TodosPage() {
                               </select>
                             </div>
                           </div>
-                          <div className="flex items-center gap-4">
+                          <div className="flex items-center gap-4 flex-wrap">
                             <label className="flex items-center gap-2">
                               <input
                                 type="checkbox"
@@ -1140,6 +1160,15 @@ export default function TodosPage() {
                                 ))}
                               </select>
                             )}
+                            <label className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={formData.is_super_reminder}
+                                onChange={(e) => setFormData({ ...formData, is_super_reminder: e.target.checked })}
+                                className="rounded"
+                              />
+                              <span className="text-sm text-gray-700 font-medium">Super Reminder</span>
+                            </label>
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1267,6 +1296,12 @@ export default function TodosPage() {
                         <span className="text-xs px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full flex items-center gap-1">
                           <Bell className="h-3 w-3" />
                           Reminder
+                        </span>
+                      )}
+                      {todo.is_super_reminder && (
+                        <span className="text-xs px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded-full flex items-center gap-1" title="Super Reminder">
+                          <Zap className="h-3 w-3" />
+                          Super
                         </span>
                       )}
                       {todo.priority && (

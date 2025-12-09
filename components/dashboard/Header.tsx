@@ -59,12 +59,15 @@ export function Header() {
 
       const now = new Date().toISOString()
       
+      // Check todos for super reminders (not reminders table)
+      // A super reminder is a todo with is_super_reminder=true, not completed, and reminder_date <= now
       const { data, error } = await supabase
-        .from('reminders')
+        .from('todos')
         .select('id')
-        .eq('user_id', user.id)
+        .or(`user_id.eq.${user.id},assigned_to.eq.${user.id}`)  // User created or assigned to
         .eq('is_super_reminder', true)
-        .eq('is_completed', false)
+        .eq('completed', false)
+        .not('reminder_date', 'is', null)
         .lte('reminder_date', now)
 
       if (error) {
@@ -89,7 +92,7 @@ export function Header() {
         { 
           event: '*', 
           schema: 'public', 
-          table: 'reminders'
+          table: 'todos'
         },
         () => {
           checkSuperReminders()
