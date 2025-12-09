@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { BookOpen, RefreshCw, ExternalLink, DollarSign, Package, CheckCircle2, XCircle, FileText, Search, Database, X, Settings, ChevronDown, ChevronUp, ArrowUpDown } from 'lucide-react'
@@ -25,21 +26,74 @@ export default function CoursesPage() {
   const [sortBy, setSortBy] = useState<'sitemap' | 'alphabetical'>('sitemap')
   const [inspectionData, setInspectionData] = useState<InspectionResponse | null>(null)
   const [inspecting, setInspecting] = useState(false)
+  const supabase = createClient()
 
   useEffect(() => {
-    // Load saved WordPress URL and API key from localStorage
-    const savedUrl = localStorage.getItem('bhfe_wordpress_url') || ''
-    const savedKey = localStorage.getItem('bhfe_api_key') || ''
-    setWordpressUrl(savedUrl)
-    setApiKey(savedKey)
-    
-    if (savedUrl) {
-      loadCourses(savedUrl, savedKey)
-      checkSitemap(savedUrl)
-    } else {
+    // Load saved WordPress URL and API key from global app_settings table
+    loadCredentials()
+  }, [])
+
+  const loadCredentials = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('app_settings')
+        .select('key, value')
+        .in('key', ['wordpress_url', 'wordpress_api_key'])
+
+      if (error) {
+        console.error('Error loading WordPress credentials:', error)
+        // Fallback to localStorage for backwards compatibility
+        const savedUrl = localStorage.getItem('bhfe_wordpress_url') || ''
+        const savedKey = localStorage.getItem('bhfe_api_key') || ''
+        setWordpressUrl(savedUrl)
+        setApiKey(savedKey)
+        if (savedUrl) {
+          loadCourses(savedUrl, savedKey)
+          checkSitemap(savedUrl)
+        } else {
+          setLoading(false)
+        }
+        return
+      }
+
+      let urlFromDb = ''
+      let keyFromDb = ''
+
+      if (data) {
+        data.forEach((setting) => {
+          if (setting.key === 'wordpress_url') {
+            urlFromDb = setting.value || ''
+            setWordpressUrl(urlFromDb)
+          } else if (setting.key === 'wordpress_api_key') {
+            keyFromDb = setting.value || ''
+            setApiKey(keyFromDb)
+          }
+        })
+      }
+
+      // Fallback to localStorage if not in database (for backwards compatibility)
+      if (!urlFromDb) {
+        const savedUrl = localStorage.getItem('bhfe_wordpress_url') || ''
+        const savedKey = localStorage.getItem('bhfe_api_key') || ''
+        if (savedUrl) {
+          setWordpressUrl(savedUrl)
+          setApiKey(savedKey)
+          urlFromDb = savedUrl
+          keyFromDb = savedKey
+        }
+      }
+
+      if (urlFromDb) {
+        loadCourses(urlFromDb, keyFromDb)
+        checkSitemap(urlFromDb)
+      } else {
+        setLoading(false)
+      }
+    } catch (err) {
+      console.error('Error loading credentials:', err)
       setLoading(false)
     }
-  }, [])
+  }
 
   const loadCourses = async (url: string, key?: string) => {
     try {
@@ -120,10 +174,39 @@ export default function CoursesPage() {
     setSyncing(true)
     setError(null)
     
-    // Save to localStorage
-    localStorage.setItem('bhfe_wordpress_url', wordpressUrl)
-    if (apiKey) {
-      localStorage.setItem('bhfe_api_key', apiKey)
+    // Save to global app_settings table (shared across all users)
+    const settingsToSave = [
+      {
+        key: 'wordpress_url',
+        value: wordpressUrl.trim(),
+        description: 'WordPress site URL for course sync and order monitoring',
+        updated_at: new Date().toISOString(),
+      },
+      {
+        key: 'wordpress_api_key',
+        value: apiKey.trim(),
+        description: 'API key for WordPress REST API authentication',
+        updated_at: new Date().toISOString(),
+      },
+    ]
+
+    const { error: upsertError } = await supabase
+      .from('app_settings')
+      .upsert(settingsToSave, {
+        onConflict: 'key',
+      })
+
+    if (upsertError) {
+      console.error('Error saving WordPress credentials:', upsertError)
+      setError('Failed to save credentials. Please try again.')
+      setSyncing(false)
+      return
+    }
+    
+    // Also sync to localStorage for backwards compatibility
+    localStorage.setItem('bhfe_wordpress_url', wordpressUrl.trim())
+    if (apiKey.trim()) {
+      localStorage.setItem('bhfe_api_key', apiKey.trim())
     }
     
     await loadCourses(wordpressUrl, apiKey)
