@@ -25,10 +25,25 @@ interface Todo {
   completed: boolean
 }
 
+interface Reminder {
+  id: string
+  title: string
+  reminder_date: string
+  user_id: string
+}
+
+interface Profile {
+  id: string
+  name: string
+  user_color: string | null
+}
+
 export default function CalendarPage() {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [events, setEvents] = useState<CalendarEvent[]>([])
   const [todos, setTodos] = useState<Todo[]>([])
+  const [reminders, setReminders] = useState<Reminder[]>([])
+  const [profiles, setProfiles] = useState<Record<string, Profile>>({})
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [showForm, setShowForm] = useState(false)
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null)
@@ -55,7 +70,20 @@ export default function CalendarPage() {
     const monthStart = startOfMonth(currentDate)
     const monthEnd = endOfMonth(currentDate)
 
-    const [eventsResult, todosResult] = await Promise.all([
+    // Load profiles to get user colors
+    const { data: profilesData } = await supabase
+      .from('profiles')
+      .select('id, name, user_color')
+    
+    if (profilesData) {
+      const profilesMap: Record<string, Profile> = {}
+      profilesData.forEach((profile) => {
+        profilesMap[profile.id] = profile
+      })
+      setProfiles(profilesMap)
+    }
+
+    const [eventsResult, todosResult, remindersResult] = await Promise.all([
       supabase
         .from('calendar_events')
         .select('*')
@@ -67,10 +95,17 @@ export default function CalendarPage() {
         .gte('due_date', monthStart.toISOString())
         .lte('due_date', monthEnd.toISOString())
         .eq('completed', false),
+      supabase
+        .from('reminders')
+        .select('id, title, reminder_date, user_id')
+        .gte('reminder_date', monthStart.toISOString())
+        .lte('reminder_date', monthEnd.toISOString())
+        .eq('is_completed', false),
     ])
 
     setEvents(eventsResult.data || [])
     setTodos(todosResult.data || [])
+    setReminders(remindersResult.data || [])
     setLoading(false)
   }
 
@@ -85,6 +120,16 @@ export default function CalendarPage() {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'todos' },
+        () => loadData()
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'reminders' },
+        () => loadData()
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'profiles' },
         () => loadData()
       )
       .subscribe()
@@ -176,8 +221,16 @@ export default function CalendarPage() {
     const todosForDate = todos.filter(
       (todo) => todo.due_date && isSameDay(new Date(todo.due_date), date)
     )
+    const remindersForDate = reminders.filter(
+      (reminder) => reminder.reminder_date && isSameDay(new Date(reminder.reminder_date), date)
+    )
 
-    return { events: eventsForDate, todos: todosForDate }
+    return { events: eventsForDate, todos: todosForDate, reminders: remindersForDate }
+  }
+
+  const getUserColor = (userId: string): string => {
+    const profile = profiles[userId]
+    return profile?.user_color || '#3b82f6'
   }
 
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
@@ -324,9 +377,10 @@ export default function CalendarPage() {
               <div key={`pad-${index}`} className="p-2"></div>
             ))}
             {daysInMonth.map((day) => {
-              const { events: dayEvents, todos: dayTodos } = getEventsForDate(day)
+              const { events: dayEvents, todos: dayTodos, reminders: dayReminders } = getEventsForDate(day)
               const isToday = isSameDay(day, new Date())
               const isSelected = selectedDate && isSameDay(day, selectedDate)
+              const totalItems = dayEvents.length + dayTodos.length + dayReminders.length
 
               return (
                 <button
@@ -353,7 +407,7 @@ export default function CalendarPage() {
                         {event.title}
                       </div>
                     ))}
-                    {dayTodos.slice(0, 3).map((todo) => (
+                    {dayTodos.slice(0, Math.max(0, 3 - dayEvents.length)).map((todo) => (
                       <div
                         key={todo.id}
                         className="text-xs px-1 py-0.5 rounded truncate bg-blue-100 text-blue-700"
@@ -361,9 +415,22 @@ export default function CalendarPage() {
                         {todo.title}
                       </div>
                     ))}
-                    {(dayEvents.length + dayTodos.length) > 3 && (
+                    {dayReminders.slice(0, Math.max(0, 3 - dayEvents.length - dayTodos.length)).map((reminder) => {
+                      const reminderColor = getUserColor(reminder.user_id)
+                      return (
+                        <div
+                          key={reminder.id}
+                          className="text-xs px-1 py-0.5 rounded truncate"
+                          style={{ backgroundColor: reminderColor, color: 'white' }}
+                          title={`Reminder: ${reminder.title}`}
+                        >
+                          🔔 {reminder.title}
+                        </div>
+                      )
+                    })}
+                    {totalItems > 3 && (
                       <div className="text-xs text-gray-500">
-                        +{(dayEvents.length + dayTodos.length) - 3} more
+                        +{totalItems - 3} more
                       </div>
                     )}
                   </div>
@@ -444,9 +511,38 @@ export default function CalendarPage() {
                 </div>
               </div>
             )}
+            {getEventsForDate(selectedDate).reminders.length > 0 && (
+              <div>
+                <h3 className="font-medium mb-2">Reminders</h3>
+                <div className="space-y-2">
+                  {getEventsForDate(selectedDate).reminders.map((reminder) => {
+                    const reminderColor = getUserColor(reminder.user_id)
+                    const profile = profiles[reminder.user_id]
+                    return (
+                      <div
+                        key={reminder.id}
+                        className="p-3 border rounded-lg"
+                        style={{ borderColor: reminderColor, backgroundColor: `${reminderColor}10` }}
+                      >
+                        <div className="font-medium flex items-center gap-2">
+                          <span style={{ color: reminderColor }}>🔔</span>
+                          {reminder.title}
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          {profile?.name && `By: ${profile.name}`}
+                          {' • '}
+                          {format(new Date(reminder.reminder_date), 'h:mm a')}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
             {getEventsForDate(selectedDate).events.length === 0 &&
-              getEventsForDate(selectedDate).todos.length === 0 && (
-                <p className="text-gray-500 text-center py-4">No events or tasks for this day</p>
+              getEventsForDate(selectedDate).todos.length === 0 &&
+              getEventsForDate(selectedDate).reminders.length === 0 && (
+                <p className="text-gray-500 text-center py-4">No events, tasks, or reminders for this day</p>
               )}
           </CardContent>
         </Card>
