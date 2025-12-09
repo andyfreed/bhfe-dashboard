@@ -634,39 +634,259 @@ export default function AnalyticsPage() {
               
               {/* Google Search Console Section */}
               {metrics.searchConsole && (
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-4">Google Search Console</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <MetricsCard
-                      title="Clicks"
-                      current={metrics.searchConsole.current.clicks}
-                      previous={metrics.searchConsole.previous.clicks}
-                      format={(v) => Math.round(v).toLocaleString()}
-                      icon={<MousePointerClick className="h-5 w-5" />}
-                    />
-                    <MetricsCard
-                      title="Impressions"
-                      current={metrics.searchConsole.current.impressions}
-                      previous={metrics.searchConsole.previous.impressions}
-                      format={(v) => Math.round(v).toLocaleString()}
-                      icon={<Eye className="h-5 w-5" />}
-                    />
-                    <MetricsCard
-                      title="CTR"
-                      current={metrics.searchConsole.current.ctr}
-                      previous={metrics.searchConsole.previous.ctr}
-                      format={(v) => `${v.toFixed(2)}%`}
-                      icon={<BarChart3 className="h-5 w-5" />}
-                    />
-                    <MetricsCard
-                      title="Avg Position"
-                      current={metrics.searchConsole.current.position}
-                      previous={metrics.searchConsole.previous.position}
-                      format={(v) => v.toFixed(1)}
-                      icon={<TrendingUp className="h-5 w-5" />}
-                      positiveIsGood={false}
-                    />
+                <div className="space-y-6">
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900 mb-4">Google Search Console</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                      <MetricsCard
+                        title="Clicks"
+                        current={metrics.searchConsole.current.clicks}
+                        previous={metrics.searchConsole.previous.clicks}
+                        format={(v) => Math.round(v).toLocaleString()}
+                        icon={<MousePointerClick className="h-5 w-5" />}
+                      />
+                      <MetricsCard
+                        title="Impressions"
+                        current={metrics.searchConsole.current.impressions}
+                        previous={metrics.searchConsole.previous.impressions}
+                        format={(v) => Math.round(v).toLocaleString()}
+                        icon={<Eye className="h-5 w-5" />}
+                      />
+                      <MetricsCard
+                        title="CTR"
+                        current={metrics.searchConsole.current.ctr}
+                        previous={metrics.searchConsole.previous.ctr}
+                        format={(v) => `${v.toFixed(2)}%`}
+                        icon={<BarChart3 className="h-5 w-5" />}
+                      />
+                      <MetricsCard
+                        title="Avg Position"
+                        current={metrics.searchConsole.current.position}
+                        previous={metrics.searchConsole.previous.position}
+                        format={(v) => v.toFixed(1)}
+                        icon={<TrendingUp className="h-5 w-5" />}
+                        positiveIsGood={false}
+                      />
+                    </div>
                   </div>
+
+                  {/* Top Keywords */}
+                  {metrics.searchConsole.keywords && metrics.searchConsole.keywords.current.length > 0 && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Top Keywords (Queries)</CardTitle>
+                        <CardDescription>Most popular search queries</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="border-b border-gray-200">
+                                <th className="text-left py-2 px-3 font-semibold text-gray-700">Query</th>
+                                <th className="text-right py-2 px-3 font-semibold text-gray-700">Clicks</th>
+                                <th className="text-right py-2 px-3 font-semibold text-gray-700">Impressions</th>
+                                <th className="text-right py-2 px-3 font-semibold text-gray-700">CTR</th>
+                                <th className="text-right py-2 px-3 font-semibold text-gray-700">Position</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {metrics.searchConsole.keywords.current.slice(0, 20).map((keyword: any, index: number) => {
+                                const prevKeyword = metrics.searchConsole.keywords.previous.find((k: any) => k.query === keyword.query)
+                                const clicksChange = prevKeyword ? calculatePercentChange(keyword.clicks, prevKeyword.clicks) : 0
+                                const impressionsChange = prevKeyword ? calculatePercentChange(keyword.impressions, prevKeyword.impressions) : 0
+                                return (
+                                  <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
+                                    <td className="py-2 px-3 font-medium text-gray-900">{keyword.query}</td>
+                                    <td className="py-2 px-3 text-right">
+                                      <div className="flex items-center justify-end gap-2">
+                                        <span>{Math.round(keyword.clicks).toLocaleString()}</span>
+                                        {prevKeyword && (
+                                          <span className={`text-xs ${clicksChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                            {formatPercentChange(clicksChange)}
+                                          </span>
+                                        )}
+                                      </div>
+                                    </td>
+                                    <td className="py-2 px-3 text-right">
+                                      <div className="flex items-center justify-end gap-2">
+                                        <span>{Math.round(keyword.impressions).toLocaleString()}</span>
+                                        {prevKeyword && (
+                                          <span className={`text-xs ${impressionsChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                            {formatPercentChange(impressionsChange)}
+                                          </span>
+                                        )}
+                                      </div>
+                                    </td>
+                                    <td className="py-2 px-3 text-right">{keyword.ctr.toFixed(2)}%</td>
+                                    <td className="py-2 px-3 text-right">{keyword.position.toFixed(1)}</td>
+                                  </tr>
+                                )
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Top Pages */}
+                  {metrics.searchConsole.pages && metrics.searchConsole.pages.current.length > 0 && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Top Pages</CardTitle>
+                        <CardDescription>Pages with most search visibility</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="border-b border-gray-200">
+                                <th className="text-left py-2 px-3 font-semibold text-gray-700">Page</th>
+                                <th className="text-right py-2 px-3 font-semibold text-gray-700">Clicks</th>
+                                <th className="text-right py-2 px-3 font-semibold text-gray-700">Impressions</th>
+                                <th className="text-right py-2 px-3 font-semibold text-gray-700">CTR</th>
+                                <th className="text-right py-2 px-3 font-semibold text-gray-700">Position</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {metrics.searchConsole.pages.current.slice(0, 20).map((page: any, index: number) => {
+                                const prevPage = metrics.searchConsole.pages.previous.find((p: any) => p.page === page.page)
+                                const clicksChange = prevPage ? calculatePercentChange(page.clicks, prevPage.clicks) : 0
+                                const impressionsChange = prevPage ? calculatePercentChange(page.impressions, prevPage.impressions) : 0
+                                return (
+                                  <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
+                                    <td className="py-2 px-3 font-medium text-gray-900">
+                                      <a href={page.page} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 hover:underline truncate block max-w-md">
+                                        {page.page}
+                                      </a>
+                                    </td>
+                                    <td className="py-2 px-3 text-right">
+                                      <div className="flex items-center justify-end gap-2">
+                                        <span>{Math.round(page.clicks).toLocaleString()}</span>
+                                        {prevPage && (
+                                          <span className={`text-xs ${clicksChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                            {formatPercentChange(clicksChange)}
+                                          </span>
+                                        )}
+                                      </div>
+                                    </td>
+                                    <td className="py-2 px-3 text-right">
+                                      <div className="flex items-center justify-end gap-2">
+                                        <span>{Math.round(page.impressions).toLocaleString()}</span>
+                                        {prevPage && (
+                                          <span className={`text-xs ${impressionsChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                            {formatPercentChange(impressionsChange)}
+                                          </span>
+                                        )}
+                                      </div>
+                                    </td>
+                                    <td className="py-2 px-3 text-right">{page.ctr.toFixed(2)}%</td>
+                                    <td className="py-2 px-3 text-right">{page.position.toFixed(1)}</td>
+                                  </tr>
+                                )
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Countries */}
+                  {metrics.searchConsole.countries && metrics.searchConsole.countries.current.length > 0 && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Traffic by Country</CardTitle>
+                        <CardDescription>Search traffic breakdown by country</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {metrics.searchConsole.countries.current.slice(0, 10).map((country: any, index: number) => {
+                            const prevCountry = metrics.searchConsole.countries.previous.find((c: any) => c.country === country.country)
+                            const clicksChange = prevCountry ? calculatePercentChange(country.clicks, prevCountry.clicks) : 0
+                            return (
+                              <div key={index} className="p-4 border border-gray-200 rounded-lg">
+                                <div className="flex items-center justify-between mb-2">
+                                  <span className="font-semibold text-gray-900">{country.country}</span>
+                                  {prevCountry && (
+                                    <span className={`text-xs px-2 py-1 rounded ${clicksChange >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                      {formatPercentChange(clicksChange)}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="grid grid-cols-2 gap-2 text-sm">
+                                  <div>
+                                    <span className="text-gray-600">Clicks: </span>
+                                    <span className="font-medium">{Math.round(country.clicks).toLocaleString()}</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-gray-600">Impressions: </span>
+                                    <span className="font-medium">{Math.round(country.impressions).toLocaleString()}</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-gray-600">CTR: </span>
+                                    <span className="font-medium">{country.ctr.toFixed(2)}%</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-gray-600">Position: </span>
+                                    <span className="font-medium">{country.position.toFixed(1)}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Devices */}
+                  {metrics.searchConsole.devices && metrics.searchConsole.devices.current.length > 0 && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Traffic by Device</CardTitle>
+                        <CardDescription>Search traffic breakdown by device type</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          {metrics.searchConsole.devices.current.map((device: any, index: number) => {
+                            const prevDevice = metrics.searchConsole.devices.previous.find((d: any) => d.device === device.device)
+                            const clicksChange = prevDevice ? calculatePercentChange(device.clicks, prevDevice.clicks) : 0
+                            return (
+                              <div key={index} className="p-4 border border-gray-200 rounded-lg">
+                                <div className="flex items-center justify-between mb-2">
+                                  <span className="font-semibold text-gray-900 capitalize">{device.device}</span>
+                                  {prevDevice && (
+                                    <span className={`text-xs px-2 py-1 rounded ${clicksChange >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                      {formatPercentChange(clicksChange)}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="space-y-1 text-sm">
+                                  <div className="flex justify-between">
+                                    <span className="text-gray-600">Clicks:</span>
+                                    <span className="font-medium">{Math.round(device.clicks).toLocaleString()}</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-gray-600">Impressions:</span>
+                                    <span className="font-medium">{Math.round(device.impressions).toLocaleString()}</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-gray-600">CTR:</span>
+                                    <span className="font-medium">{device.ctr.toFixed(2)}%</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-gray-600">Position:</span>
+                                    <span className="font-medium">{device.position.toFixed(1)}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
                 </div>
               )}
             </div>
