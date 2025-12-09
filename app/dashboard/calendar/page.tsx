@@ -246,6 +246,14 @@ export default function CalendarPage() {
     return profile?.user_color || '#3b82f6'
   }
 
+  const getTodoColor = (todo: Todo): string => {
+    if (todo.assigned_to) {
+      return getUserColor(todo.assigned_to)
+    }
+    // For unassigned todos, use the color from settings
+    return unassignedColor
+  }
+
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
   const firstDayOfWeek = monthStart.getDay()
   const paddingDays = Array.from({ length: firstDayOfWeek }, (_, i) => i)
