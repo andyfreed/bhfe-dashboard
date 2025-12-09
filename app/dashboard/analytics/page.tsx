@@ -77,8 +77,6 @@ export default function AnalyticsPage() {
   })
   const [metrics, setMetrics] = useState<any>(null)
   const [config, setConfig] = useState({
-    propertyId: '',
-    customerId: '',
     siteUrl: 'https://www.bhfe.com',
   })
   const [showConfig, setShowConfig] = useState(false)
@@ -146,18 +144,6 @@ export default function AnalyticsPage() {
     if (!user) return
 
     const settingsToSave = [
-      {
-        key: 'google_analytics_property_id',
-        value: config.propertyId.trim(),
-        description: 'Google Analytics 4 Property ID',
-        updated_at: new Date().toISOString(),
-      },
-      {
-        key: 'google_ads_customer_id',
-        value: config.customerId.trim(),
-        description: 'Google Ads Customer ID (10 digits)',
-        updated_at: new Date().toISOString(),
-      },
       {
         key: 'google_search_console_site_url',
         value: config.siteUrl.trim(),
@@ -347,8 +333,8 @@ export default function AnalyticsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Google Analytics & Ads</h1>
-          <p className="text-gray-600 mt-1">Performance metrics and comparisons</p>
+          <h1 className="text-3xl font-bold text-gray-900">Google Search Console</h1>
+          <p className="text-gray-600 mt-1">Search performance metrics and insights</p>
         </div>
         <div className="flex items-center gap-3">
           {!isConnected && (
@@ -403,12 +389,12 @@ export default function AnalyticsPage() {
       {isConnected && (
         <>
           <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Configuration</CardTitle>
-                  <CardDescription>Set up your Google Analytics, Ads, and Search Console IDs</CardDescription>
-                </div>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Configuration</CardTitle>
+                <CardDescription>Set up your Google Search Console Site URL</CardDescription>
+              </div>
                 <Button
                   variant="outline"
                   size="sm"
@@ -423,36 +409,6 @@ export default function AnalyticsPage() {
               <CardContent className="space-y-4 pt-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Google Analytics Property ID
-                  </label>
-                  <input
-                    type="text"
-                    value={config.propertyId}
-                    onChange={(e) => setConfig({ ...config, propertyId: e.target.value })}
-                    placeholder="123456789"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Found in GA4 Admin &gt; Property Settings
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Google Ads Customer ID
-                  </label>
-                  <input
-                    type="text"
-                    value={config.customerId}
-                    onChange={(e) => setConfig({ ...config, customerId: e.target.value })}
-                    placeholder="123-456-7890"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    10-digit customer ID from Google Ads account
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     Search Console Site URL
                   </label>
                   <input
@@ -462,6 +418,9 @@ export default function AnalyticsPage() {
                     placeholder="https://www.bhfe.com"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   />
+                  <p className="text-xs text-gray-500 mt-1">
+                    The verified site URL from Google Search Console
+                  </p>
                 </div>
                 <Button onClick={saveConfig} className="w-full">
                   Save Configuration
@@ -499,139 +458,8 @@ export default function AnalyticsPage() {
             </CardContent>
           </Card>
 
-          {metrics && (
+          {metrics && metrics.searchConsole && (
             <div className="space-y-6">
-              {/* Google Analytics Section */}
-              {metrics.analytics && (
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-4">Google Analytics</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <MetricsCard
-                      title="Users"
-                      current={metrics.analytics.users.current}
-                      previous={metrics.analytics.users.previous}
-                      format={(v) => Math.round(v).toLocaleString()}
-                      icon={<Users className="h-5 w-5" />}
-                    />
-                    <MetricsCard
-                      title="Sessions"
-                      current={metrics.analytics.sessions.current}
-                      previous={metrics.analytics.sessions.previous}
-                      format={(v) => Math.round(v).toLocaleString()}
-                      icon={<Activity className="h-5 w-5" />}
-                    />
-                    <MetricsCard
-                      title="Events"
-                      current={metrics.analytics.eventCount.current}
-                      previous={metrics.analytics.eventCount.previous}
-                      format={(v) => Math.round(v).toLocaleString()}
-                      icon={<MousePointerClick className="h-5 w-5" />}
-                    />
-                    <MetricsCard
-                      title="Conversions"
-                      current={metrics.analytics.conversions.current}
-                      previous={metrics.analytics.conversions.previous}
-                      format={(v) => Math.round(v).toLocaleString()}
-                      icon={<CheckCircle className="h-5 w-5" />}
-                    />
-                  </div>
-                </div>
-              )}
-              
-              {/* Google Ads Section */}
-              {metrics.ads ? (
-                <>
-                  <div>
-                    <h2 className="text-2xl font-bold text-gray-900 mb-4">Google Ads Performance</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                      <MetricsCard
-                        title="Spend"
-                        current={metrics.ads.spend.current}
-                        previous={metrics.ads.spend.previous}
-                        format={(v) => `$${v.toFixed(2)}`}
-                        icon={<DollarSign className="h-5 w-5" />}
-                        positiveIsGood={false}
-                      />
-                      <MetricsCard
-                        title="Clicks"
-                        current={metrics.ads.clicks.current}
-                        previous={metrics.ads.clicks.previous}
-                        icon={<MousePointerClick className="h-5 w-5" />}
-                      />
-                      <MetricsCard
-                        title="Impressions"
-                        current={metrics.ads.impressions.current}
-                        previous={metrics.ads.impressions.previous}
-                        icon={<Eye className="h-5 w-5" />}
-                      />
-                      <MetricsCard
-                        title="Avg CPC"
-                        current={metrics.ads.avgCpc.current}
-                        previous={metrics.ads.avgCpc.previous}
-                        format={(v) => `$${v.toFixed(2)}`}
-                        positiveIsGood={false}
-                      />
-                      <MetricsCard
-                        title="Avg CTR"
-                        current={metrics.ads.avgCtr.current}
-                        previous={metrics.ads.avgCtr.previous}
-                        format={(v) => `${v.toFixed(2)}%`}
-                      />
-                      <MetricsCard
-                        title="Conversions"
-                        current={metrics.ads.conversions.current}
-                        previous={metrics.ads.conversions.previous}
-                        format={(v) => v.toFixed(2)}
-                        icon={<CheckCircle className="h-5 w-5" />}
-                      />
-                      <MetricsCard
-                        title="Cost Per Conversion"
-                        current={metrics.ads.costPerConversion.current}
-                        previous={metrics.ads.costPerConversion.previous}
-                        format={(v) => `$${v.toFixed(2)}`}
-                        positiveIsGood={false}
-                      />
-                      <MetricsCard
-                        title="ROAS"
-                        current={metrics.ads.roas.current}
-                        previous={metrics.ads.roas.previous}
-                        format={(v) => `$${v.toFixed(2)}:1`}
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <h2 className="text-2xl font-bold text-gray-900 mb-4">Conversion Breakdown</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {Object.entries(metrics.ads.conversionsBreakdown).map(([key, value]: [string, any]) => (
-                        <MetricsCard
-                          key={key}
-                          title={key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                          current={value.current}
-                          previous={value.previous}
-                          format={(v) => v.toFixed(2)}
-                          icon={<ShoppingCart className="h-5 w-5" />}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                </>
-              ) : config.customerId && (
-                <Card className="border-orange-300 bg-orange-50">
-                  <CardContent className="pt-6">
-                    <div className="flex items-center gap-2 text-orange-700">
-                      <AlertCircle className="h-5 w-5" />
-                      <div>
-                        <p className="font-semibold">No Google Ads data available.</p>
-                        <p className="text-sm mt-1">
-                          Ads API returned an error. Check your Customer ID format and developer token configuration.
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-              
               {/* Google Search Console Section */}
               {metrics.searchConsole && (
                 <div className="space-y-6">
