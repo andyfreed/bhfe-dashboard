@@ -498,30 +498,9 @@ export default function TodosPage() {
         }
       }
 
-      // Created date filter
-      if (filters.createdDateStart || filters.createdDateEnd) {
-        const todoCreatedDate = new Date(todo.created_at)
-        
-        if (filters.createdDateStart) {
-          const startDate = new Date(filters.createdDateStart)
-          startDate.setHours(0, 0, 0, 0)
-          if (todoCreatedDate < startDate) {
-            return false
-          }
-        }
-        
-        if (filters.createdDateEnd) {
-          const endDate = new Date(filters.createdDateEnd)
-          endDate.setHours(23, 59, 59, 999)
-          if (todoCreatedDate > endDate) {
-            return false
-          }
-        }
-      }
-
       return true
     })
-  }, [filters.assignedTo, filters.tag, filters.priority, filters.search, filters.superReminder, filters.createdDateStart, filters.createdDateEnd])
+  }, [filters.assignedTo, filters.tag, filters.priority, filters.search, filters.superReminder])
 
   // Memoize filtered todos to avoid unnecessary recalculations
   const incompleteTodos = useMemo(() => todos.filter((t) => !t.completed), [todos])
@@ -1396,7 +1375,12 @@ export default function TodosPage() {
                         </span>
                       )}
                     </div>
-                  <div className="font-medium line-through">{todo.title}</div>
+                  <div className="flex items-center justify-between">
+                    <div className="font-medium line-through">{todo.title}</div>
+                    <div className="text-xs text-gray-500">
+                      Created {format(new Date(todo.created_at), 'MMM d, yyyy')}
+                    </div>
+                  </div>
                   {todo.description && (
                       <div className="text-sm text-gray-600 mt-1">{todo.description}</div>
                     )}
