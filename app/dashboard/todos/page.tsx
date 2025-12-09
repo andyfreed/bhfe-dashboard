@@ -47,8 +47,7 @@ export default function TodosPage() {
     priority: 'all',
     search: '',
     superReminder: 'all',
-    createdDateStart: '',
-    createdDateEnd: '',
+    sortBy: 'newest', // 'newest' or 'oldest'
   })
   const [formData, setFormData] = useState({
     title: '',
@@ -528,8 +527,11 @@ export default function TodosPage() {
   const incompleteTodos = useMemo(() => todos.filter((t) => !t.completed), [todos])
   const completedTodosList = useMemo(() => todos.filter((t) => t.completed), [todos])
   
-  const activeTodos = useMemo(() => getFilteredTodos(incompleteTodos), [getFilteredTodos, incompleteTodos])
-  const completedTodos = useMemo(() => getFilteredTodos(completedTodosList), [getFilteredTodos, completedTodosList])
+  const filteredActiveTodos = useMemo(() => getFilteredTodos(incompleteTodos), [getFilteredTodos, incompleteTodos])
+  const filteredCompletedTodos = useMemo(() => getFilteredTodos(completedTodosList), [getFilteredTodos, completedTodosList])
+  
+  const activeTodos = useMemo(() => sortTodos(filteredActiveTodos), [sortTodos, filteredActiveTodos])
+  const completedTodos = useMemo(() => sortTodos(filteredCompletedTodos), [sortTodos, filteredCompletedTodos])
 
   // Get all unique tags from todos - memoized
   const allTags = useMemo(() => Array.from(
@@ -1078,7 +1080,12 @@ export default function TodosPage() {
                         </span>
                       )}
                     </div>
-                    <div className="font-medium">{todo.title}</div>
+                    <div className="flex items-center justify-between">
+                      <div className="font-medium">{todo.title}</div>
+                      <div className="text-xs text-gray-500">
+                        Created {format(new Date(todo.created_at), 'MMM d, yyyy')}
+                      </div>
+                    </div>
                     {todo.description && (
                       <div className="text-sm text-gray-600 mt-1">{todo.description}</div>
                     )}
