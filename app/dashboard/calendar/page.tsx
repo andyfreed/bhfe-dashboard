@@ -23,6 +23,7 @@ interface Todo {
   title: string
   due_date: string | null
   completed: boolean
+  assigned_to: string | null
 }
 
 interface Reminder {
@@ -44,6 +45,7 @@ export default function CalendarPage() {
   const [todos, setTodos] = useState<Todo[]>([])
   const [reminders, setReminders] = useState<Reminder[]>([])
   const [profiles, setProfiles] = useState<Record<string, Profile>>({})
+  const [unassignedColor, setUnassignedColor] = useState('#9ca3af')
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [showForm, setShowForm] = useState(false)
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null)
@@ -83,6 +85,17 @@ export default function CalendarPage() {
       setProfiles(profilesMap)
     }
 
+    // Load unassigned todo color from settings
+    const { data: unassignedColorData } = await supabase
+      .from('app_settings')
+      .select('value')
+      .eq('key', 'unassigned_todo_color')
+      .single()
+    
+    if (unassignedColorData) {
+      setUnassignedColor(unassignedColorData.value || '#9ca3af')
+    }
+
     const [eventsResult, todosResult, remindersResult] = await Promise.all([
       supabase
         .from('calendar_events')
@@ -91,7 +104,7 @@ export default function CalendarPage() {
         .lte('start_date', monthEnd.toISOString()),
       supabase
         .from('todos')
-        .select('id, title, due_date, completed')
+        .select('id, title, due_date, completed, assigned_to')
         .gte('due_date', monthStart.toISOString())
         .lte('due_date', monthEnd.toISOString())
         .eq('completed', false),
@@ -407,14 +420,18 @@ export default function CalendarPage() {
                         {event.title}
                       </div>
                     ))}
-                    {dayTodos.slice(0, Math.max(0, 3 - dayEvents.length)).map((todo) => (
-                      <div
-                        key={todo.id}
-                        className="text-xs px-1 py-0.5 rounded truncate bg-blue-100 text-blue-700"
-                      >
-                        {todo.title}
-                      </div>
-                    ))}
+                    {dayTodos.slice(0, Math.max(0, 3 - dayEvents.length)).map((todo) => {
+                      const todoColor = getTodoColor(todo)
+                      return (
+                        <div
+                          key={todo.id}
+                          className="text-xs px-1 py-0.5 rounded truncate"
+                          style={{ backgroundColor: todoColor, color: 'white' }}
+                        >
+                          {todo.title}
+                        </div>
+                      )
+                    })}
                     {dayReminders.slice(0, Math.max(0, 3 - dayEvents.length - dayTodos.length)).map((reminder) => {
                       const reminderColor = getUserColor(reminder.user_id)
                       return (
