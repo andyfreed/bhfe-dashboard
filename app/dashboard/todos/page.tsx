@@ -502,6 +502,17 @@ export default function TodosPage() {
     })
   }, [filters.assignedTo, filters.tag, filters.priority, filters.search, filters.superReminder])
 
+  // Sort filtered todos by creation date
+  const sortTodos = useCallback((todoList: Todo[]) => {
+    const sorted = [...todoList]
+    if (filters.sortBy === 'newest') {
+      sorted.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    } else if (filters.sortBy === 'oldest') {
+      sorted.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+    }
+    return sorted
+  }, [filters.sortBy])
+
   // Memoize filtered todos to avoid unnecessary recalculations
   const incompleteTodos = useMemo(() => todos.filter((t) => !t.completed), [todos])
   const completedTodosList = useMemo(() => todos.filter((t) => t.completed), [todos])
