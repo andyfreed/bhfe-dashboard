@@ -971,33 +971,16 @@ export default function TodosPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Created From</label>
-                <input
-                  type="date"
-                  value={filters.createdDateStart}
-                  onChange={(e) => setFilters({ ...filters, createdDateStart: e.target.value })}
+                <label className="block text-xs font-medium text-gray-700 mb-1">Sort By</label>
+                <select
+                  value={filters.sortBy}
+                  onChange={(e) => setFilters({ ...filters, sortBy: e.target.value })}
                   className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md"
-                />
+                >
+                  <option value="newest">Newest First</option>
+                  <option value="oldest">Oldest First</option>
+                </select>
               </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Created To</label>
-                <input
-                  type="date"
-                  value={filters.createdDateEnd}
-                  onChange={(e) => setFilters({ ...filters, createdDateEnd: e.target.value })}
-                  className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md"
-                />
-              </div>
-              {(filters.createdDateStart || filters.createdDateEnd || filters.superReminder !== 'all') && (
-                <div className="flex items-end">
-                  <button
-                    onClick={() => setFilters({ ...filters, createdDateStart: '', createdDateEnd: '', superReminder: 'all' })}
-                    className="w-full px-3 py-1.5 text-sm text-blue-600 hover:text-blue-800 border border-blue-300 rounded-md hover:bg-blue-50"
-                  >
-                    Clear Date & Super Filters
-                  </button>
-                </div>
-              )}
             </div>
           </div>
           <div className="space-y-2">
