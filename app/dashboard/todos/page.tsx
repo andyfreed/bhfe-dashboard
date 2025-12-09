@@ -46,6 +46,9 @@ export default function TodosPage() {
     tag: 'all',
     priority: 'all',
     search: '',
+    superReminder: 'all',
+    createdDateStart: '',
+    createdDateEnd: '',
   })
   const [formData, setFormData] = useState({
     title: '',
@@ -485,9 +488,41 @@ export default function TodosPage() {
         }
       }
 
+      // Super reminder filter
+      if (filters.superReminder !== 'all') {
+        const isSuperReminder = todo.is_super_reminder || false
+        if (filters.superReminder === 'yes' && !isSuperReminder) {
+          return false
+        }
+        if (filters.superReminder === 'no' && isSuperReminder) {
+          return false
+        }
+      }
+
+      // Created date filter
+      if (filters.createdDateStart || filters.createdDateEnd) {
+        const todoCreatedDate = new Date(todo.created_at)
+        
+        if (filters.createdDateStart) {
+          const startDate = new Date(filters.createdDateStart)
+          startDate.setHours(0, 0, 0, 0)
+          if (todoCreatedDate < startDate) {
+            return false
+          }
+        }
+        
+        if (filters.createdDateEnd) {
+          const endDate = new Date(filters.createdDateEnd)
+          endDate.setHours(23, 59, 59, 999)
+          if (todoCreatedDate > endDate) {
+            return false
+          }
+        }
+      }
+
       return true
     })
-  }, [filters.assignedTo, filters.tag, filters.priority, filters.search])
+  }, [filters.assignedTo, filters.tag, filters.priority, filters.search, filters.superReminder, filters.createdDateStart, filters.createdDateEnd])
 
   // Memoize filtered todos to avoid unnecessary recalculations
   const incompleteTodos = useMemo(() => todos.filter((t) => !t.completed), [todos])
@@ -876,7 +911,7 @@ export default function TodosPage() {
               <Filter className="h-4 w-4 text-gray-600" />
               <span className="text-sm font-medium text-gray-700">Filters</span>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">Search</label>
                 <input
@@ -931,6 +966,46 @@ export default function TodosPage() {
                   <option value="low">Low</option>
                 </select>
               </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Super Reminder</label>
+                <select
+                  value={filters.superReminder}
+                  onChange={(e) => setFilters({ ...filters, superReminder: e.target.value })}
+                  className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md"
+                >
+                  <option value="all">All</option>
+                  <option value="yes">Super Reminders Only</option>
+                  <option value="no">Non-Super Reminders</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Created From</label>
+                <input
+                  type="date"
+                  value={filters.createdDateStart}
+                  onChange={(e) => setFilters({ ...filters, createdDateStart: e.target.value })}
+                  className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Created To</label>
+                <input
+                  type="date"
+                  value={filters.createdDateEnd}
+                  onChange={(e) => setFilters({ ...filters, createdDateEnd: e.target.value })}
+                  className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md"
+                />
+              </div>
+              {(filters.createdDateStart || filters.createdDateEnd || filters.superReminder !== 'all') && (
+                <div className="flex items-end">
+                  <button
+                    onClick={() => setFilters({ ...filters, createdDateStart: '', createdDateEnd: '', superReminder: 'all' })}
+                    className="w-full px-3 py-1.5 text-sm text-blue-600 hover:text-blue-800 border border-blue-300 rounded-md hover:bg-blue-50"
+                  >
+                    Clear Date & Super Filters
+                  </button>
+                </div>
+              )}
             </div>
           </div>
           <div className="space-y-2">
