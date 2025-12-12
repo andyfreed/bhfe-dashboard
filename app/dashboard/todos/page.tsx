@@ -502,13 +502,29 @@ export default function TodosPage() {
     })
   }, [filters.assignedTo, filters.tag, filters.priority, filters.search, filters.superReminder])
 
-  // Sort filtered todos by creation date
+  // Sort filtered todos by creation date or due date
   const sortTodos = useCallback((todoList: Todo[]) => {
     const sorted = [...todoList]
     if (filters.sortBy === 'newest') {
       sorted.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     } else if (filters.sortBy === 'oldest') {
       sorted.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+    } else if (filters.sortBy === 'dueDateAsc') {
+      sorted.sort((a, b) => {
+        // Put todos without due dates at the end
+        if (!a.due_date && !b.due_date) return 0
+        if (!a.due_date) return 1
+        if (!b.due_date) return -1
+        return new Date(a.due_date).getTime() - new Date(b.due_date).getTime()
+      })
+    } else if (filters.sortBy === 'dueDateDesc') {
+      sorted.sort((a, b) => {
+        // Put todos without due dates at the end
+        if (!a.due_date && !b.due_date) return 0
+        if (!a.due_date) return 1
+        if (!b.due_date) return -1
+        return new Date(b.due_date).getTime() - new Date(a.due_date).getTime()
+      })
     }
     return sorted
   }, [filters.sortBy])
