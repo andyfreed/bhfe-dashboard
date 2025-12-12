@@ -47,7 +47,7 @@ export default function TodosPage() {
     priority: 'all',
     search: '',
     superReminder: 'all',
-    sortBy: 'newest', // 'newest' or 'oldest'
+    sortBy: 'newest', // 'newest', 'oldest', 'dueDateAsc', 'dueDateDesc'
   })
   const [formData, setFormData] = useState({
     title: '',
@@ -977,8 +977,10 @@ export default function TodosPage() {
                   onChange={(e) => setFilters({ ...filters, sortBy: e.target.value })}
                   className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md"
                 >
-                  <option value="newest">Newest First</option>
-                  <option value="oldest">Oldest First</option>
+                  <option value="newest">Newest First (by Creation)</option>
+                  <option value="oldest">Oldest First (by Creation)</option>
+                  <option value="dueDateAsc">Due Date: Earliest First</option>
+                  <option value="dueDateDesc">Due Date: Latest First</option>
                 </select>
               </div>
             </div>
