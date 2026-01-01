@@ -15,6 +15,52 @@ A comprehensive business management dashboard for CPE course providers. Built wi
 - **Quick Links**: Frequently visited websites
 - **Time/Date Display**: Current time and date shown in the sidebar
 
+## CPA CPE LLM Extraction (State-by-State)
+LLM-first extraction of CPA CPE renewal requirements from raw state rules. No regex or rule-based parsing.
+
+### Flow
+1) Go to `Dashboard -> Regulatory -> CPA`.
+2) Select a state, paste the raw statute/rule text (no preprocessing).
+3) Optional: set source title/URL and effective date.
+4) Click “Run AI Extraction”. The API calls OpenAI with strict `json_schema` structured outputs.
+5) Results are upserted into `cpa_state_cpe_requirements` by `state_code` and rendered in a plain-English, “dad-readable” view.
+
+### Prompt guardrails (system)
+- Scope: only CPE for CPA license renewal (hours, periods, ethics, carryover, delivery limits, deadlines, audit/records, reinstatement/late renewal tied to CPE).
+- Ignore non-CPE topics (exam eligibility, reciprocity, firm licensing/peer review, conduct rules unless they state ethics CPE hours, etc.).
+- Find the CPE/renewal sections first; extract only from those.
+- Never guess: if unclear, set nulls and `needs_human_review = true`.
+- Evidence: every non-null requirement should add a citation in `other_requirements` with a short quote/section reference.
+
+### API
+- Route: `app/api/regulatory/cpa/extract/route.ts`
+- Model allowlist: `gpt-4.1-mini` (default) or `gpt-4.1`
+- `response_format: { type: "json_schema" }` with strict schema matching DB columns.
+- Validation: parse/schema/evidence issues flag `needs_human_review` but still save.
+- Upsert key: `state_code` into `cpa_state_cpe_requirements`.
+
+### Data model
+- Table: `cpa_state_cpe_requirements`
+- Key fields: `state_code`, `state_name`, `schema_version`, `source_text`, `extracted_json` (full contract), reporting period fields, hours/ethics, carryover, deadlines, audit/records, `other_requirements` (evidence), `needs_human_review`, `extraction_confidence`, provenance/timestamps.
+- Defaults keep inserts resilient (`unknown` accrual/reporting types, nullable fields).
+
+### UI highlights
+- Plain-English summary and “Key Takeaways”.
+- Stat cards (total hours, ethics hours, carryover) and friendly reporting period (no enums shown).
+- Key details hide empty/“Not specified” rows; core items stay visible.
+- Category and delivery tables; evidence list with citations + “View source” link if provided.
+- Advanced collapsibles for raw JSON and source text.
+
+### Environment & running
+- Requires `OPENAI_API_KEY` in env (see `.env.local.example`).
+- Run locally: `npm install && npm run dev`.
+- Ensure the CPA CPE migration is applied (creates `cpa_state_cpe_requirements`).
+
+### Operational notes
+- If the pasted text lacks CPE specifics, expect nulls and `needs_human_review = true`.
+- Missing citations also set `needs_human_review`.
+- Re-running extraction overwrites the state’s row via upsert.
+
 ## Tech Stack
 
 - **Framework**: Next.js 16 (App Router)
