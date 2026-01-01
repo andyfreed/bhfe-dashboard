@@ -85,6 +85,50 @@ const friendlyValue = (value: any) => {
   return value
 }
 
+const toTitleCase = (str: string) =>
+  str
+    .replace(/_/g, ' ')
+    .split(' ')
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ')
+
+const friendlyEnum = (value: any) => {
+  if (value === null || value === undefined) return 'Not specified'
+  const lower = String(value).toLowerCase()
+  if (['none_specified', 'none', 'unknown', ''].includes(lower)) return 'Not specified'
+  return toTitleCase(lower)
+}
+
+const formatPeriod = (
+  months: number | null,
+  type: string | null,
+  startRule: string | null,
+  endRule: string | null
+) => {
+  let base = 'Not specified'
+  if (months) {
+    if (months === 12) base = '1 year'
+    else if (months === 24) base = '2 years'
+    else if (months === 36) base = '3 years'
+    else base = `${months} months`
+  }
+  if (type === 'fixed_multi_year_window' && months === 24) {
+    base = 'Every 2 years'
+  }
+  const parts = [base]
+  if (startRule) parts.push(`Starts: ${startRule}`)
+  if (endRule) parts.push(`Ends: ${endRule}`)
+  return parts.filter(Boolean).join(' • ')
+}
+
+const shouldRender = (value: any) => {
+  if (value === null || value === undefined) return false
+  if (Array.isArray(value) && value.length === 0) return false
+  const str = typeof value === 'string' ? value.trim().toLowerCase() : null
+  if (str === '' || str === 'not specified' || ['none', 'none_specified', 'unknown'].includes(str || '')) return false
+  return true
+}
+
 function Collapsible({
   title,
   children,
@@ -255,25 +299,55 @@ export default function StatesPage() {
       { label: 'Carryover Allowed', value: requirement.carryover_allowed },
     ]
 
+    const reportingPeriod = formatPeriod(
+      requirement.reporting_period_length_months,
+      requirement.reporting_period_type,
+      requirement.reporting_period_start_rule,
+      requirement.reporting_period_end_rule
+    )
+
+    const accrualMethod = friendlyEnum(requirement.accrual_method)
+
     const keyDetails = [
-      { label: 'Reporting Period Type', value: requirement.reporting_period_type },
-      { label: 'Reporting Length (months)', value: requirement.reporting_period_length_months },
-      { label: 'Start Rule', value: requirement.reporting_period_start_rule },
-      { label: 'End Rule', value: requirement.reporting_period_end_rule },
-      { label: 'Examples', value: requirement.reporting_period_examples ? JSON.stringify(requirement.reporting_period_examples) : null },
-      { label: 'Accrual Method', value: requirement.accrual_method },
-      { label: 'Accrual Rate Hours', value: requirement.accrual_rate_hours },
-      { label: 'Accrual Rate Period', value: requirement.accrual_rate_period },
-      { label: 'Prorating Rules', value: requirement.prorating_rules },
-      { label: 'Deadline Rule', value: requirement.completion_deadline_rule },
-      { label: 'Deadline Anchor', value: requirement.completion_deadline_anchor },
-      { label: 'Late Policy', value: requirement.late_policy_summary },
-      { label: 'Record Retention (years)', value: requirement.record_retention_years },
-      { label: 'Audit Policy', value: requirement.audit_policy_summary },
-      { label: 'Carryover Max Hours', value: requirement.carryover_max_hours },
-      { label: 'Carryover Notes', value: requirement.carryover_notes },
-      { label: 'Initial License Rules', value: requirement.initial_license_rules },
-      { label: 'Inactive Status Rules', value: requirement.inactive_status_rules },
+      { label: 'Reporting period', value: reportingPeriod, always: true },
+      { label: 'Accrual method', value: accrualMethod },
+      { label: 'Accrual rate hours', value: requirement.accrual_rate_hours },
+      { label: 'Accrual rate period', value: requirement.accrual_rate_period },
+      { label: 'Prorating rules', value: requirement.prorating_rules },
+      {
+        label: 'Deadline / Late policy',
+        value:
+          !requirement.completion_deadline_rule && !requirement.late_policy_summary
+            ? null
+            : [
+                requirement.completion_deadline_rule
+                  ? `Deadline: ${requirement.completion_deadline_rule}${
+                      requirement.completion_deadline_anchor ? ` (${requirement.completion_deadline_anchor})` : ''
+                    }`
+                  : null,
+                requirement.late_policy_summary ? `Late policy: ${requirement.late_policy_summary}` : null,
+              ]
+                .filter(Boolean)
+                .join(' • '),
+      },
+      { label: 'Record retention (years)', value: requirement.record_retention_years },
+      { label: 'Audit policy', value: requirement.audit_policy_summary },
+      {
+        label: 'Carryover',
+        value:
+          requirement.carryover_allowed === false
+            ? 'Not allowed'
+            : requirement.carryover_allowed === true
+              ? `Allowed${requirement.carryover_max_hours ? ` (up to ${requirement.carryover_max_hours} hours)` : ''}`
+              : 'Not specified',
+        always: true,
+      },
+      {
+        label: 'Carryover notes',
+        value: requirement.carryover_allowed ? requirement.carryover_notes : null,
+      },
+      { label: 'Initial license rules', value: requirement.initial_license_rules },
+      { label: 'Inactive status rules', value: requirement.inactive_status_rules },
       { label: 'Reactivation / Reinstatement', value: requirement.reactivation_reinstatement_rules },
     ]
 
@@ -295,6 +369,18 @@ export default function StatesPage() {
     const citations = requirement.other_requirements || []
     const hasCitations = citations.length > 0
 
+    const takeaways = [
+      `You need ${friendlyValue(requirement.total_hours_required)} hours every ${friendlyValue(reportingPeriod)}.`,
+      ethicsHours !== null && ethicsHours !== undefined
+        ? `Includes ${friendlyValue(ethicsHours)} ethics hours.`
+        : null,
+      requirement.carryover_allowed === true
+        ? 'Carryover is allowed.'
+        : requirement.carryover_allowed === false
+          ? 'Carryover is not allowed.'
+          : 'Carryover is not specified.',
+    ].filter(Boolean)
+
     return (
       <div className="space-y-6">
         <div className="flex flex-wrap gap-3 text-gray-700 text-sm">
@@ -314,6 +400,12 @@ export default function StatesPage() {
           </p>
         </div>
 
+        <div className="bg-blue-50 border border-blue-100 text-blue-900 text-sm rounded-md px-3 py-2 space-y-1">
+          {takeaways.map((t, idx) => (
+            <div key={idx}>{t}</div>
+          ))}
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {stats.map((stat) => (
             <Card key={stat.label} className="border border-gray-200">
@@ -328,12 +420,18 @@ export default function StatesPage() {
         <div className="space-y-2">
           <h4 className="font-semibold text-gray-900">Key details</h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-            {keyDetails.map((item) => (
-              <div key={item.label} className="flex justify-between border border-gray-200 rounded-md px-3 py-2">
-                <span className="text-gray-600">{item.label}</span>
-                <span className="text-gray-900 text-right ml-2">{friendlyValue(item.value)}</span>
-              </div>
-            ))}
+            {keyDetails
+              .filter((item) => item.always || shouldRender(item.value))
+              .map((item) => (
+                <div key={item.label} className="flex justify-between border border-gray-200 rounded-md px-3 py-2">
+                  <span className="text-gray-600">{item.label}</span>
+                  <span className="text-gray-900 text-right ml-2">
+                    {Array.isArray(item.value)
+                      ? item.value.join(' ')
+                      : friendlyValue(item.value)}
+                  </span>
+                </div>
+              ))}
           </div>
         </div>
 
@@ -353,10 +451,12 @@ export default function StatesPage() {
                 <tbody>
                   {requirement.category_requirements.map((c, idx) => (
                     <tr key={idx} className="border-t border-gray-100">
-                      <td className="px-3 py-2">{friendlyValue(c.category)}</td>
+                      <td className="px-3 py-2">{friendlyValue(c.category ? toTitleCase(c.category) : null)}</td>
                       <td className="px-3 py-2">{friendlyValue(c.hours)}</td>
-                      <td className="px-3 py-2">{friendlyValue(c.notes)}</td>
-                      <td className="px-3 py-2">{friendlyValue(c.max_percent_allowed)}</td>
+                      <td className="px-3 py-2">{c.notes === null || c.notes === undefined ? '—' : c.notes}</td>
+                      <td className="px-3 py-2">
+                        {c.max_percent_allowed === null || c.max_percent_allowed === undefined ? '—' : c.max_percent_allowed}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -394,7 +494,21 @@ export default function StatesPage() {
         )}
 
         <div className="space-y-2">
-          <h4 className="font-semibold text-gray-900">Evidence & Citations</h4>
+          <div className="flex items-center justify-between">
+            <h4 className="font-semibold text-gray-900">Evidence & Citations</h4>
+            {requirement.source_url ? (
+              <a
+                href={requirement.source_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-blue-600 hover:underline"
+              >
+                View source
+              </a>
+            ) : (
+              <span className="text-xs text-gray-500">Source link not provided</span>
+            )}
+          </div>
           {!hasCitations && (
             <div className="text-sm text-yellow-800 bg-yellow-50 border border-yellow-200 rounded-md px-3 py-2">
               No citations provided. This will require human review.
@@ -404,9 +518,13 @@ export default function StatesPage() {
             <ul className="list-disc list-inside space-y-1 text-sm text-gray-800">
               {citations.map((c, idx) => (
                 <li key={idx}>
-                  <span className="font-medium">{friendlyValue(c.title)}:</span>{' '}
-                  {friendlyValue(c.details)}{' '}
-                  {c.citation ? <span className="text-gray-600">({c.citation})</span> : null}
+                  <div>
+                    <span className="font-medium">{friendlyValue(c.title)}:</span>{' '}
+                    {friendlyValue(c.details)}
+                  </div>
+                  {c.citation ? (
+                    <div className="text-xs text-gray-600 mt-0.5">Citation: {c.citation}</div>
+                  ) : null}
                 </li>
               ))}
             </ul>
