@@ -64,27 +64,53 @@ const CONTRACT_SCHEMA = {
       state_code: { type: 'string', pattern: '^[A-Z]{2}$' },
       state_name: { type: ['string', 'null'] },
       reporting_period: {
-        type: 'object',
-        additionalProperties: false,
-        properties: {
-          type: { type: 'string' },
-          length_months: { type: ['number', 'null'] },
-          start_rule: { type: ['string', 'null'] },
-          end_rule: { type: ['string', 'null'] },
-          examples: {
-            type: ['array', 'null'],
-            items: {
-              type: 'object',
-              additionalProperties: false,
-              properties: {
-                start: { type: 'string' },
-                end: { type: 'string' },
+        anyOf: [
+          {
+            type: 'object',
+            additionalProperties: false,
+            properties: {
+              type: { type: 'string' },
+              length_months: { type: ['number', 'null'] },
+              start_rule: { type: ['string', 'null'] },
+              end_rule: { type: ['string', 'null'] },
+              examples: {
+                type: ['array', 'null'],
+                items: {
+                  type: 'object',
+                  additionalProperties: false,
+                  properties: {
+                    start: { type: 'string' },
+                    end: { type: 'string' },
+                  },
+                  required: ['start', 'end'],
+                },
               },
-              required: ['start', 'end'],
             },
+            required: ['type', 'length_months'],
           },
-        },
-        required: ['type'],
+          {
+            type: 'object',
+            additionalProperties: false,
+            properties: {
+              type: { type: 'string' },
+              start_rule: { type: ['string', 'null'] },
+              end_rule: { type: ['string', 'null'] },
+              examples: {
+                type: ['array', 'null'],
+                items: {
+                  type: 'object',
+                  additionalProperties: false,
+                  properties: {
+                    start: { type: 'string' },
+                    end: { type: 'string' },
+                  },
+                  required: ['start', 'end'],
+                },
+              },
+            },
+            required: ['type'],
+          },
+        ],
       },
       hours: {
         type: 'object',
@@ -219,9 +245,15 @@ function validateShape(payload: PartialRequirement) {
     errors.push('reporting_period missing')
   } else {
     if (!isString(payload.reporting_period.type)) errors.push('reporting_period.type missing/invalid')
-    if (!isNumberOrNull(payload.reporting_period.length_months)) errors.push('reporting_period.length_months invalid')
-    if (!isNullableString(payload.reporting_period.start_rule)) errors.push('reporting_period.start_rule invalid')
-    if (!isNullableString(payload.reporting_period.end_rule)) errors.push('reporting_period.end_rule invalid')
+    if (payload.reporting_period.length_months !== undefined && !isNumberOrNull(payload.reporting_period.length_months)) {
+      errors.push('reporting_period.length_months invalid')
+    }
+    if (payload.reporting_period.start_rule !== undefined && !isNullableString(payload.reporting_period.start_rule)) {
+      errors.push('reporting_period.start_rule invalid')
+    }
+    if (payload.reporting_period.end_rule !== undefined && !isNullableString(payload.reporting_period.end_rule)) {
+      errors.push('reporting_period.end_rule invalid')
+    }
     if (payload.reporting_period.examples != null) {
       if (!Array.isArray(payload.reporting_period.examples)) errors.push('reporting_period.examples invalid')
       else {
