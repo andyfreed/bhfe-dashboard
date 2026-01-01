@@ -526,7 +526,7 @@ export default function StatesPage() {
         <div className="space-y-2">
           <h4 className="font-semibold text-lg text-gray-900">Plain English Summary</h4>
           <p className="text-gray-800 whitespace-pre-wrap text-sm">
-            {requirement.plain_english_summary || 'Not specified'}
+            {req.plain_english_summary || 'Not specified'}
           </p>
         </div>
 
