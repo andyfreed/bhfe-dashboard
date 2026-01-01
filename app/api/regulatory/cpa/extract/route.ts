@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
-const ALLOWED_MODELS = ['gpt-4.1-mini', 'gpt-4.1']
-const DEFAULT_MODEL = 'gpt-4.1-mini'
+const ALLOWED_MODELS = ['chatgpt-5.2', 'gpt-4.1-mini', 'gpt-4.1']
+const DEFAULT_MODEL = 'chatgpt-5.2'
 const MIN_CONFIDENCE = 0.75
 const SCHEMA_VERSION = 'cpa_cpe_v1'
 
