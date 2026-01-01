@@ -8,6 +8,12 @@ const SCHEMA_VERSION = 'cpa_cpe_v1'
 
 const CONTRACT = `
 You are a CPA regulatory analyst. Interpret the pasted statute/rule text and fill the CPA CPE schema. Do NOT use keyword rules; reason like a human analyst.
+- Scope: Extract ONLY continuing professional education (CPE) requirements for CPA LICENSE RENEWAL (hours, reporting period, ethics hours, carryover, delivery limits, deadlines, audit/records, reinstatement/late renewal if tied to CPE). Ignore exam eligibility, certification, reciprocity, firm licensing/peer review, professional conduct/ethics rules (unless they specify required ethics CPE hours), discrimination/communications, and other non-CPE topics.
+- The input text may include lots of irrelevant material. First locate the specific section(s) about “Mandatory Continuing Professional Education”, “Continuing Education”, “CPE”, “Renewal”, “Re-licensing”, or “Reinstatement”, then extract only from those sections.
+- Never guess. If the statute does not explicitly state a value, output null and set needs_human_review=true.
+- Evidence requirement: For every non-null requirement you extract (hours, ethics, carryover, reporting period, deadlines, delivery limits, records/audit), add an entry to other_requirements with:
+  { title: "<field_name>", details: "<what you extracted>", citation: "<short quote or section reference>" }
+  Use short quotes (1–2 sentences max) or section numbers like “252 CMR 2.14(2)”.
 - If unclear, leave fields null and set needs_human_review true.
 - Capture edge cases in other_requirements.
 - Respond with JSON ONLY matching this contract:
@@ -216,6 +222,7 @@ type PartialRequirement = {
   plain_english_summary?: string | null
   extraction_confidence?: number | null
   needs_human_review?: boolean
+  schema_version?: string
 }
 
 function validateShape(payload: PartialRequirement) {
@@ -344,9 +351,7 @@ function needsReviewFlag(payload: PartialRequirement, body: any, parseError: boo
   const lowConfidence =
     typeof payload.extraction_confidence === 'number' ? payload.extraction_confidence < MIN_CONFIDENCE : true
   const mismatch = payload.state_code && payload.state_code !== body.state_code
-  const text = body.source_text?.toLowerCase?.() || ''
-  const discretionary = /case[- ]by[- ]case|board discretion|may waive|as determined by board/i.test(text)
-  return parseError || allIssues.length > 0 || lowConfidence || mismatch || discretionary || payload.needs_human_review === true
+  return parseError || allIssues.length > 0 || lowConfidence || mismatch || payload.needs_human_review === true
 }
 
 function mapToDb(payload: PartialRequirement, body: any, needsReview: boolean) {
