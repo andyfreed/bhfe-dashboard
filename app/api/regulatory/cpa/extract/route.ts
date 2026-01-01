@@ -77,8 +77,20 @@ const CONTRACT_SCHEMA = {
           length_months: { type: ['number', 'null'] },
           start_rule: { type: ['string', 'null'] },
           end_rule: { type: ['string', 'null'] },
+          examples: {
+            type: ['array', 'null'],
+            items: {
+              type: 'object',
+              additionalProperties: false,
+              properties: {
+                start: { type: ['string', 'null'] },
+                end: { type: ['string', 'null'] },
+              },
+              required: ['start', 'end'],
+            },
+          },
         },
-        required: ['type', 'length_months', 'start_rule', 'end_rule'],
+        required: ['type', 'length_months', 'start_rule', 'end_rule', 'examples'],
       },
       hours: {
         type: 'object',
@@ -245,6 +257,15 @@ function validateShape(payload: PartialRequirement) {
     if (rp.length_months === undefined || !isNumberOrNull(rp.length_months)) errors.push('reporting_period.length_months missing/invalid')
     if (rp.start_rule === undefined || !isNullableString(rp.start_rule)) errors.push('reporting_period.start_rule missing/invalid')
     if (rp.end_rule === undefined || !isNullableString(rp.end_rule)) errors.push('reporting_period.end_rule missing/invalid')
+    if (rp.examples === undefined || (rp.examples !== null && !Array.isArray(rp.examples))) {
+      errors.push('reporting_period.examples missing/invalid')
+    } else if (Array.isArray(rp.examples)) {
+      rp.examples.forEach((ex: any, idx: number) => {
+        if (!ex || typeof ex !== 'object' || ex.start === undefined || ex.end === undefined || !isNullableString(ex.start) || !isNullableString(ex.end)) {
+          errors.push(`reporting_period.examples[${idx}] invalid`)
+        }
+      })
+    }
   }
 
   if (!payload.hours || typeof payload.hours !== 'object') {
@@ -347,7 +368,24 @@ function validateShape(payload: PartialRequirement) {
 
 function needsReviewFlag(payload: PartialRequirement, body: any, parseError: boolean, validationErrors: string[]) {
   const issues = validateShape(payload)
-  const allIssues = [...issues, ...validationErrors]
+  const requiresEvidence =
+    (payload.hours?.total_required ?? null) !== null ||
+    (payload.reporting_period?.type ?? null) !== null ||
+    (payload.reporting_period?.start_rule ?? null) !== null ||
+    (payload.reporting_period?.end_rule ?? null) !== null ||
+    (payload.reporting_period?.length_months ?? null) !== null ||
+    (payload.deadlines?.completion_deadline_rule ?? null) !== null ||
+    (payload.audit_and_records?.record_retention_years ?? null) !== null
+
+  const hasCitation =
+    Array.isArray(payload.other_requirements) &&
+    payload.other_requirements.some(
+      (o) => o && o.citation !== undefined && o.citation !== null && o.citation !== ''
+    )
+
+  const evidenceIssue = requiresEvidence && !hasCitation ? ['evidence missing for extracted fields'] : []
+
+  const allIssues = [...issues, ...validationErrors, ...evidenceIssue]
   const lowConfidence =
     typeof payload.extraction_confidence === 'number' ? payload.extraction_confidence < MIN_CONFIDENCE : true
   const mismatch = payload.state_code && payload.state_code !== body.state_code
