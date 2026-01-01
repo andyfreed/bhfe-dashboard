@@ -70,45 +70,29 @@ const CONTRACT_SCHEMA = {
             additionalProperties: false,
             properties: {
               type: { type: 'string' },
-              length_months: { type: ['number', 'null'] },
-              start_rule: { type: ['string', 'null'] },
-              end_rule: { type: ['string', 'null'] },
-              examples: {
-                type: ['array', 'null'],
-                items: {
-                  type: 'object',
-                  additionalProperties: false,
-                  properties: {
-                    start: { type: 'string' },
-                    end: { type: 'string' },
-                  },
-                  required: ['start', 'end'],
-                },
-              },
             },
-            required: ['type', 'length_months'],
+            required: ['type'],
           },
           {
             type: 'object',
             additionalProperties: false,
             properties: {
               type: { type: 'string' },
-              start_rule: { type: ['string', 'null'] },
-              end_rule: { type: ['string', 'null'] },
-              examples: {
-                type: ['array', 'null'],
-                items: {
-                  type: 'object',
-                  additionalProperties: false,
-                  properties: {
-                    start: { type: 'string' },
-                    end: { type: 'string' },
-                  },
-                  required: ['start', 'end'],
-                },
-              },
+              start_rule: { type: 'string' },
+              end_rule: { type: 'string' },
             },
-            required: ['type'],
+            required: ['type', 'start_rule', 'end_rule'],
+          },
+          {
+            type: 'object',
+            additionalProperties: false,
+            properties: {
+              type: { type: 'string' },
+              length_months: { type: 'number' },
+              start_rule: { type: 'string' },
+              end_rule: { type: 'string' },
+            },
+            required: ['type', 'length_months', 'start_rule', 'end_rule'],
           },
         ],
       },
@@ -241,28 +225,15 @@ function validateShape(payload: PartialRequirement) {
     errors.push('state_code missing/invalid')
   }
 
-  if (!payload.reporting_period || typeof payload.reporting_period !== 'object') {
+  const rp = payload.reporting_period
+  if (!rp || typeof rp !== 'object') {
     errors.push('reporting_period missing')
   } else {
-    if (!isString(payload.reporting_period.type)) errors.push('reporting_period.type missing/invalid')
-    if (payload.reporting_period.length_months !== undefined && !isNumberOrNull(payload.reporting_period.length_months)) {
-      errors.push('reporting_period.length_months invalid')
-    }
-    if (payload.reporting_period.start_rule !== undefined && !isNullableString(payload.reporting_period.start_rule)) {
-      errors.push('reporting_period.start_rule invalid')
-    }
-    if (payload.reporting_period.end_rule !== undefined && !isNullableString(payload.reporting_period.end_rule)) {
-      errors.push('reporting_period.end_rule invalid')
-    }
-    if (payload.reporting_period.examples != null) {
-      if (!Array.isArray(payload.reporting_period.examples)) errors.push('reporting_period.examples invalid')
-      else {
-        payload.reporting_period.examples.forEach((ex: any, idx: number) => {
-          if (!ex || typeof ex !== 'object' || !isString(ex.start) || !isString(ex.end)) {
-            errors.push(`reporting_period.examples[${idx}] invalid`)
-          }
-        })
-      }
+    const variant1 = rp.type && isString(rp.type) && rp.start_rule === undefined && rp.end_rule === undefined && rp.length_months === undefined
+    const variant2 = rp.type && isString(rp.type) && isString(rp.start_rule) && isString(rp.end_rule) && rp.length_months === undefined
+    const variant3 = rp.type && isString(rp.type) && typeof rp.length_months === 'number' && isString(rp.start_rule) && isString(rp.end_rule)
+    if (!variant1 && !variant2 && !variant3) {
+      errors.push('reporting_period invalid shape')
     }
   }
 
