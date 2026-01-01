@@ -1,24 +1,54 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { MapPin, Edit, Save, X } from 'lucide-react'
-import { format } from 'date-fns'
+import { MapPin, Play, RefreshCw } from 'lucide-react'
 
 interface StateInfo {
   id: string
   state_code: string
   state_name: string
-  cpe_requirements: string | null
-  renewal_period: string | null
-  renewal_month: string | null
-  contact_info: string | null
-  website_url: string | null
-  notes: string | null
-  last_updated: string
-  updated_by: string | null
+}
+
+interface CpaRequirement {
+  id: string
+  state_code: string
+  state_name: string
+  effective_date: string | null
+  source_title: string | null
+  source_url: string | null
+  source_text: string
+  extracted_at: string
+  model_name: string | null
+  extraction_confidence: number | null
+  needs_human_review: boolean
+  reporting_period_type: string
+  reporting_period_length_months: number | null
+  reporting_period_start_rule: string | null
+  reporting_period_end_rule: string | null
+  reporting_period_examples: any | null
+  total_hours_required: number | null
+  accrual_method: string
+  accrual_rate_hours: number | null
+  accrual_rate_period: string | null
+  prorating_rules: string | null
+  completion_deadline_rule: string | null
+  completion_deadline_anchor: string | null
+  late_policy_summary: string | null
+  category_requirements: any[]
+  delivery_constraints: any[]
+  carryover_allowed: boolean | null
+  carryover_max_hours: number | null
+  carryover_notes: string | null
+  initial_license_rules: string | null
+  inactive_status_rules: string | null
+  reactivation_reinstatement_rules: string | null
+  audit_policy_summary: string | null
+  record_retention_years: number | null
+  other_requirements: any[]
+  plain_english_summary: string | null
 }
 
 const US_STATES = [
@@ -41,60 +71,49 @@ const US_STATES = [
   { code: 'WI', name: 'Wisconsin' }, { code: 'WY', name: 'Wyoming' },
 ]
 
-const MONTHS = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
-  'Varies',
-]
+const EMPTY_EXTRACTION: Partial<CpaRequirement> = {
+  reporting_period_type: '',
+  accrual_method: '',
+  category_requirements: [],
+  delivery_constraints: [],
+  other_requirements: [],
+}
 
 export default function StatesPage() {
   const [states, setStates] = useState<StateInfo[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedState, setSelectedState] = useState<StateInfo | null>(null)
-  const [editingState, setEditingState] = useState<StateInfo | null>(null)
-  const [formData, setFormData] = useState({
-    cpe_requirements: '',
-    renewal_period: '',
-    renewal_month: '',
-    contact_info: '',
-    website_url: '',
-    notes: '',
-  })
   const [searchTerm, setSearchTerm] = useState('')
-  const supabase = createClient()
+  const [requirement, setRequirement] = useState<CpaRequirement | null>(null)
+  const [sourceText, setSourceText] = useState('')
+  const [sourceTitle, setSourceTitle] = useState('')
+  const [sourceUrl, setSourceUrl] = useState('')
+  const [effectiveDate, setEffectiveDate] = useState('')
+  const [running, setRunning] = useState(false)
+  const [status, setStatus] = useState<string | null>(null)
+  const supabase = useMemo(() => createClient(), [])
 
   useEffect(() => {
+    const loadStates = async () => {
+      const { data, error } = await supabase
+        .from('state_info')
+        .select('id, state_code, state_name')
+        .order('state_name', { ascending: true })
+
+      if (error) {
+        console.error('Error loading states:', error)
+        return
+      }
+
+      setStates(data || [])
+      setLoading(false)
+    }
+
     loadStates()
     initializeStates()
   }, [supabase])
 
-  const loadStates = async () => {
-    const { data, error } = await supabase
-      .from('state_info')
-      .select('*')
-      .order('state_name', { ascending: true })
-
-    if (error) {
-      console.error('Error loading states:', error)
-      return
-    }
-
-    setStates(data || [])
-    setLoading(false)
-  }
-
   const initializeStates = async () => {
-    // Check if states exist, if not create placeholder entries
     const { data: existingStates } = await supabase
       .from('state_info')
       .select('state_code')
@@ -109,70 +128,11 @@ export default function StatesPage() {
       }))
 
       await supabase.from('state_info').insert(statesToInsert)
-      loadStates()
-    }
-  }
-
-  const handleSelectState = (state: StateInfo) => {
-    setSelectedState(state)
-    setEditingState(null)
-  }
-
-  const handleEdit = (state: StateInfo) => {
-    setEditingState(state)
-    setFormData({
-      cpe_requirements: state.cpe_requirements || '',
-      renewal_period: state.renewal_period || '',
-      renewal_month: state.renewal_month || '',
-      contact_info: state.contact_info || '',
-      website_url: state.website_url || '',
-      notes: state.notes || '',
-    })
-  }
-
-  const handleSave = async () => {
-    if (!editingState) return
-
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
-
-    const { error } = await supabase
-      .from('state_info')
-      .update({
-        cpe_requirements: formData.cpe_requirements || null,
-        renewal_period: formData.renewal_period || null,
-        renewal_month: formData.renewal_month || null,
-        contact_info: formData.contact_info || null,
-        website_url: formData.website_url || null,
-        notes: formData.notes || null,
-        updated_by: user.id,
-      })
-      .eq('id', editingState.id)
-
-    if (error) {
-      console.error('Error updating state:', error)
-      return
-    }
-
-    setEditingState(null)
-    loadStates()
-    const updatedState = states.find((s) => s.id === editingState.id)
-    if (updatedState) {
-      setSelectedState(updatedState)
-    }
-  }
-
-  const handleCancel = () => {
-    setEditingState(null)
-    if (selectedState) {
-      setFormData({
-        cpe_requirements: selectedState.cpe_requirements || '',
-        renewal_period: selectedState.renewal_period || '',
-        renewal_month: selectedState.renewal_month || '',
-        contact_info: selectedState.contact_info || '',
-        website_url: selectedState.website_url || '',
-        notes: selectedState.notes || '',
-      })
+      const { data: refreshed } = await supabase
+        .from('state_info')
+        .select('id, state_code, state_name')
+        .order('state_name', { ascending: true })
+      setStates(refreshed || [])
     }
   }
 
@@ -181,150 +141,127 @@ export default function StatesPage() {
     state.state_code.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
-  if (loading) {
-    return <div className="text-center py-12">Loading...</div>
+  useEffect(() => {
+    const loadRequirement = async () => {
+      if (!selectedState) {
+        setRequirement(null)
+        return
+      }
+
+      const { data, error } = await supabase
+        .from('cpa_state_cpe_requirements')
+        .select('*')
+        .eq('state_code', selectedState.state_code)
+        .maybeSingle()
+
+      if (error) {
+        console.error('Error loading requirement', error)
+        setRequirement(null)
+        return
+      }
+
+      setRequirement(data as CpaRequirement | null)
+    }
+
+    loadRequirement()
+  }, [selectedState, supabase])
+
+  const handleExtract = async () => {
+    if (!selectedState) {
+      setStatus('Select a state first.')
+      return
+    }
+    if (!sourceText.trim()) {
+      setStatus('Paste the full regulatory text before running extraction.')
+      return
+    }
+
+    setRunning(true)
+    setStatus('Running LLM extraction...')
+
+    try {
+      const response = await fetch('/api/regulatory/cpa/extract', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          state_code: selectedState.state_code,
+          state_name: selectedState.state_name,
+          source_text: sourceText,
+          source_title: sourceTitle || null,
+          source_url: sourceUrl || null,
+          effective_date: effectiveDate || null,
+        }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}))
+        throw new Error(error.error || 'LLM extraction failed')
+      }
+
+      const payload = await response.json()
+      setRequirement(payload.data as CpaRequirement)
+      setStatus('Extraction complete and saved.')
+    } catch (error) {
+      console.error(error)
+      setStatus(error instanceof Error ? error.message : 'Unexpected error')
+    } finally {
+      setRunning(false)
+    }
   }
 
-  const renderContent = () => {
-    if (!selectedState) return null
-
-    if (editingState?.id === selectedState.id) {
-      // Edit mode
+  const renderRequirement = () => {
+    if (!requirement) {
       return (
-        <>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              CPE Requirements
-            </label>
-            <textarea
-              value={formData.cpe_requirements}
-              onChange={(e) => setFormData({ ...formData, cpe_requirements: e.target.value })}
-              rows={4}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Renewal Period
-            </label>
-            <input
-              type="text"
-              value={formData.renewal_period}
-              onChange={(e) => setFormData({ ...formData, renewal_period: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              placeholder="e.g., Every 2 years"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Renewal Month
-            </label>
-            <select
-              value={formData.renewal_month}
-              onChange={(e) => setFormData({ ...formData, renewal_month: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-            >
-              <option value="">Select a month</option>
-              {MONTHS.map((month) => (
-                <option key={month} value={month}>
-                  {month}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Contact Information
-            </label>
-            <textarea
-              value={formData.contact_info}
-              onChange={(e) => setFormData({ ...formData, contact_info: e.target.value })}
-              rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              State Board URL
-            </label>
-            <input
-              type="url"
-              value={formData.website_url}
-              onChange={(e) => setFormData({ ...formData, website_url: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              placeholder="https://..."
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Notes
-            </label>
-            <textarea
-              value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              rows={6}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-            />
-          </div>
-        </>
-      )
-    } else {
-      // View mode
-      return (
-        <>
-          <div>
-            <h3 className="font-medium text-gray-900 mb-2">CPE Requirements</h3>
-            <p className="text-gray-700 whitespace-pre-wrap">
-              {selectedState.cpe_requirements || 'No information available'}
-            </p>
-          </div>
-          {selectedState.renewal_period && (
-            <div>
-              <h3 className="font-medium text-gray-900 mb-2">Renewal Period</h3>
-              <p className="text-gray-700">{selectedState.renewal_period}</p>
-            </div>
-          )}
-          {selectedState.renewal_month && (
-            <div>
-              <h3 className="font-medium text-gray-900 mb-2">Renewal Month</h3>
-              <p className="text-gray-700">{selectedState.renewal_month}</p>
-            </div>
-          )}
-          {selectedState.contact_info && (
-            <div>
-              <h3 className="font-medium text-gray-900 mb-2">Contact Information</h3>
-              <p className="text-gray-700 whitespace-pre-wrap">{selectedState.contact_info}</p>
-            </div>
-          )}
-          {selectedState.website_url && (
-            <div>
-              <h3 className="font-medium text-gray-900 mb-2">State Board URL</h3>
-              <a
-                href={selectedState.website_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-600 hover:underline"
-              >
-                {selectedState.website_url}
-              </a>
-            </div>
-          )}
-          {selectedState.notes && (
-            <div>
-              <h3 className="font-medium text-gray-900 mb-2">Notes</h3>
-              <p className="text-gray-700 whitespace-pre-wrap">{selectedState.notes}</p>
-            </div>
-          )}
-        </>
+        <div className="text-sm text-gray-600">
+          No extracted data yet. Paste the rule text and run the AI extractor.
+        </div>
       )
     }
+
+    return (
+      <div className="space-y-3 text-sm">
+        <div className="flex flex-wrap gap-3 text-gray-700">
+          <span className="px-2 py-1 bg-gray-100 rounded-md">Model: {requirement.model_name || 'unknown'}</span>
+          <span className="px-2 py-1 bg-gray-100 rounded-md">
+            Extracted: {new Date(requirement.extracted_at).toLocaleString()}
+          </span>
+          {requirement.needs_human_review && (
+            <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-md">Needs human review</span>
+          )}
+        </div>
+        {requirement.plain_english_summary && (
+          <div>
+            <h4 className="font-medium text-gray-900 mb-1">Plain English Summary</h4>
+            <p className="text-gray-700 whitespace-pre-wrap">{requirement.plain_english_summary}</p>
+          </div>
+        )}
+        <div>
+          <h4 className="font-medium text-gray-900 mb-1">Structured JSON</h4>
+          <pre className="bg-gray-900 text-gray-50 text-xs rounded-md p-3 overflow-auto">
+{JSON.stringify(requirement, null, 2)}
+          </pre>
+        </div>
+        <div>
+          <h4 className="font-medium text-gray-900 mb-1">Source Text</h4>
+          <pre className="bg-gray-50 text-gray-800 text-xs rounded-md p-3 overflow-auto whitespace-pre-wrap">
+{requirement.source_text}
+          </pre>
+        </div>
+      </div>
+    )
+  }
+
+  if (loading) {
+    return <div className="text-center py-12">Loading...</div>
   }
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-gray-900">CPA Regulatory Information</h1>
-        <p className="text-gray-600 mt-1">View and manage CPA regulatory requirements by state</p>
+        <p className="text-gray-600 mt-1">
+          LLM-first extraction of CPA state CPE requirements (paste rule text, get structured JSON).
+        </p>
       </div>
 
       <div>
@@ -342,8 +279,8 @@ export default function StatesPage() {
           <select
             value={selectedState?.id || ''}
             onChange={(e) => {
-              const state = states.find(s => s.id === e.target.value)
-              if (state) handleSelectState(state)
+              const state = states.find((s) => s.id === e.target.value)
+              if (state) setSelectedState(state)
             }}
             className="w-full max-w-md px-4 py-2 border border-gray-300 rounded-md"
           >
@@ -367,36 +304,79 @@ export default function StatesPage() {
                   {selectedState.state_name} ({selectedState.state_code})
                 </CardTitle>
                 <CardDescription>
-                  Last updated: {format(new Date(selectedState.last_updated), 'MMM d, yyyy h:mm a')}
+                  Paste the statute/rule text, run AI extraction, and review the structured output.
                 </CardDescription>
               </div>
-              {editingState?.id !== selectedState.id && (
-                <Button variant="outline" size="sm" onClick={() => handleEdit(selectedState)}>
-                  <Edit className="h-4 w-4 mr-2" />
-                  Edit
-                </Button>
-              )}
+              <Button variant="outline" size="sm" onClick={() => setRequirement(null)}>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Clear
+              </Button>
             </div>
           </CardHeader>
-          <CardContent>
-            {/* Content */}
-            <div className="space-y-4">
-              {renderContent()}
+          <CardContent className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Source Title (optional)
+                </label>
+                <input
+                  type="text"
+                  value={sourceTitle}
+                  onChange={(e) => setSourceTitle(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  placeholder="e.g., 3 CCR 705-1"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Source URL (optional)
+                </label>
+                <input
+                  type="url"
+                  value={sourceUrl}
+                  onChange={(e) => setSourceUrl(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  placeholder="https://..."
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Effective Date (optional)
+                </label>
+                <input
+                  type="date"
+                  value={effectiveDate}
+                  onChange={(e) => setEffectiveDate(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                />
+              </div>
             </div>
 
-            {/* Save/Cancel buttons */}
-            {editingState?.id === selectedState.id && (
-              <div className="flex gap-2 mt-6">
-                <Button onClick={handleSave}>
-                  <Save className="h-4 w-4 mr-2" />
-                  Save
-                </Button>
-                <Button variant="outline" onClick={handleCancel}>
-                  <X className="h-4 w-4 mr-2" />
-                  Cancel
-                </Button>
-              </div>
-            )}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Paste full statute / rule text (no preprocessing)
+              </label>
+              <textarea
+                value={sourceText}
+                onChange={(e) => setSourceText(e.target.value)}
+                rows={10}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                placeholder="Paste the exact rule text here. The LLM will interpret it."
+              />
+            </div>
+
+            <div className="flex flex-wrap gap-3 items-center">
+              <Button onClick={handleExtract} disabled={running}>
+                <Play className="h-4 w-4 mr-2" />
+                {running ? 'Running...' : 'Run AI Extraction'}
+              </Button>
+              {status && <span className="text-sm text-gray-700">{status}</span>}
+            </div>
+
+            <div className="space-y-4">
+              <h3 className="font-medium text-gray-900">Extracted Requirement</h3>
+              {renderRequirement()}
+            </div>
           </CardContent>
         </Card>
       ) : (
