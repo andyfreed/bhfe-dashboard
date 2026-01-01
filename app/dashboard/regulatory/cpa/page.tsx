@@ -157,6 +157,10 @@ export default function StatesPage() {
   const [selectedState, setSelectedState] = useState<StateInfo | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [requirement, setRequirement] = useState<CpaRequirement | null>(null)
+  const [displayRequirement, setDisplayRequirement] = useState<CpaRequirement | null>(null)
+  const [activeVersionId, setActiveVersionId] = useState<string | null>(null)
+  const [versions, setVersions] = useState<any[]>([])
+  const [reviewReasons, setReviewReasons] = useState<string[]>([])
   const [sourceText, setSourceText] = useState('')
   const [sourceTitle, setSourceTitle] = useState('')
   const [sourceUrl, setSourceUrl] = useState('')
@@ -217,6 +221,14 @@ export default function StatesPage() {
     const loadRequirement = async () => {
       if (!selectedState) {
         setRequirement(null)
+        setDisplayRequirement(null)
+        setVersions([])
+        setActiveVersionId(null)
+        setReviewReasons([])
+        setSourceText('')
+        setSourceTitle('')
+        setSourceUrl('')
+        setEffectiveDate('')
         return
       }
 
@@ -229,10 +241,27 @@ export default function StatesPage() {
       if (error) {
         console.error('Error loading requirement', error)
         setRequirement(null)
+        setDisplayRequirement(null)
+        setReviewReasons([])
         return
       }
 
       setRequirement(data as CpaRequirement | null)
+      setDisplayRequirement(data as CpaRequirement | null)
+      setReviewReasons([])
+
+      const { data: history } = await supabase
+        .from('cpa_state_cpe_requirement_versions')
+        .select('*')
+        .eq('state_code', selectedState.state_code)
+        .order('extracted_at', { ascending: false })
+        .limit(20)
+      setVersions(history || [])
+      setActiveVersionId(null)
+      setSourceText('')
+      setSourceTitle('')
+      setSourceUrl('')
+      setEffectiveDate('')
     }
 
     loadRequirement()
@@ -273,6 +302,21 @@ export default function StatesPage() {
       const payload = await response.json()
       setRequirement(payload.data as CpaRequirement)
       setStatus('Extraction complete and saved.')
+      // Refresh history
+      const { data: history } = await supabase
+        .from('cpa_state_cpe_requirement_versions')
+        .select('*')
+        .eq('state_code', selectedState.state_code)
+        .order('extracted_at', { ascending: false })
+        .limit(20)
+      setVersions(history || [])
+      setActiveVersionId(null)
+      setDisplayRequirement(payload.data as CpaRequirement)
+      setReviewReasons(payload.review_reasons || [])
+      setSourceText('')
+      setSourceTitle('')
+      setSourceUrl('')
+      setEffectiveDate('')
     } catch (error) {
       console.error(error)
       setStatus(error instanceof Error ? error.message : 'Unexpected error')
@@ -281,8 +325,31 @@ export default function StatesPage() {
     }
   }
 
+  const handleViewVersion = (version: any) => {
+    setActiveVersionId(version.id)
+    setDisplayRequirement(version.snapshot_json as CpaRequirement)
+    setReviewReasons([])
+  }
+
+  const handleViewCurrent = () => {
+    setActiveVersionId(null)
+    setDisplayRequirement(requirement)
+    setReviewReasons([])
+  }
+
+  const handleDeleteVersion = async (id: string) => {
+    await supabase.from('cpa_state_cpe_requirement_versions').delete().eq('id', id)
+    setVersions((prev) => prev.filter((v) => v.id !== id))
+    if (activeVersionId === id) {
+      setActiveVersionId(null)
+      setDisplayRequirement(requirement)
+      setReviewReasons([])
+    }
+  }
+
   const renderRequirement = () => {
-    if (!requirement) {
+    const req = displayRequirement
+    if (!req) {
       return (
         <div className="text-sm text-gray-600">
           No extracted data yet. Paste the rule text and run the AI extractor.
@@ -291,92 +358,93 @@ export default function StatesPage() {
     }
 
     const ethicsHours =
-      requirement.category_requirements?.find((c) => (c?.category || '').toLowerCase() === 'ethics')?.hours ?? null
+      req.category_requirements?.find((c) => (c?.category || '').toLowerCase() === 'ethics')?.hours ?? null
 
     const stats = [
-      { label: 'Total Hours', value: requirement.total_hours_required },
+      { label: 'Reporting Period', value: formatPeriod(req.reporting_period_length_months, req.reporting_period_type, req.reporting_period_start_rule, req.reporting_period_end_rule) },
+      { label: 'Total Hours', value: req.total_hours_required },
       { label: 'Ethics Hours', value: ethicsHours },
-      { label: 'Carryover Allowed', value: requirement.carryover_allowed },
+      { label: 'Carryover Allowed', value: req.carryover_allowed },
     ]
 
     const reportingPeriod = formatPeriod(
-      requirement.reporting_period_length_months,
-      requirement.reporting_period_type,
-      requirement.reporting_period_start_rule,
-      requirement.reporting_period_end_rule
+      req.reporting_period_length_months,
+      req.reporting_period_type,
+      req.reporting_period_start_rule,
+      req.reporting_period_end_rule
     )
 
-    const accrualMethod = friendlyEnum(requirement.accrual_method)
+    const accrualMethod = friendlyEnum(req.accrual_method)
 
     const keyDetails = [
       { label: 'Reporting period', value: reportingPeriod, always: true },
       { label: 'Accrual method', value: accrualMethod },
-      { label: 'Accrual rate hours', value: requirement.accrual_rate_hours },
-      { label: 'Accrual rate period', value: requirement.accrual_rate_period },
-      { label: 'Prorating rules', value: requirement.prorating_rules },
+      { label: 'Accrual rate hours', value: req.accrual_rate_hours },
+      { label: 'Accrual rate period', value: req.accrual_rate_period },
+      { label: 'Prorating rules', value: req.prorating_rules },
       {
         label: 'Deadline / Late policy',
         value:
-          !requirement.completion_deadline_rule && !requirement.late_policy_summary
+          !req.completion_deadline_rule && !req.late_policy_summary
             ? null
             : [
-                requirement.completion_deadline_rule
-                  ? `Deadline: ${requirement.completion_deadline_rule}${
-                      requirement.completion_deadline_anchor ? ` (${requirement.completion_deadline_anchor})` : ''
+                req.completion_deadline_rule
+                  ? `Deadline: ${req.completion_deadline_rule}${
+                      req.completion_deadline_anchor ? ` (${req.completion_deadline_anchor})` : ''
                     }`
                   : null,
-                requirement.late_policy_summary ? `Late policy: ${requirement.late_policy_summary}` : null,
+                req.late_policy_summary ? `Late policy: ${req.late_policy_summary}` : null,
               ]
                 .filter(Boolean)
                 .join(' • '),
       },
-      { label: 'Record retention (years)', value: requirement.record_retention_years },
-      { label: 'Audit policy', value: requirement.audit_policy_summary },
+      { label: 'Record retention (years)', value: req.record_retention_years },
+      { label: 'Audit policy', value: req.audit_policy_summary },
       {
         label: 'Carryover',
         value:
-          requirement.carryover_allowed === false
+          req.carryover_allowed === false
             ? 'Not allowed'
-            : requirement.carryover_allowed === true
-              ? `Allowed${requirement.carryover_max_hours ? ` (up to ${requirement.carryover_max_hours} hours)` : ''}`
+            : req.carryover_allowed === true
+              ? `Allowed${req.carryover_max_hours ? ` (up to ${req.carryover_max_hours} hours)` : ''}`
               : 'Not specified',
         always: true,
       },
       {
         label: 'Carryover notes',
-        value: requirement.carryover_allowed ? requirement.carryover_notes : null,
+        value: req.carryover_allowed ? req.carryover_notes : null,
       },
-      { label: 'Initial license rules', value: requirement.initial_license_rules },
-      { label: 'Inactive status rules', value: requirement.inactive_status_rules },
-      { label: 'Reactivation / Reinstatement', value: requirement.reactivation_reinstatement_rules },
+      { label: 'Initial license rules', value: req.initial_license_rules },
+      { label: 'Inactive status rules', value: req.inactive_status_rules },
+      { label: 'Reactivation / Reinstatement', value: req.reactivation_reinstatement_rules },
     ]
 
     const sourceLabel =
-      requirement.source_url || requirement.source_title
+      req.source_url || req.source_title
         ? (
           <div className="text-sm text-gray-700">
-            {requirement.source_url ? (
-              <a href={requirement.source_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                {requirement.source_title || requirement.source_url}
+            {req.source_url ? (
+              <a href={req.source_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                {req.source_title || req.source_url}
               </a>
             ) : (
-              requirement.source_title
+              req.source_title
             )}
           </div>
         )
         : <span className="text-sm text-gray-500">Not provided</span>
 
-    const citations = requirement.other_requirements || []
+    const citations = req.other_requirements || []
     const hasCitations = citations.length > 0
 
     const takeaways = [
-      `You need ${friendlyValue(requirement.total_hours_required)} hours every ${friendlyValue(reportingPeriod)}.`,
+      `You need ${friendlyValue(req.total_hours_required)} hours every ${friendlyValue(reportingPeriod)}.`,
       ethicsHours !== null && ethicsHours !== undefined
         ? `Includes ${friendlyValue(ethicsHours)} ethics hours.`
         : null,
-      requirement.carryover_allowed === true
+      req.carryover_allowed === true
         ? 'Carryover is allowed.'
-        : requirement.carryover_allowed === false
+        : req.carryover_allowed === false
           ? 'Carryover is not allowed.'
           : 'Carryover is not specified.',
     ].filter(Boolean)
@@ -384,14 +452,76 @@ export default function StatesPage() {
     return (
       <div className="space-y-6">
         <div className="flex flex-wrap gap-3 text-gray-700 text-sm">
-          <span className="px-2 py-1 bg-gray-100 rounded-md">Model: {requirement.model_name || 'unknown'}</span>
+          <span className="px-2 py-1 bg-gray-100 rounded-md">Model: {req.model_name || 'unknown'}</span>
           <span className="px-2 py-1 bg-gray-100 rounded-md">
-            Extracted: {new Date(requirement.extracted_at).toLocaleString()}
+            Extracted: {new Date(req.extracted_at).toLocaleString()}
           </span>
-          {requirement.needs_human_review && (
+          {req.needs_human_review && (
             <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-md">Needs human review</span>
           )}
         </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="text-sm text-gray-700">
+            Viewing: {activeVersionId ? 'Previous version' : 'Latest'}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {!activeVersionId && versions.length > 0 && (
+              <span className="text-xs text-gray-500">History available below</span>
+            )}
+            {activeVersionId && (
+              <Button size="sm" variant="outline" onClick={handleViewCurrent}>
+                Back to latest
+              </Button>
+            )}
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <h4 className="font-semibold text-gray-900">Versions</h4>
+          {versions.length === 0 ? (
+            <p className="text-sm text-gray-600">No prior versions yet.</p>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {versions.map((v) => (
+                <div
+                  key={v.id}
+                  className={`flex items-center justify-between rounded-md border px-3 py-2 text-sm ${
+                    activeVersionId === v.id ? 'border-blue-300 bg-blue-50' : 'border-gray-200'
+                  }`}
+                >
+                  <div className="flex flex-col">
+                    <span className="font-medium text-gray-900">
+                      {new Date(v.extracted_at).toLocaleString()}
+                    </span>
+                    <span className="text-gray-600">
+                      Model: {v.model_name || 'unknown'} • Human review: {v.needs_human_review ? 'Yes' : 'No'}
+                    </span>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" onClick={() => handleViewVersion(v)}>
+                      View
+                    </Button>
+                    <Button size="sm" variant="destructive" onClick={() => handleDeleteVersion(v.id)}>
+                      Delete
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {reviewReasons.length > 0 && (
+          <div className="text-sm text-yellow-900 bg-yellow-50 border border-yellow-200 rounded-md px-3 py-2 space-y-1">
+            <div className="font-medium">Needs human review reasons:</div>
+            <ul className="list-disc list-inside">
+              {reviewReasons.map((r, idx) => (
+                <li key={idx}>{r}</li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         <div className="space-y-2">
           <h4 className="font-semibold text-lg text-gray-900">Plain English Summary</h4>
@@ -496,9 +626,9 @@ export default function StatesPage() {
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <h4 className="font-semibold text-gray-900">Evidence & Citations</h4>
-            {requirement.source_url ? (
+            {req.source_url ? (
               <a
-                href={requirement.source_url}
+                href={req.source_url}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-sm text-blue-600 hover:underline"
@@ -538,13 +668,13 @@ export default function StatesPage() {
 
         <Collapsible title="Raw JSON (advanced)">
           <pre className="bg-gray-900 text-gray-50 text-xs rounded-md p-3 overflow-auto">
-{JSON.stringify(requirement, null, 2)}
+{JSON.stringify(req, null, 2)}
           </pre>
         </Collapsible>
 
         <Collapsible title="Source Text (advanced)">
           <pre className="bg-gray-50 text-gray-800 text-xs rounded-md p-3 overflow-auto whitespace-pre-wrap">
-{requirement.source_text}
+{req.source_text}
           </pre>
         </Collapsible>
       </div>
@@ -668,10 +798,13 @@ export default function StatesPage() {
             <div className="flex flex-wrap gap-3 items-center">
               <Button onClick={handleExtract} disabled={running}>
                 <Play className="h-4 w-4 mr-2" />
-                {running ? 'Running...' : 'Run AI Extraction'}
+                {running ? 'Running...' : 'Run AI Extraction & Save'}
               </Button>
               {status && <span className="text-sm text-gray-700">{status}</span>}
             </div>
+            <p className="text-xs text-gray-500">
+              Running extraction saves the source info and the structured result for this state.
+            </p>
 
             <div className="space-y-4">
               <h3 className="font-medium text-gray-900">Extracted Requirement</h3>

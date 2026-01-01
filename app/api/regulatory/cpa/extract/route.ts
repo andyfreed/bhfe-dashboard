@@ -389,7 +389,10 @@ function needsReviewFlag(payload: PartialRequirement, body: any, parseError: boo
   const lowConfidence =
     typeof payload.extraction_confidence === 'number' ? payload.extraction_confidence < MIN_CONFIDENCE : true
   const mismatch = payload.state_code && payload.state_code !== body.state_code
-  return parseError || allIssues.length > 0 || lowConfidence || mismatch || payload.needs_human_review === true
+  return {
+    flag: parseError || allIssues.length > 0 || lowConfidence || mismatch || payload.needs_human_review === true,
+    reasons: allIssues,
+  }
 }
 
 function mapToDb(payload: PartialRequirement, body: any, needsReview: boolean) {
@@ -508,9 +511,9 @@ export async function POST(req: NextRequest) {
     }
 
     const validationErrors = parseError ? ['json_parse_error'] : validateShape(normalized)
-    const reviewFlag = needsReviewFlag(normalized, { ...body, state_code: stateCode }, parseError, validationErrors)
+    const review = needsReviewFlag(normalized, { ...body, state_code: stateCode }, parseError, validationErrors)
 
-    const upsertPayload = mapToDb(normalized, { ...body, state_code: stateCode, model_name: modelName }, reviewFlag)
+    const upsertPayload = mapToDb(normalized, { ...body, state_code: stateCode, model_name: modelName }, review.flag)
 
     const { data, error } = await supabase
       .from('cpa_state_cpe_requirements')
@@ -530,7 +533,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Failed to save extracted data' }, { status: 500 })
     }
 
-    return NextResponse.json({ data, raw: normalized, needs_human_review: reviewFlag }, { status: 200 })
+    // Insert version history snapshot
+    if (data) {
+      await supabase.from('cpa_state_cpe_requirement_versions').insert({
+        requirement_id: data.id,
+        state_code: data.state_code,
+        snapshot_json: data,
+        model_name: data.model_name,
+        extraction_confidence: data.extraction_confidence,
+        needs_human_review: data.needs_human_review,
+        extracted_at: data.extracted_at,
+      })
+    }
+
+    return NextResponse.json({ data, raw: normalized, needs_human_review: review.flag, review_reasons: review.reasons }, { status: 200 })
   } catch (error) {
     console.error(error)
     return NextResponse.json(

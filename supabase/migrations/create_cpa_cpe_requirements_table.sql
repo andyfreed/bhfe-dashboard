@@ -66,6 +66,21 @@ CREATE INDEX IF NOT EXISTS idx_cpa_state_cpe_requirements_needs_review
 CREATE INDEX IF NOT EXISTS idx_cpa_state_cpe_requirements_extracted_at_desc
   ON public.cpa_state_cpe_requirements (extracted_at DESC);
 
+CREATE TABLE IF NOT EXISTS public.cpa_state_cpe_requirement_versions (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  requirement_id UUID REFERENCES public.cpa_state_cpe_requirements(id) ON DELETE CASCADE,
+  state_code TEXT NOT NULL,
+  snapshot_json JSONB NOT NULL,
+  model_name TEXT,
+  extraction_confidence NUMERIC,
+  needs_human_review BOOLEAN NOT NULL DEFAULT FALSE,
+  extracted_at TIMESTAMPTZ NOT NULL DEFAULT TIMEZONE('utc'::text, NOW()),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT TIMEZONE('utc'::text, NOW())
+);
+
+CREATE INDEX IF NOT EXISTS idx_cpa_state_cpe_requirement_versions_state_code
+  ON public.cpa_state_cpe_requirement_versions (state_code, extracted_at DESC);
+
 DO $$
 BEGIN
   IF NOT EXISTS (
