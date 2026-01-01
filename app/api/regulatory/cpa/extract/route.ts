@@ -64,37 +64,15 @@ const CONTRACT_SCHEMA = {
       state_code: { type: 'string', pattern: '^[A-Z]{2}$' },
       state_name: { type: ['string', 'null'] },
       reporting_period: {
-        anyOf: [
-          {
-            type: 'object',
-            additionalProperties: false,
-            properties: {
-              type: { type: 'string' },
-            },
-            required: ['type'],
-          },
-          {
-            type: 'object',
-            additionalProperties: false,
-            properties: {
-              type: { type: 'string' },
-              start_rule: { type: 'string' },
-              end_rule: { type: 'string' },
-            },
-            required: ['type', 'start_rule', 'end_rule'],
-          },
-          {
-            type: 'object',
-            additionalProperties: false,
-            properties: {
-              type: { type: 'string' },
-              length_months: { type: 'number' },
-              start_rule: { type: 'string' },
-              end_rule: { type: 'string' },
-            },
-            required: ['type', 'length_months', 'start_rule', 'end_rule'],
-          },
-        ],
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          type: { type: 'string' },
+          length_months: { type: ['number', 'null'] },
+          start_rule: { type: ['string', 'null'] },
+          end_rule: { type: ['string', 'null'] },
+        },
+        required: ['type', 'length_months', 'start_rule', 'end_rule'],
       },
       hours: {
         type: 'object',
@@ -106,7 +84,7 @@ const CONTRACT_SCHEMA = {
           accrual_rate_period: { type: ['string', 'null'] },
           prorating_rules: { type: ['string', 'null'] },
         },
-        required: ['accrual_method'],
+        required: ['total_required', 'accrual_method', 'accrual_rate_hours', 'accrual_rate_period', 'prorating_rules'],
       },
       deadlines: {
         type: 'object',
@@ -116,7 +94,7 @@ const CONTRACT_SCHEMA = {
           completion_deadline_anchor: { type: ['string', 'null'] },
           late_policy_summary: { type: ['string', 'null'] },
         },
-        required: [],
+        required: ['completion_deadline_rule', 'completion_deadline_anchor', 'late_policy_summary'],
       },
       category_requirements: {
         type: 'array',
@@ -129,13 +107,23 @@ const CONTRACT_SCHEMA = {
             notes: { type: ['string', 'null'] },
             max_percent_allowed: { type: ['number', 'null'] },
           },
-          required: ['category'],
+          required: ['category', 'hours', 'notes', 'max_percent_allowed'],
         },
         default: [],
       },
       delivery_constraints: {
         type: 'array',
-        items: { type: 'object' },
+        items: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            type: { type: ['string', 'null'] },
+            limit_percent: { type: ['number', 'null'] },
+            limit_hours: { type: ['number', 'null'] },
+            notes: { type: ['string', 'null'] },
+          },
+          required: ['type', 'limit_percent', 'limit_hours', 'notes'],
+        },
         default: [],
       },
       carryover: {
@@ -146,7 +134,7 @@ const CONTRACT_SCHEMA = {
           max_hours: { type: ['number', 'null'] },
           notes: { type: ['string', 'null'] },
         },
-        required: [],
+        required: ['allowed', 'max_hours', 'notes'],
       },
       special: {
         type: 'object',
@@ -156,7 +144,7 @@ const CONTRACT_SCHEMA = {
           inactive_status_rules: { type: ['string', 'null'] },
           reactivation_reinstatement_rules: { type: ['string', 'null'] },
         },
-        required: [],
+        required: ['initial_license_rules', 'inactive_status_rules', 'reactivation_reinstatement_rules'],
       },
       audit_and_records: {
         type: 'object',
@@ -165,7 +153,7 @@ const CONTRACT_SCHEMA = {
           audit_policy_summary: { type: ['string', 'null'] },
           record_retention_years: { type: ['number', 'null'] },
         },
-        required: [],
+        required: ['audit_policy_summary', 'record_retention_years'],
       },
       other_requirements: {
         type: 'array',
@@ -177,15 +165,32 @@ const CONTRACT_SCHEMA = {
             details: { type: ['string', 'null'] },
             citation: { type: ['string', 'null'] },
           },
-          required: [],
+          required: ['title', 'details', 'citation'],
         },
         default: [],
       },
       plain_english_summary: { type: ['string', 'null'] },
       extraction_confidence: { type: ['number', 'null'] },
       needs_human_review: { type: ['boolean', 'null'] },
+      schema_version: { type: 'string' },
     },
-    required: ['state_code', 'reporting_period', 'hours'],
+    required: [
+      'state_code',
+      'state_name',
+      'reporting_period',
+      'hours',
+      'deadlines',
+      'category_requirements',
+      'delivery_constraints',
+      'carryover',
+      'special',
+      'audit_and_records',
+      'other_requirements',
+      'plain_english_summary',
+      'extraction_confidence',
+      'needs_human_review',
+      'schema_version',
+    ],
   },
   strict: true,
 } as const
@@ -221,7 +226,7 @@ function validateShape(payload: PartialRequirement) {
   const isNumberOrNull = (v: any) => v === null || typeof v === 'number'
   const isBoolOrNull = (v: any) => v === null || typeof v === 'boolean'
 
-  if (!payload.state_code || !isString(payload.state_code) || payload.state_code.length !== 2) {
+  if (payload.state_code === undefined || !isString(payload.state_code) || payload.state_code.length !== 2) {
     errors.push('state_code missing/invalid')
   }
 
@@ -229,79 +234,105 @@ function validateShape(payload: PartialRequirement) {
   if (!rp || typeof rp !== 'object') {
     errors.push('reporting_period missing')
   } else {
-    const variant1 = rp.type && isString(rp.type) && rp.start_rule === undefined && rp.end_rule === undefined && rp.length_months === undefined
-    const variant2 = rp.type && isString(rp.type) && isString(rp.start_rule) && isString(rp.end_rule) && rp.length_months === undefined
-    const variant3 = rp.type && isString(rp.type) && typeof rp.length_months === 'number' && isString(rp.start_rule) && isString(rp.end_rule)
-    if (!variant1 && !variant2 && !variant3) {
-      errors.push('reporting_period invalid shape')
-    }
+    if (rp.type === undefined || !isString(rp.type)) errors.push('reporting_period.type missing/invalid')
+    if (rp.length_months === undefined || !isNumberOrNull(rp.length_months)) errors.push('reporting_period.length_months missing/invalid')
+    if (rp.start_rule === undefined || !isNullableString(rp.start_rule)) errors.push('reporting_period.start_rule missing/invalid')
+    if (rp.end_rule === undefined || !isNullableString(rp.end_rule)) errors.push('reporting_period.end_rule missing/invalid')
   }
 
   if (!payload.hours || typeof payload.hours !== 'object') {
     errors.push('hours missing')
   } else {
-    if (!isString(payload.hours.accrual_method)) errors.push('hours.accrual_method missing/invalid')
-    if (!isNumberOrNull(payload.hours.total_required)) errors.push('hours.total_required invalid')
-    if (!isNumberOrNull(payload.hours.accrual_rate_hours)) errors.push('hours.accrual_rate_hours invalid')
-    if (!isNullableString(payload.hours.accrual_rate_period)) errors.push('hours.accrual_rate_period invalid')
-    if (!isNullableString(payload.hours.prorating_rules)) errors.push('hours.prorating_rules invalid')
+    if (payload.hours.total_required === undefined || !isNumberOrNull(payload.hours.total_required)) errors.push('hours.total_required missing/invalid')
+    if (payload.hours.accrual_method === undefined || !isString(payload.hours.accrual_method)) errors.push('hours.accrual_method missing/invalid')
+    if (payload.hours.accrual_rate_hours === undefined || !isNumberOrNull(payload.hours.accrual_rate_hours)) errors.push('hours.accrual_rate_hours missing/invalid')
+    if (payload.hours.accrual_rate_period === undefined || !isNullableString(payload.hours.accrual_rate_period)) errors.push('hours.accrual_rate_period missing/invalid')
+    if (payload.hours.prorating_rules === undefined || !isNullableString(payload.hours.prorating_rules)) errors.push('hours.prorating_rules missing/invalid')
   }
 
-  if (payload.deadlines) {
-    if (!isNullableString(payload.deadlines.completion_deadline_rule)) errors.push('deadlines.completion_deadline_rule invalid')
-    if (!isNullableString(payload.deadlines.completion_deadline_anchor)) errors.push('deadlines.completion_deadline_anchor invalid')
-    if (!isNullableString(payload.deadlines.late_policy_summary)) errors.push('deadlines.late_policy_summary invalid')
+  if (!payload.deadlines || typeof payload.deadlines !== 'object') {
+    errors.push('deadlines missing')
+  } else {
+    if (payload.deadlines.completion_deadline_rule === undefined || !isNullableString(payload.deadlines.completion_deadline_rule)) errors.push('deadlines.completion_deadline_rule missing/invalid')
+    if (payload.deadlines.completion_deadline_anchor === undefined || !isNullableString(payload.deadlines.completion_deadline_anchor)) errors.push('deadlines.completion_deadline_anchor missing/invalid')
+    if (payload.deadlines.late_policy_summary === undefined || !isNullableString(payload.deadlines.late_policy_summary)) errors.push('deadlines.late_policy_summary missing/invalid')
   }
 
-  if (payload.category_requirements) {
-    if (!Array.isArray(payload.category_requirements)) errors.push('category_requirements invalid')
-    else payload.category_requirements.forEach((c, idx) => {
+  if (!payload.category_requirements || !Array.isArray(payload.category_requirements)) {
+    errors.push('category_requirements missing/invalid')
+  } else {
+    payload.category_requirements.forEach((c, idx) => {
       if (!c || typeof c !== 'object') errors.push(`category_requirements[${idx}] invalid`)
       else {
-        if (!isString(c.category)) errors.push(`category_requirements[${idx}].category missing/invalid`)
-        if (!isNumberOrNull(c.hours)) errors.push(`category_requirements[${idx}].hours invalid`)
-        if (!isNullableString(c.notes)) errors.push(`category_requirements[${idx}].notes invalid`)
-        if (!isNumberOrNull(c.max_percent_allowed)) errors.push(`category_requirements[${idx}].max_percent_allowed invalid`)
+        if (c.category === undefined || !isString(c.category)) errors.push(`category_requirements[${idx}].category missing/invalid`)
+        if (c.hours === undefined || !isNumberOrNull(c.hours)) errors.push(`category_requirements[${idx}].hours missing/invalid`)
+        if (c.notes === undefined || !isNullableString(c.notes)) errors.push(`category_requirements[${idx}].notes missing/invalid`)
+        if (c.max_percent_allowed === undefined || !isNumberOrNull(c.max_percent_allowed)) errors.push(`category_requirements[${idx}].max_percent_allowed missing/invalid`)
       }
     })
   }
 
-  if (payload.delivery_constraints && !Array.isArray(payload.delivery_constraints)) {
-    errors.push('delivery_constraints invalid')
+  if (!payload.delivery_constraints || !Array.isArray(payload.delivery_constraints)) {
+    errors.push('delivery_constraints missing/invalid')
+  } else {
+    payload.delivery_constraints.forEach((d: any, idx: number) => {
+      if (!d || typeof d !== 'object') errors.push(`delivery_constraints[${idx}] invalid`)
+      else {
+        if (d.type === undefined || !isNullableString(d.type)) errors.push(`delivery_constraints[${idx}].type missing/invalid`)
+        if (d.limit_percent === undefined || !isNumberOrNull(d.limit_percent)) errors.push(`delivery_constraints[${idx}].limit_percent missing/invalid`)
+        if (d.limit_hours === undefined || !isNumberOrNull(d.limit_hours)) errors.push(`delivery_constraints[${idx}].limit_hours missing/invalid`)
+        if (d.notes === undefined || !isNullableString(d.notes)) errors.push(`delivery_constraints[${idx}].notes missing/invalid`)
+      }
+    })
   }
 
-  if (payload.carryover) {
-    if (!isBoolOrNull(payload.carryover.allowed)) errors.push('carryover.allowed invalid')
-    if (!isNumberOrNull(payload.carryover.max_hours)) errors.push('carryover.max_hours invalid')
-    if (!isNullableString(payload.carryover.notes)) errors.push('carryover.notes invalid')
+  if (!payload.carryover || typeof payload.carryover !== 'object') {
+    errors.push('carryover missing')
+  } else {
+    if (payload.carryover.allowed === undefined || !isBoolOrNull(payload.carryover.allowed)) errors.push('carryover.allowed missing/invalid')
+    if (payload.carryover.max_hours === undefined || !isNumberOrNull(payload.carryover.max_hours)) errors.push('carryover.max_hours missing/invalid')
+    if (payload.carryover.notes === undefined || !isNullableString(payload.carryover.notes)) errors.push('carryover.notes missing/invalid')
   }
 
-  if (payload.special) {
-    if (!isNullableString(payload.special.initial_license_rules)) errors.push('special.initial_license_rules invalid')
-    if (!isNullableString(payload.special.inactive_status_rules)) errors.push('special.inactive_status_rules invalid')
-    if (!isNullableString(payload.special.reactivation_reinstatement_rules)) errors.push('special.reactivation_reinstatement_rules invalid')
+  if (!payload.special || typeof payload.special !== 'object') {
+    errors.push('special missing')
+  } else {
+    if (payload.special.initial_license_rules === undefined || !isNullableString(payload.special.initial_license_rules)) errors.push('special.initial_license_rules missing/invalid')
+    if (payload.special.inactive_status_rules === undefined || !isNullableString(payload.special.inactive_status_rules)) errors.push('special.inactive_status_rules missing/invalid')
+    if (payload.special.reactivation_reinstatement_rules === undefined || !isNullableString(payload.special.reactivation_reinstatement_rules)) errors.push('special.reactivation_reinstatement_rules missing/invalid')
   }
 
-  if (payload.audit_and_records) {
-    if (!isNullableString(payload.audit_and_records.audit_policy_summary)) errors.push('audit_and_records.audit_policy_summary invalid')
-    if (!isNumberOrNull(payload.audit_and_records.record_retention_years)) errors.push('audit_and_records.record_retention_years invalid')
+  if (!payload.audit_and_records || typeof payload.audit_and_records !== 'object') {
+    errors.push('audit_and_records missing')
+  } else {
+    if (payload.audit_and_records.audit_policy_summary === undefined || !isNullableString(payload.audit_and_records.audit_policy_summary)) errors.push('audit_and_records.audit_policy_summary missing/invalid')
+    if (payload.audit_and_records.record_retention_years === undefined || !isNumberOrNull(payload.audit_and_records.record_retention_years)) errors.push('audit_and_records.record_retention_years missing/invalid')
   }
 
-  if (payload.other_requirements) {
-    if (!Array.isArray(payload.other_requirements)) errors.push('other_requirements invalid')
-    else payload.other_requirements.forEach((o, idx) => {
+  if (!payload.other_requirements || !Array.isArray(payload.other_requirements)) {
+    errors.push('other_requirements missing/invalid')
+  } else {
+    payload.other_requirements.forEach((o, idx) => {
       if (!o || typeof o !== 'object') errors.push(`other_requirements[${idx}] invalid`)
       else {
-        if (!isNullableString(o.title)) errors.push(`other_requirements[${idx}].title invalid`)
-        if (!isNullableString(o.details)) errors.push(`other_requirements[${idx}].details invalid`)
-        if (!isNullableString(o.citation)) errors.push(`other_requirements[${idx}].citation invalid`)
+        if (o.title === undefined || !isNullableString(o.title)) errors.push(`other_requirements[${idx}].title missing/invalid`)
+        if (o.details === undefined || !isNullableString(o.details)) errors.push(`other_requirements[${idx}].details missing/invalid`)
+        if (o.citation === undefined || !isNullableString(o.citation)) errors.push(`other_requirements[${idx}].citation missing/invalid`)
       }
     })
   }
 
-  if (!isNullableString(payload.plain_english_summary)) errors.push('plain_english_summary invalid')
-  if (payload.extraction_confidence != null && typeof payload.extraction_confidence !== 'number') {
-    errors.push('extraction_confidence invalid')
+  if (payload.plain_english_summary === undefined || !isNullableString(payload.plain_english_summary)) {
+    errors.push('plain_english_summary missing/invalid')
+  }
+  if (payload.extraction_confidence === undefined || (payload.extraction_confidence !== null && typeof payload.extraction_confidence !== 'number')) {
+    errors.push('extraction_confidence missing/invalid')
+  }
+  if (payload.needs_human_review === undefined || !isBoolOrNull(payload.needs_human_review)) {
+    errors.push('needs_human_review missing/invalid')
+  }
+  if (payload.schema_version === undefined || !isString(payload.schema_version)) {
+    errors.push('schema_version missing/invalid')
   }
 
   return errors
