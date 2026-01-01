@@ -79,6 +79,34 @@ const EMPTY_EXTRACTION: Partial<CpaRequirement> = {
   other_requirements: [],
 }
 
+const friendlyValue = (value: any) => {
+  if (value === null || value === undefined || value === '') return 'Not specified'
+  if (typeof value === 'boolean') return value ? 'Yes' : 'No'
+  return value
+}
+
+function Collapsible({
+  title,
+  children,
+}: {
+  title: string
+  children: React.ReactNode
+}) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="border border-gray-200 rounded-md">
+      <button
+        className="w-full flex items-center justify-between px-3 py-2 text-sm font-medium text-left"
+        onClick={() => setOpen((o) => !o)}
+      >
+        <span>{title}</span>
+        <span className="text-xs text-gray-500">{open ? 'Hide' : 'Show'}</span>
+      </button>
+      {open && <div className="border-t border-gray-200 p-3 text-sm">{children}</div>}
+    </div>
+  )
+}
+
 export default function StatesPage() {
   const [states, setStates] = useState<StateInfo[]>([])
   const [loading, setLoading] = useState(true)
@@ -218,9 +246,58 @@ export default function StatesPage() {
       )
     }
 
+    const ethicsHours =
+      requirement.category_requirements?.find((c) => (c?.category || '').toLowerCase() === 'ethics')?.hours ?? null
+
+    const stats = [
+      { label: 'Total Hours', value: requirement.total_hours_required },
+      { label: 'Ethics Hours', value: ethicsHours },
+      { label: 'Carryover Allowed', value: requirement.carryover_allowed },
+    ]
+
+    const keyDetails = [
+      { label: 'Reporting Period Type', value: requirement.reporting_period_type },
+      { label: 'Reporting Length (months)', value: requirement.reporting_period_length_months },
+      { label: 'Start Rule', value: requirement.reporting_period_start_rule },
+      { label: 'End Rule', value: requirement.reporting_period_end_rule },
+      { label: 'Examples', value: requirement.reporting_period_examples ? JSON.stringify(requirement.reporting_period_examples) : null },
+      { label: 'Accrual Method', value: requirement.accrual_method },
+      { label: 'Accrual Rate Hours', value: requirement.accrual_rate_hours },
+      { label: 'Accrual Rate Period', value: requirement.accrual_rate_period },
+      { label: 'Prorating Rules', value: requirement.prorating_rules },
+      { label: 'Deadline Rule', value: requirement.completion_deadline_rule },
+      { label: 'Deadline Anchor', value: requirement.completion_deadline_anchor },
+      { label: 'Late Policy', value: requirement.late_policy_summary },
+      { label: 'Record Retention (years)', value: requirement.record_retention_years },
+      { label: 'Audit Policy', value: requirement.audit_policy_summary },
+      { label: 'Carryover Max Hours', value: requirement.carryover_max_hours },
+      { label: 'Carryover Notes', value: requirement.carryover_notes },
+      { label: 'Initial License Rules', value: requirement.initial_license_rules },
+      { label: 'Inactive Status Rules', value: requirement.inactive_status_rules },
+      { label: 'Reactivation / Reinstatement', value: requirement.reactivation_reinstatement_rules },
+    ]
+
+    const sourceLabel =
+      requirement.source_url || requirement.source_title
+        ? (
+          <div className="text-sm text-gray-700">
+            {requirement.source_url ? (
+              <a href={requirement.source_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                {requirement.source_title || requirement.source_url}
+              </a>
+            ) : (
+              requirement.source_title
+            )}
+          </div>
+        )
+        : <span className="text-sm text-gray-500">Not provided</span>
+
+    const citations = requirement.other_requirements || []
+    const hasCitations = citations.length > 0
+
     return (
-      <div className="space-y-3 text-sm">
-        <div className="flex flex-wrap gap-3 text-gray-700">
+      <div className="space-y-6">
+        <div className="flex flex-wrap gap-3 text-gray-700 text-sm">
           <span className="px-2 py-1 bg-gray-100 rounded-md">Model: {requirement.model_name || 'unknown'}</span>
           <span className="px-2 py-1 bg-gray-100 rounded-md">
             Extracted: {new Date(requirement.extracted_at).toLocaleString()}
@@ -229,24 +306,129 @@ export default function StatesPage() {
             <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-md">Needs human review</span>
           )}
         </div>
-        {requirement.plain_english_summary && (
-          <div>
-            <h4 className="font-medium text-gray-900 mb-1">Plain English Summary</h4>
-            <p className="text-gray-700 whitespace-pre-wrap">{requirement.plain_english_summary}</p>
+
+        <div className="space-y-2">
+          <h4 className="font-semibold text-lg text-gray-900">Plain English Summary</h4>
+          <p className="text-gray-800 whitespace-pre-wrap text-sm">
+            {requirement.plain_english_summary || 'Not specified'}
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          {stats.map((stat) => (
+            <Card key={stat.label} className="border border-gray-200">
+              <CardContent className="py-4">
+                <p className="text-xs uppercase tracking-wide text-gray-500">{stat.label}</p>
+                <p className="text-xl font-semibold text-gray-900 mt-1">{friendlyValue(stat.value)}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        <div className="space-y-2">
+          <h4 className="font-semibold text-gray-900">Key details</h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+            {keyDetails.map((item) => (
+              <div key={item.label} className="flex justify-between border border-gray-200 rounded-md px-3 py-2">
+                <span className="text-gray-600">{item.label}</span>
+                <span className="text-gray-900 text-right ml-2">{friendlyValue(item.value)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {requirement.category_requirements?.length > 0 && (
+          <div className="space-y-2">
+            <h4 className="font-semibold text-gray-900">Category requirements</h4>
+            <div className="overflow-auto border border-gray-200 rounded-md">
+              <table className="min-w-full text-sm">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="text-left px-3 py-2 text-gray-700">Category</th>
+                    <th className="text-left px-3 py-2 text-gray-700">Hours</th>
+                    <th className="text-left px-3 py-2 text-gray-700">Notes</th>
+                    <th className="text-left px-3 py-2 text-gray-700">Max %</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {requirement.category_requirements.map((c, idx) => (
+                    <tr key={idx} className="border-t border-gray-100">
+                      <td className="px-3 py-2">{friendlyValue(c.category)}</td>
+                      <td className="px-3 py-2">{friendlyValue(c.hours)}</td>
+                      <td className="px-3 py-2">{friendlyValue(c.notes)}</td>
+                      <td className="px-3 py-2">{friendlyValue(c.max_percent_allowed)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
-        <div>
-          <h4 className="font-medium text-gray-900 mb-1">Structured JSON</h4>
+
+        {requirement.delivery_constraints?.length > 0 && (
+          <div className="space-y-2">
+            <h4 className="font-semibold text-gray-900">Delivery constraints</h4>
+            <div className="overflow-auto border border-gray-200 rounded-md">
+              <table className="min-w-full text-sm">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="text-left px-3 py-2 text-gray-700">Type</th>
+                    <th className="text-left px-3 py-2 text-gray-700">Limit %</th>
+                    <th className="text-left px-3 py-2 text-gray-700">Limit Hours</th>
+                    <th className="text-left px-3 py-2 text-gray-700">Notes</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {requirement.delivery_constraints.map((d, idx) => (
+                    <tr key={idx} className="border-t border-gray-100">
+                      <td className="px-3 py-2">{friendlyValue(d.type)}</td>
+                      <td className="px-3 py-2">{friendlyValue(d.limit_percent)}</td>
+                      <td className="px-3 py-2">{friendlyValue(d.limit_hours)}</td>
+                      <td className="px-3 py-2">{friendlyValue(d.notes)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        <div className="space-y-2">
+          <h4 className="font-semibold text-gray-900">Evidence & Citations</h4>
+          {!hasCitations && (
+            <div className="text-sm text-yellow-800 bg-yellow-50 border border-yellow-200 rounded-md px-3 py-2">
+              No citations provided. This will require human review.
+            </div>
+          )}
+          {hasCitations && (
+            <ul className="list-disc list-inside space-y-1 text-sm text-gray-800">
+              {citations.map((c, idx) => (
+                <li key={idx}>
+                  <span className="font-medium">{friendlyValue(c.title)}:</span>{' '}
+                  {friendlyValue(c.details)}{' '}
+                  {c.citation ? <span className="text-gray-600">({c.citation})</span> : null}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div className="space-y-1">
+          <h4 className="font-semibold text-gray-900">Source</h4>
+          {sourceLabel}
+        </div>
+
+        <Collapsible title="Raw JSON (advanced)">
           <pre className="bg-gray-900 text-gray-50 text-xs rounded-md p-3 overflow-auto">
 {JSON.stringify(requirement, null, 2)}
           </pre>
-        </div>
-        <div>
-          <h4 className="font-medium text-gray-900 mb-1">Source Text</h4>
+        </Collapsible>
+
+        <Collapsible title="Source Text (advanced)">
           <pre className="bg-gray-50 text-gray-800 text-xs rounded-md p-3 overflow-auto whitespace-pre-wrap">
 {requirement.source_text}
           </pre>
-        </div>
+        </Collapsible>
       </div>
     )
   }
