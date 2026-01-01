@@ -565,7 +565,7 @@ export default function StatesPage() {
           </div>
         </div>
 
-        {requirement.category_requirements?.length > 0 && (
+        {req.category_requirements?.length > 0 && (
           <div className="space-y-2">
             <h4 className="font-semibold text-gray-900">Category requirements</h4>
             <div className="overflow-auto border border-gray-200 rounded-md">
@@ -579,7 +579,7 @@ export default function StatesPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {requirement.category_requirements.map((c, idx) => (
+                  {req.category_requirements.map((c, idx) => (
                     <tr key={idx} className="border-t border-gray-100">
                       <td className="px-3 py-2">{friendlyValue(c.category ? toTitleCase(c.category) : null)}</td>
                       <td className="px-3 py-2">{friendlyValue(c.hours)}</td>
@@ -595,7 +595,7 @@ export default function StatesPage() {
           </div>
         )}
 
-        {requirement.delivery_constraints?.length > 0 && (
+        {req.delivery_constraints?.length > 0 && (
           <div className="space-y-2">
             <h4 className="font-semibold text-gray-900">Delivery constraints</h4>
             <div className="overflow-auto border border-gray-200 rounded-md">
@@ -609,7 +609,7 @@ export default function StatesPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {requirement.delivery_constraints.map((d, idx) => (
+                  {req.delivery_constraints.map((d, idx) => (
                     <tr key={idx} className="border-t border-gray-100">
                       <td className="px-3 py-2">{friendlyValue(d.type)}</td>
                       <td className="px-3 py-2">{friendlyValue(d.limit_percent)}</td>
