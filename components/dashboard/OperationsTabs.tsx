@@ -9,6 +9,7 @@ const tabs = [
   { name: 'Hosting and Domains', href: '/dashboard/operations?category=Hosting%20and%20Domains', category: 'Hosting and Domains' },
   { name: 'WordPress Plugins', href: '/dashboard/operations?category=WordPress%20Plugins', category: 'WordPress Plugins' },
   { name: 'Phones', href: '/dashboard/operations?category=Phones', category: 'Phones' },
+  { name: 'AI Services', href: '/dashboard/operations?category=AI%20Services', category: 'AI Services' },
   { name: 'Contacts', href: '/dashboard/contacts' },
   { name: 'Other', href: '/dashboard/operations?category=Other', category: 'Other' },
 ]

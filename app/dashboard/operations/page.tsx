@@ -33,6 +33,7 @@ const CATEGORIES = [
   'Hosting and Domains',
   'WordPress Plugins',
   'Phones',
+  'AI Services',
   'Other',
 ]
 
