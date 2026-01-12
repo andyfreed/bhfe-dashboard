@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { OperationsTabs } from '@/components/dashboard/OperationsTabs'
 import { Settings, Plus, Edit, Save, X, Globe, Server, Package, Trash2 } from 'lucide-react'
 
 interface DomainWebsite {
@@ -261,6 +262,8 @@ export default function OperationsPage() {
           Add Item
         </Button>
       </div>
+
+      <OperationsTabs />
 
       {/* Category Filter */}
       <div className="flex gap-2 flex-wrap">

@@ -54,7 +54,6 @@ const regulatorySubmenu = [
 const operationsSubmenu = [
   { name: 'Operations', href: '/dashboard/operations' },
   { name: 'Contacts', href: '/dashboard/contacts' },
-  { name: 'Links', href: '/dashboard/links' },
 ]
 
 export function Sidebar() {

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { OperationsTabs } from '@/components/dashboard/OperationsTabs'
 import { Plus, Trash2, Edit, Users, Mail, Phone, Building, Globe, MapPin } from 'lucide-react'
 import { format } from 'date-fns'
 
@@ -227,6 +228,8 @@ export default function ContactsPage() {
           Add Contact
         </Button>
       </div>
+
+      <OperationsTabs />
 
       <div className="space-y-4">
         <div>
