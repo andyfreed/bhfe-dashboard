@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import {
   LayoutDashboard,
   CheckSquare,
@@ -52,13 +52,18 @@ const regulatorySubmenu = [
 ]
 
 const operationsSubmenu = [
-  { name: 'Operations', href: '/dashboard/operations' },
+  { name: 'All', href: '/dashboard/operations', category: 'All' },
+  { name: 'Hosting and Domains', href: '/dashboard/operations?category=Hosting%20and%20Domains', category: 'Hosting and Domains' },
+  { name: 'WordPress Plugins', href: '/dashboard/operations?category=WordPress%20Plugins', category: 'WordPress Plugins' },
+  { name: 'Phones', href: '/dashboard/operations?category=Phones', category: 'Phones' },
   { name: 'Contacts', href: '/dashboard/contacts' },
+  { name: 'Other', href: '/dashboard/operations?category=Other', category: 'Other' },
 ]
 
 export function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [unreadMessageCount, setUnreadMessageCount] = useState(0)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isRegulatoryExpanded, setIsRegulatoryExpanded] = useState(false)
@@ -76,7 +81,7 @@ export function Sidebar() {
     if (pathname.startsWith('/dashboard/regulatory')) {
       setIsRegulatoryExpanded(true)
     }
-    if (pathname.startsWith('/dashboard/operations') || pathname === '/dashboard/contacts' || pathname === '/dashboard/links') {
+    if (pathname.startsWith('/dashboard/operations') || pathname === '/dashboard/contacts') {
       setIsOperationsExpanded(true)
     }
     
@@ -183,7 +188,7 @@ export function Sidebar() {
           {navigation.map((item) => {
             const isActive = pathname === item.href || 
               (item.href === '/dashboard/regulatory/cpa' && pathname.startsWith('/dashboard/regulatory')) ||
-              (item.href === '/dashboard/operations' && (pathname.startsWith('/dashboard/operations') || pathname === '/dashboard/contacts' || pathname === '/dashboard/links'))
+              (item.href === '/dashboard/operations' && (pathname.startsWith('/dashboard/operations') || pathname === '/dashboard/contacts'))
             const isChat = item.name === 'Chat'
             const showGlow = isChat && unreadMessageCount > 0 && !isActive
             const isRegulatory = item.name === 'Regulatory'
@@ -250,7 +255,7 @@ export function Sidebar() {
                   <button
                     onClick={() => {
                       setIsOperationsExpanded(!isOperationsExpanded)
-                      if (!isOperationsExpanded && !pathname.startsWith('/dashboard/operations') && pathname !== '/dashboard/contacts' && pathname !== '/dashboard/links') {
+                      if (!isOperationsExpanded && !pathname.startsWith('/dashboard/operations') && pathname !== '/dashboard/contacts') {
                         router.push('/dashboard/operations')
                       }
                     }}
@@ -276,7 +281,10 @@ export function Sidebar() {
                   {isOperationsExpanded && (
                     <div className="ml-4 mt-2 space-y-1">
                       {operationsSubmenu.map((subItem) => {
-                        const subIsActive = pathname === subItem.href
+                        const selectedCategory = searchParams.get('category') || 'All'
+                        const subIsActive = subItem.category
+                          ? pathname === '/dashboard/operations' && selectedCategory === subItem.category
+                          : pathname === subItem.href
                         return (
                           <Link
                             key={subItem.name}

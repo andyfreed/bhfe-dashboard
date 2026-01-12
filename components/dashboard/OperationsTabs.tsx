@@ -1,22 +1,29 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
 import { cn } from '@/lib/utils'
 
 const tabs = [
-  { name: 'Operations', href: '/dashboard/operations' },
+  { name: 'All', href: '/dashboard/operations', category: 'All' },
+  { name: 'Hosting and Domains', href: '/dashboard/operations?category=Hosting%20and%20Domains', category: 'Hosting and Domains' },
+  { name: 'WordPress Plugins', href: '/dashboard/operations?category=WordPress%20Plugins', category: 'WordPress Plugins' },
+  { name: 'Phones', href: '/dashboard/operations?category=Phones', category: 'Phones' },
   { name: 'Contacts', href: '/dashboard/contacts' },
-  { name: 'Links', href: '/dashboard/links' },
+  { name: 'Other', href: '/dashboard/operations?category=Other', category: 'Other' },
 ]
 
 export function OperationsTabs() {
   const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const selectedCategory = searchParams.get('category') || 'All'
 
   return (
     <div className="flex gap-2 flex-wrap">
       {tabs.map((tab) => {
-        const isActive = pathname === tab.href
+        const isActive = tab.category
+          ? pathname === '/dashboard/operations' && selectedCategory === tab.category
+          : pathname === tab.href
         return (
           <Link
             key={tab.href}

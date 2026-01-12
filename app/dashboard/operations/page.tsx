@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -31,7 +32,7 @@ interface OperationItem {
 const CATEGORIES = [
   'Hosting and Domains',
   'WordPress Plugins',
-  'Services',
+  'Phones',
   'Other',
 ]
 
@@ -51,11 +52,23 @@ export default function OperationsPage() {
   const [domainsWebsites, setDomainsWebsites] = useState<DomainWebsite[]>([{ name: '', cost: '', isHosted: 'No', autoRenew: 'No', expirationDate: '', notes: '' }])
   const [costFrequency, setCostFrequency] = useState<'monthly' | 'yearly' | 'paid-in-full'>('monthly')
   const [selectedCategory, setSelectedCategory] = useState<string>('All')
+  const searchParams = useSearchParams()
   const supabase = createClient()
 
   useEffect(() => {
     loadItems()
   }, [supabase])
+
+  useEffect(() => {
+    const categoryParam = searchParams.get('category')
+    const nextCategory = categoryParam || 'All'
+    const validCategories = ['All', ...CATEGORIES]
+    if (validCategories.includes(nextCategory)) {
+      setSelectedCategory(nextCategory)
+    } else {
+      setSelectedCategory('All')
+    }
+  }, [searchParams])
 
   const loadItems = async () => {
     const { data, error } = await supabase
@@ -69,7 +82,25 @@ export default function OperationsPage() {
       return
     }
 
-    setItems(data || [])
+    let normalizedItems = data || []
+    const legacyServices = normalizedItems.filter((item) => item.category === 'Services')
+    if (legacyServices.length > 0) {
+      const legacyIds = legacyServices.map((item) => item.id)
+      const { error: migrateError } = await supabase
+        .from('operations')
+        .update({ category: 'Other' })
+        .in('id', legacyIds)
+
+      if (migrateError) {
+        console.error('Error migrating Services category to Other:', migrateError)
+      } else {
+        normalizedItems = normalizedItems.map((item) =>
+          item.category === 'Services' ? { ...item, category: 'Other' } : item
+        )
+      }
+    }
+
+    setItems(normalizedItems)
     setLoading(false)
   }
 
@@ -244,8 +275,6 @@ export default function OperationsPage() {
     ? items
     : items.filter(item => item.category === selectedCategory)
 
-  const categories = ['All', ...CATEGORIES]
-
   if (loading) {
     return <div className="text-center py-12">Loading...</div>
   }
@@ -264,23 +293,6 @@ export default function OperationsPage() {
       </div>
 
       <OperationsTabs />
-
-      {/* Category Filter */}
-      <div className="flex gap-2 flex-wrap">
-        {categories.map((category) => (
-          <button
-            key={category}
-            onClick={() => setSelectedCategory(category)}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              selectedCategory === category
-                ? 'bg-blue-600 text-white'
-                : 'bg-white text-slate-700 border-2 border-slate-200 hover:bg-slate-50'
-            }`}
-          >
-            {category}
-          </button>
-        ))}
-      </div>
 
       {/* Form */}
       {showForm && (
