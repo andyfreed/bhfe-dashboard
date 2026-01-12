@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Plus, Trash2, Edit, Check, X, ChevronDown, ChevronUp, Tag, Filter, Bell, Zap } from 'lucide-react'
 import { format } from 'date-fns'
-import { RECURRING_PATTERNS, getRecurringPatternLabel, type RecurringPattern } from '@/lib/recurring-dates'
+import { RECURRING_PATTERNS, getNextRecurringDate, getRecurringPatternLabel, type RecurringPattern } from '@/lib/recurring-dates'
 
 interface Profile {
   id: string
@@ -346,10 +346,11 @@ export default function TodosPage() {
 
   const handleToggleComplete = async (todo: Todo) => {
     const wasIncomplete = !todo.completed
+    const newIsCompleted = !todo.completed
     
     const { error } = await supabase
       .from('todos')
-      .update({ completed: !todo.completed })
+      .update({ completed: newIsCompleted })
       .eq('id', todo.id)
 
     if (error) {
@@ -364,6 +365,45 @@ export default function TodosPage() {
       setTimeout(() => {
         setShowCompletionGif(false)
       }, 5000) // 5 seconds
+    }
+
+    if (wasIncomplete && todo.is_recurring && todo.recurring_pattern) {
+      const pattern = todo.recurring_pattern as RecurringPattern
+      const nextDueDate = todo.due_date ? getNextRecurringDate(new Date(todo.due_date), pattern) : null
+      const nextReminderDate = todo.reminder_date ? getNextRecurringDate(new Date(todo.reminder_date), pattern) : null
+
+      const { data: maxTodo } = await supabase
+        .from('todos')
+        .select('sort_order')
+        .order('sort_order', { ascending: false })
+        .limit(1)
+        .single()
+
+      const nextSortOrder = maxTodo?.sort_order ? maxTodo.sort_order + 1 : 1
+
+      const { error: createError } = await supabase
+        .from('todos')
+        .insert([{
+          title: todo.title,
+          description: todo.description,
+          completed: false,
+          due_date: nextDueDate ? nextDueDate.toISOString() : null,
+          reminder_date: nextReminderDate ? nextReminderDate.toISOString() : null,
+          is_recurring: true,
+          recurring_pattern: todo.recurring_pattern,
+          is_company_task: todo.is_company_task,
+          user_id: todo.user_id,
+          assigned_to: todo.assigned_to,
+          tags: todo.tags,
+          color: todo.color,
+          sort_order: nextSortOrder,
+          priority: todo.priority,
+          is_super_reminder: todo.is_super_reminder ?? false,
+        }])
+
+      if (createError) {
+        console.error('Error creating next recurring todo:', createError)
+      }
     }
 
     loadTodos()

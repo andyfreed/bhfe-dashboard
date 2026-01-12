@@ -23,7 +23,6 @@ export function Header() {
   const [currentDate, setCurrentDate] = useState('')
   const [hasActiveSuperReminder, setHasActiveSuperReminder] = useState(false)
   const [processingOrders, setProcessingOrders] = useState<ProcessingOrder[]>([])
-  const [showOrderBanner, setShowOrderBanner] = useState(true)
   const router = useRouter()
   const supabase = createClient()
 
@@ -205,48 +204,7 @@ export function Header() {
 
   return (
     <>
-      {/* Processing Orders Banner */}
-      {showOrderBanner && processingOrders.length > 0 && (
-        <div className="fixed top-0 left-0 right-0 z-50 bg-orange-500 text-white shadow-lg">
-          <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Package className="h-5 w-5" />
-              <div>
-                <p className="font-semibold">
-                  {processingOrders.length} order{processingOrders.length !== 1 ? 's' : ''} need{processingOrders.length === 1 ? 's' : ''} shipping
-                </p>
-                <p className="text-sm text-orange-100">
-                  {processingOrders.length === 1 
-                    ? `Order #${processingOrders[0].order_number} from ${processingOrders[0].billing_name}`
-                    : `${processingOrders.length} orders are in Processing status`
-                  }
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              {processingOrders.length > 0 && (
-                <a
-                  href={processingOrders[0].order_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-4 py-2 bg-white text-orange-600 rounded-lg font-semibold hover:bg-orange-50 transition-colors text-sm"
-                >
-                  View Orders
-                </a>
-              )}
-              <button
-                onClick={() => setShowOrderBanner(false)}
-                className="p-1 hover:bg-orange-600 rounded transition-colors"
-                aria-label="Dismiss banner"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      
-      <header className={`h-16 lg:h-20 border-b border-slate-200/80 bg-white/80 backdrop-blur-sm px-4 sm:px-6 lg:px-8 flex items-center justify-between shadow-sm ${processingOrders.length > 0 && showOrderBanner ? 'mt-20' : 'mt-14'} lg:mt-0 ${hasActiveSuperReminder ? 'animate-flash-red' : ''}`}>
+      <header className={`h-16 lg:h-20 border-b border-slate-200/80 bg-white/80 backdrop-blur-sm px-4 sm:px-6 lg:px-8 flex items-center justify-between shadow-sm mt-14 lg:mt-0 ${hasActiveSuperReminder ? 'animate-flash-red' : ''}`}>
         <div className="flex items-center gap-2 sm:gap-4 min-w-0">
           <div className="flex flex-col min-w-0">
             <h2 className="text-sm sm:text-base lg:text-lg font-bold text-slate-900 truncate">{currentDate}</h2>
@@ -263,15 +221,6 @@ export function Header() {
             <span className="text-xs font-semibold text-orange-900 sm:hidden">
               {processingOrders.length}
             </span>
-            {!showOrderBanner && (
-              <button
-                onClick={() => setShowOrderBanner(true)}
-                className="text-xs text-orange-600 hover:text-orange-800 underline ml-1"
-                title="Show banner"
-              >
-                Show
-              </button>
-            )}
           </div>
         )}
         {user && (

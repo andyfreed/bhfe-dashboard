@@ -419,28 +419,7 @@ export default function CalendarPage() {
                     {format(day, 'd')}
                   </div>
                   <div className="space-y-1">
-                    {dayEvents.slice(0, 3).map((event) => (
-                      <div
-                        key={event.id}
-                        className="text-xs px-1 py-0.5 rounded truncate"
-                        style={{ backgroundColor: event.color, color: 'white' }}
-                      >
-                        {event.title}
-                      </div>
-                    ))}
-                    {dayTodos.slice(0, Math.max(0, 3 - dayEvents.length)).map((todo) => {
-                      const todoColor = getTodoColor(todo)
-                      return (
-                        <div
-                          key={todo.id}
-                          className="text-xs px-1 py-0.5 rounded truncate"
-                          style={{ backgroundColor: todoColor, color: 'white' }}
-                        >
-                          {todo.title}
-                        </div>
-                      )
-                    })}
-                    {dayReminders.slice(0, Math.max(0, 3 - dayEvents.length - dayTodos.length)).map((reminder) => {
+                    {dayReminders.slice(0, 3).map((reminder) => {
                       const reminderColor = getUserColor(reminder.user_id)
                       return (
                         <div
@@ -450,6 +429,27 @@ export default function CalendarPage() {
                           title={`Reminder: ${reminder.title}`}
                         >
                           🔔 {reminder.title}
+                        </div>
+                      )
+                    })}
+                    {dayEvents.slice(0, Math.max(0, 3 - dayReminders.length)).map((event) => (
+                      <div
+                        key={event.id}
+                        className="text-xs px-1 py-0.5 rounded truncate"
+                        style={{ backgroundColor: event.color, color: 'white' }}
+                      >
+                        {event.title}
+                      </div>
+                    ))}
+                    {dayTodos.slice(0, Math.max(0, 3 - dayReminders.length - dayEvents.length)).map((todo) => {
+                      const todoColor = getTodoColor(todo)
+                      return (
+                        <div
+                          key={todo.id}
+                          className="text-xs px-1 py-0.5 rounded truncate"
+                          style={{ backgroundColor: todoColor, color: 'white' }}
+                        >
+                          {todo.title}
                         </div>
                       )
                     })}
@@ -471,104 +471,115 @@ export default function CalendarPage() {
           <CardHeader>
             <CardTitle>{format(selectedDate, 'EEEE, MMMM d, yyyy')}</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {getEventsForDate(selectedDate).events.length > 0 && (
-              <div>
-                <h3 className="font-medium mb-2">Events</h3>
-                <div className="space-y-2">
-                  {getEventsForDate(selectedDate).events.map((event) => (
-                    <div
-                      key={event.id}
-                      className="flex items-center justify-between p-3 border border-gray-200 rounded-lg"
-                    >
-                      <div>
-                        <div className="font-medium">{event.title}</div>
-                        {event.description && (
-                          <div className="text-sm text-gray-600">{event.description}</div>
-                        )}
-                        <div className="text-xs text-gray-500 mt-1">
-                          {format(new Date(event.start_date), 'MMM d, yyyy')}
-                          {event.end_date && ` - ${format(new Date(event.end_date), 'MMM d, yyyy')}`}
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => {
-                            setEditingEvent(event)
-                            setFormData({
-                              title: event.title,
-                              description: event.description || '',
-                              start_date: format(new Date(event.start_date), "yyyy-MM-dd"),
-                              end_date: event.end_date ? format(new Date(event.end_date), "yyyy-MM-dd") : '',
-                              all_day: event.all_day,
-                              color: event.color,
-                            })
-                            setShowForm(true)
-                          }}
-                          className="text-blue-600"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </button>
-                        <button onClick={() => handleDelete(event.id)} className="text-red-600">
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-            {getEventsForDate(selectedDate).todos.length > 0 && (
-              <div>
-                <h3 className="font-medium mb-2">Tasks</h3>
-                <div className="space-y-2">
-                  {getEventsForDate(selectedDate).todos.map((todo) => (
-                    <div
-                      key={todo.id}
-                      className="p-3 border rounded-lg border-blue-200 bg-blue-50"
-                    >
-                      <div className="font-medium">{todo.title}</div>
-                      <div className="text-xs text-gray-500 mt-1">
-                        Due: {format(new Date(todo.due_date!), 'h:mm a')}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-            {getEventsForDate(selectedDate).reminders.length > 0 && (
-              <div>
-                <h3 className="font-medium mb-2">Reminders</h3>
-                <div className="space-y-2">
-                  {getEventsForDate(selectedDate).reminders.map((reminder) => {
-                    const reminderColor = getUserColor(reminder.user_id)
-                    const profile = profiles[reminder.user_id]
-                    return (
-                      <div
-                        key={reminder.id}
-                        className="p-3 border rounded-lg"
-                        style={{ borderColor: reminderColor, backgroundColor: `${reminderColor}10` }}
-                      >
-                        <div className="font-medium flex items-center gap-2">
-                          <span style={{ color: reminderColor }}>🔔</span>
-                          {reminder.title}
-                        </div>
-                        <div className="text-xs text-gray-500 mt-1">
-                          {profile?.name && `By: ${profile.name}`}
-                          {' • '}
-                          {format(new Date(reminder.reminder_date), 'h:mm a')}
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
+          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {getEventsForDate(selectedDate).events.length === 0 &&
-              getEventsForDate(selectedDate).todos.length === 0 &&
-              getEventsForDate(selectedDate).reminders.length === 0 && (
-                <p className="text-gray-500 text-center py-4">No events, tasks, or reminders for this day</p>
-              )}
+            getEventsForDate(selectedDate).todos.length === 0 &&
+            getEventsForDate(selectedDate).reminders.length === 0 ? (
+              <p className="text-gray-500 text-center py-4 md:col-span-2">No events, tasks, or reminders for this day</p>
+            ) : (
+              <>
+                <div className="space-y-4">
+                  <h3 className="font-medium">Reminders</h3>
+                  {getEventsForDate(selectedDate).reminders.length > 0 ? (
+                    <div className="space-y-2">
+                      {getEventsForDate(selectedDate).reminders.map((reminder) => {
+                        const reminderColor = getUserColor(reminder.user_id)
+                        const profile = profiles[reminder.user_id]
+                        return (
+                          <div
+                            key={reminder.id}
+                            className="p-3 border rounded-lg"
+                            style={{ borderColor: reminderColor, backgroundColor: `${reminderColor}10` }}
+                          >
+                            <div className="font-medium flex items-center gap-2">
+                              <span style={{ color: reminderColor }}>🔔</span>
+                              {reminder.title}
+                            </div>
+                            <div className="text-xs text-gray-500 mt-1">
+                              {profile?.name && `By: ${profile.name}`}
+                              {' • '}
+                              {format(new Date(reminder.reminder_date), 'h:mm a')}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500">No reminders for this day</p>
+                  )}
+                </div>
+                <div className="space-y-4">
+                  {getEventsForDate(selectedDate).events.length > 0 && (
+                    <div>
+                      <h3 className="font-medium mb-2">Events</h3>
+                      <div className="space-y-2">
+                        {getEventsForDate(selectedDate).events.map((event) => (
+                          <div
+                            key={event.id}
+                            className="flex items-center justify-between p-3 border border-gray-200 rounded-lg"
+                          >
+                            <div>
+                              <div className="font-medium">{event.title}</div>
+                              {event.description && (
+                                <div className="text-sm text-gray-600">{event.description}</div>
+                              )}
+                              <div className="text-xs text-gray-500 mt-1">
+                                {format(new Date(event.start_date), 'MMM d, yyyy')}
+                                {event.end_date && ` - ${format(new Date(event.end_date), 'MMM d, yyyy')}`}
+                              </div>
+                            </div>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => {
+                                  setEditingEvent(event)
+                                  setFormData({
+                                    title: event.title,
+                                    description: event.description || '',
+                                    start_date: format(new Date(event.start_date), "yyyy-MM-dd"),
+                                    end_date: event.end_date ? format(new Date(event.end_date), "yyyy-MM-dd") : '',
+                                    all_day: event.all_day,
+                                    color: event.color,
+                                  })
+                                  setShowForm(true)
+                                }}
+                                className="text-blue-600"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </button>
+                              <button onClick={() => handleDelete(event.id)} className="text-red-600">
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {getEventsForDate(selectedDate).todos.length > 0 && (
+                    <div>
+                      <h3 className="font-medium mb-2">Tasks</h3>
+                      <div className="space-y-2">
+                        {getEventsForDate(selectedDate).todos.map((todo) => (
+                          <div
+                            key={todo.id}
+                            className="p-3 border rounded-lg border-blue-200 bg-blue-50"
+                          >
+                            <div className="font-medium">{todo.title}</div>
+                            <div className="text-xs text-gray-500 mt-1">
+                              Due: {format(new Date(todo.due_date!), 'h:mm a')}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {getEventsForDate(selectedDate).events.length === 0 &&
+                    getEventsForDate(selectedDate).todos.length === 0 && (
+                      <p className="text-sm text-gray-500">No events or tasks for this day</p>
+                    )}
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
       )}
