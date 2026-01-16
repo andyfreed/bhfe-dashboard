@@ -15,6 +15,11 @@ export default function DashboardPage() {
     priority: 'low' | 'medium' | 'high' | null
     completed: boolean | null
   }>>([])
+  const [recentCompletedTodos, setRecentCompletedTodos] = useState<Array<{
+    id: string
+    title: string
+    updated_at: string
+  }>>([])
   const [upcomingRenewals, setUpcomingRenewals] = useState<Array<{
     state_name: string
     state_code: string
@@ -38,6 +43,19 @@ export default function DashboardPage() {
         console.error('Error loading assigned todos:', todoError)
       } else {
         setAssignedTodos(todoData || [])
+      }
+
+      const { data: completedData, error: completedError } = await supabase
+        .from('todos')
+        .select('id, title, updated_at')
+        .eq('completed', true)
+        .order('updated_at', { ascending: false })
+        .limit(4)
+
+      if (completedError) {
+        console.error('Error loading completed todos:', completedError)
+      } else {
+        setRecentCompletedTodos(completedData || [])
       }
 
       // Get upcoming CPA renewals (current month, next month, 3rd month)
@@ -190,7 +208,31 @@ export default function DashboardPage() {
             )}
           </CardContent>
         </Card>
-        <Card className="border-2 border-slate-300 shadow-xl bg-white" />
+        <Card className="border-2 border-slate-300 shadow-xl overflow-hidden bg-white">
+          <CardHeader className="border-b border-slate-200 bg-white">
+            <CardTitle className="text-xl text-slate-900 font-bold">Recently Completed</CardTitle>
+            <CardDescription className="text-slate-600">Last 4 completed tasks</CardDescription>
+          </CardHeader>
+          <CardContent className="p-6 space-y-3">
+            {recentCompletedTodos.length === 0 ? (
+              <div className="text-sm text-slate-500">No completed tasks yet.</div>
+            ) : (
+              recentCompletedTodos.map((todo) => (
+                <div
+                  key={todo.id}
+                  className="flex items-start justify-between gap-4 rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-sm"
+                >
+                  <div className="min-w-0">
+                    <div className="font-semibold text-slate-900 truncate">{todo.title}</div>
+                    <div className="text-xs text-slate-500">
+                      Completed: {new Date(todo.updated_at).toLocaleDateString()}
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       {/* CPA Renewals Coming Up */}
