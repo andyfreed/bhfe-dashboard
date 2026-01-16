@@ -130,8 +130,22 @@ CREATE TABLE IF NOT EXISTS public.chat_messages (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   sender_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
   receiver_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  message_group_id UUID,
+  reply_to_group_id UUID,
   message TEXT NOT NULL,
   is_read BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+);
+
+-- Create chat_attachments table
+CREATE TABLE IF NOT EXISTS public.chat_attachments (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  message_group_id UUID NOT NULL,
+  uploader_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  file_name TEXT NOT NULL,
+  storage_path TEXT NOT NULL,
+  size_bytes BIGINT,
+  content_type TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
 );
 
@@ -161,6 +175,9 @@ CREATE INDEX IF NOT EXISTS idx_notes_user_id ON public.notes(user_id);
 CREATE INDEX IF NOT EXISTS idx_chat_messages_sender_id ON public.chat_messages(sender_id);
 CREATE INDEX IF NOT EXISTS idx_chat_messages_receiver_id ON public.chat_messages(receiver_id);
 CREATE INDEX IF NOT EXISTS idx_chat_messages_created_at ON public.chat_messages(created_at);
+CREATE INDEX IF NOT EXISTS idx_chat_messages_group_id ON public.chat_messages(message_group_id);
+CREATE INDEX IF NOT EXISTS idx_chat_attachments_group_id ON public.chat_attachments(message_group_id);
+CREATE INDEX IF NOT EXISTS idx_chat_attachments_uploader_id ON public.chat_attachments(uploader_id);
 CREATE INDEX IF NOT EXISTS idx_links_user_id ON public.links(user_id);
 
 -- Enable Row Level Security (RLS)
@@ -174,6 +191,7 @@ ALTER TABLE public.contacts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.notes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.state_info ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.chat_messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.chat_attachments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.links ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies for profiles
@@ -261,6 +279,18 @@ CREATE POLICY "Users can update messages they received" ON public.chat_messages 
   USING (auth.uid() = receiver_id);
 CREATE POLICY "Users can delete messages they sent or received" ON public.chat_messages FOR DELETE 
   USING (auth.uid() = sender_id OR auth.uid() = receiver_id);
+
+-- RLS Policies for chat_attachments
+CREATE POLICY "Users can view attachments in their chats" ON public.chat_attachments FOR SELECT
+  USING (EXISTS (
+    SELECT 1 FROM public.chat_messages m
+    WHERE m.message_group_id = chat_attachments.message_group_id
+      AND (m.sender_id = auth.uid() OR m.receiver_id = auth.uid())
+  ));
+CREATE POLICY "Users can create their own attachments" ON public.chat_attachments FOR INSERT
+  WITH CHECK (auth.uid() = uploader_id);
+CREATE POLICY "Users can delete their own attachments" ON public.chat_attachments FOR DELETE
+  USING (auth.uid() = uploader_id);
 
 -- RLS Policies for links (shared across all users)
 CREATE POLICY "Users can view all links" ON public.links FOR SELECT USING (true);

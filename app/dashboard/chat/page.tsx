@@ -1,10 +1,10 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Send, MessageSquare, User, Trash2 } from 'lucide-react'
+import { Download, MessageSquare, Paperclip, Reply, Send, Trash2, X } from 'lucide-react'
 import { format } from 'date-fns'
 import { useNotifications } from '@/hooks/useNotifications'
 
@@ -12,8 +12,21 @@ interface ChatMessage {
   id: string
   sender_id: string
   receiver_id: string
+  message_group_id?: string | null
+  reply_to_group_id?: string | null
   message: string
   is_read: boolean
+  created_at: string
+}
+
+interface ChatAttachment {
+  id: string
+  message_group_id: string
+  uploader_id: string
+  file_name: string
+  storage_path: string
+  size_bytes: number | null
+  content_type: string | null
   created_at: string
 }
 
@@ -26,13 +39,30 @@ interface Profile {
 export default function ChatPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [newMessage, setNewMessage] = useState('')
+  const [attachmentsByGroup, setAttachmentsByGroup] = useState<Record<string, ChatAttachment[]>>({})
+  const [pendingFiles, setPendingFiles] = useState<File[]>([])
+  const [isDragging, setIsDragging] = useState(false)
+  const [replyTo, setReplyTo] = useState<ChatMessage | null>(null)
   const [allUsers, setAllUsers] = useState<Profile[]>([])
   const [currentUser, setCurrentUser] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const messageInputRef = useRef<HTMLInputElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const previousMessageCountRef = useRef<number>(0)
   const supabase = createClient()
   const { permission, notify } = useNotifications()
+  const chatBucket = 'chat-attachments'
+
+  const getMessageGroupId = (message: ChatMessage) => message.message_group_id || message.id
+
+  const messageMap = useMemo(() => {
+    const map = new Map<string, ChatMessage>()
+    messages.forEach((message) => {
+      map.set(getMessageGroupId(message), message)
+    })
+    return map
+  }, [messages])
 
   useEffect(() => {
     initializeChat()
@@ -97,15 +127,10 @@ export default function ChatPage() {
       return
     }
 
-    // Deduplicate messages by content, sender, and timestamp (since group messages create multiple records)
-    // Group messages with same content, sender, and time (< 1 second apart) together
+    // Deduplicate group chat messages using the shared group id (fallback to id for older rows)
     const uniqueMessages = (data || []).reduce((acc: ChatMessage[], message: ChatMessage) => {
-      const existing = acc.find(
-        (m) =>
-          m.message === message.message &&
-          m.sender_id === message.sender_id &&
-          Math.abs(new Date(m.created_at).getTime() - new Date(message.created_at).getTime()) < 1000
-      )
+      const groupId = message.message_group_id || message.id
+      const existing = acc.find((m) => (m.message_group_id || m.id) === groupId)
       if (!existing) {
         acc.push(message)
       }
@@ -113,6 +138,30 @@ export default function ChatPage() {
     }, [])
 
     setMessages(uniqueMessages)
+
+    if (uniqueMessages.length > 0) {
+      const groupIds = uniqueMessages.map((message) => message.message_group_id || message.id)
+      const { data: attachmentsData, error: attachmentsError } = await supabase
+        .from('chat_attachments')
+        .select('*')
+        .in('message_group_id', groupIds)
+        .order('created_at', { ascending: true })
+
+      if (attachmentsError) {
+        console.error('Error loading attachments:', attachmentsError)
+      } else {
+        const grouped = (attachmentsData || []).reduce((acc, attachment) => {
+          if (!acc[attachment.message_group_id]) {
+            acc[attachment.message_group_id] = []
+          }
+          acc[attachment.message_group_id].push(attachment)
+          return acc
+        }, {} as Record<string, ChatAttachment[]>)
+        setAttachmentsByGroup(grouped)
+      }
+    } else {
+      setAttachmentsByGroup({})
+    }
 
     // Show notification if new messages arrived and user is not on chat page
     const newMessageCount = uniqueMessages.length
@@ -226,9 +275,86 @@ export default function ChatPage() {
     }
   }
 
+  const sanitizeFileName = (name: string) => name.replace(/[^a-zA-Z0-9._-]/g, '_')
+
+  const formatFileSize = (sizeBytes: number | null) => {
+    if (!sizeBytes) return ''
+    const units = ['B', 'KB', 'MB', 'GB']
+    let size = sizeBytes
+    let unitIndex = 0
+    while (size >= 1024 && unitIndex < units.length - 1) {
+      size /= 1024
+      unitIndex += 1
+    }
+    return `${size.toFixed(size >= 10 || unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`
+  }
+
+  const handleAddFiles = (files: FileList | File[]) => {
+    const fileArray = Array.from(files)
+    if (fileArray.length === 0) return
+    setPendingFiles((prev) => [...prev, ...fileArray])
+  }
+
+  const handleReply = (message: ChatMessage) => {
+    setReplyTo(message)
+    messageInputRef.current?.focus()
+  }
+
+  const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault()
+    if (!isDragging) {
+      setIsDragging(true)
+    }
+  }
+
+  const handleDragLeave = (event: React.DragEvent<HTMLDivElement>) => {
+    if (event.currentTarget === event.target) {
+      setIsDragging(false)
+    }
+  }
+
+  const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault()
+    setIsDragging(false)
+    if (event.dataTransfer.files && event.dataTransfer.files.length > 0) {
+      handleAddFiles(event.dataTransfer.files)
+      event.dataTransfer.clearData()
+    }
+  }
+
+  const handleDeleteAttachment = async (attachment: ChatAttachment) => {
+    if (!confirm(`Delete "${attachment.file_name}"?`)) return
+
+    const { error: storageError } = await supabase
+      .storage
+      .from(chatBucket)
+      .remove([attachment.storage_path])
+
+    if (storageError) {
+      console.error('Error deleting attachment file:', storageError)
+    }
+
+    const { error: deleteError } = await supabase
+      .from('chat_attachments')
+      .delete()
+      .eq('id', attachment.id)
+
+    if (deleteError) {
+      console.error('Error deleting attachment record:', deleteError)
+      return
+    }
+
+    setAttachmentsByGroup((prev) => {
+      const next = { ...prev }
+      const existing = next[attachment.message_group_id] || []
+      next[attachment.message_group_id] = existing.filter((item) => item.id !== attachment.id)
+      return next
+    })
+  }
+
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!newMessage.trim() || !currentUser) return
+    if ((!newMessage.trim() && pendingFiles.length === 0) || !currentUser) return
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
@@ -237,9 +363,13 @@ export default function ChatPage() {
     const otherUsers = allUsers.filter((u) => u.id !== user.id)
     
     if (otherUsers.length > 0) {
+      const messageGroupId = crypto.randomUUID()
+      const replyToGroupId = replyTo ? (replyTo.message_group_id || replyTo.id) : null
       const messagesToInsert = otherUsers.map((otherUser) => ({
         sender_id: user.id,
         receiver_id: otherUser.id,
+        message_group_id: messageGroupId,
+        reply_to_group_id: replyToGroupId,
         message: newMessage.trim(),
       }))
 
@@ -252,9 +382,52 @@ export default function ChatPage() {
         return
       }
 
+      if (pendingFiles.length > 0) {
+        const uploads = []
+        for (const file of pendingFiles) {
+          const safeName = sanitizeFileName(file.name)
+          const storagePath = `${messageGroupId}/${Date.now()}-${safeName}`
+          const { error: uploadError } = await supabase
+            .storage
+            .from(chatBucket)
+            .upload(storagePath, file, {
+              contentType: file.type || 'application/octet-stream',
+            })
+
+          if (uploadError) {
+            console.error('Error uploading attachment:', uploadError)
+            continue
+          }
+
+          uploads.push({
+            message_group_id: messageGroupId,
+            uploader_id: user.id,
+            file_name: file.name,
+            storage_path: storagePath,
+            size_bytes: file.size,
+            content_type: file.type || null,
+          })
+        }
+
+        if (uploads.length > 0) {
+          const { error: attachmentError } = await supabase
+            .from('chat_attachments')
+            .insert(uploads)
+
+          if (attachmentError) {
+            console.error('Error saving attachment metadata:', attachmentError)
+          }
+        }
+      }
+
       // Send push notifications to all receivers
       const senderName = currentUser.name || currentUser.email?.split('@')[0] || 'Someone'
-      const messagePreview = newMessage.trim().substring(0, 100) + (newMessage.trim().length > 100 ? '...' : '')
+      const trimmedMessage = newMessage.trim()
+      const messagePreview = trimmedMessage
+        ? trimmedMessage.substring(0, 100) + (trimmedMessage.length > 100 ? '...' : '')
+        : pendingFiles.length > 0
+          ? `Sent ${pendingFiles.length} file${pendingFiles.length === 1 ? '' : 's'}`
+          : 'Sent a message'
       
       // Send push notification to each receiver
       for (const otherUser of otherUsers) {
@@ -297,6 +470,8 @@ export default function ChatPage() {
     }
 
     setNewMessage('')
+    setPendingFiles([])
+    setReplyTo(null)
     loadAllMessages()
   }
 
@@ -375,7 +550,18 @@ export default function ChatPage() {
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="flex-1 overflow-y-auto p-4 space-y-4">
+        <CardContent
+          className="relative flex-1 overflow-y-auto p-4 space-y-4"
+          onDragEnter={handleDragOver}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+        >
+          {isDragging && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center rounded-b-lg border-2 border-dashed border-blue-400 bg-blue-50/80 text-blue-700 text-sm font-semibold">
+              Drop files to upload
+            </div>
+          )}
           {messages.length === 0 ? (
             <div className="text-center py-12 text-gray-500">
               No messages yet. Start the conversation!
@@ -385,6 +571,12 @@ export default function ChatPage() {
               const isOwnMessage = message.sender_id === currentUser.id
               const sender = allUsers.find((u) => u.id === message.sender_id)
               const senderName = sender?.name || 'Unknown'
+              const groupId = getMessageGroupId(message)
+              const attachments = attachmentsByGroup[groupId] || []
+              const replyToMessage = message.reply_to_group_id ? messageMap.get(message.reply_to_group_id) : null
+              const replySender = replyToMessage
+                ? allUsers.find((u) => u.id === replyToMessage.sender_id)
+                : null
               
               return (
                 <div
@@ -403,14 +595,76 @@ export default function ChatPage() {
                         {senderName}
                       </p>
                     )}
-                    <p className="text-sm">{message.message}</p>
-                    <p
-                      className={`text-xs mt-1 ${
+                    {replyToMessage && (
+                      <div className={`mb-2 rounded-md border px-2 py-1 text-xs ${
+                        isOwnMessage ? 'border-blue-300/60 bg-blue-500/30 text-blue-50' : 'border-gray-300 bg-white/70 text-gray-700'
+                      }`}>
+                        <div className="font-semibold">
+                          Replying to {replySender?.name || replySender?.email?.split('@')[0] || 'Unknown'}
+                        </div>
+                        <div className="truncate">
+                          {replyToMessage.message || 'Attachment'}
+                        </div>
+                      </div>
+                    )}
+                    {message.message && <p className="text-sm">{message.message}</p>}
+                    {attachments.length > 0 && (
+                      <div className="mt-2 space-y-2">
+                        {attachments.map((attachment) => {
+                          const { data } = supabase.storage
+                            .from(chatBucket)
+                            .getPublicUrl(attachment.storage_path)
+                          return (
+                            <div
+                              key={attachment.id}
+                              className={`flex items-center gap-2 rounded-md border px-2 py-1 text-xs ${
+                                isOwnMessage ? 'border-blue-300/60 bg-blue-500/30 text-blue-50' : 'border-gray-300 bg-white/70 text-gray-700'
+                              }`}
+                            >
+                              <a
+                                href={data.publicUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="flex items-center gap-2 min-w-0 flex-1 hover:underline"
+                              >
+                                <Download className="h-3 w-3 flex-shrink-0" />
+                                <span className="truncate">{attachment.file_name}</span>
+                              </a>
+                              {attachment.size_bytes !== null && (
+                                <span className="text-[10px] opacity-70">
+                                  {formatFileSize(attachment.size_bytes)}
+                                </span>
+                              )}
+                              {attachment.uploader_id === currentUser.id && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteAttachment(attachment)}
+                                  className="rounded p-1 hover:bg-black/10"
+                                  aria-label="Delete attachment"
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </button>
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                    <div
+                      className={`mt-1 flex items-center gap-2 text-xs ${
                         isOwnMessage ? 'text-blue-100' : 'text-gray-500'
                       }`}
                     >
-                      {format(new Date(message.created_at), 'MMM d, yyyy h:mm a')}
-                    </p>
+                      <span>{format(new Date(message.created_at), 'MMM d, yyyy h:mm a')}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleReply(message)}
+                        className="flex items-center gap-1 hover:underline"
+                      >
+                        <Reply className="h-3 w-3" />
+                        Reply
+                      </button>
+                    </div>
                   </div>
                 </div>
               )
@@ -419,15 +673,77 @@ export default function ChatPage() {
           <div ref={messagesEndRef} />
         </CardContent>
         <div className="border-t border-gray-200 p-4">
+          {replyTo && (
+            <div className="mb-3 flex items-center justify-between rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-800">
+              <div className="min-w-0">
+                <div className="text-xs font-semibold text-blue-700">
+                  Replying to {allUsers.find((u) => u.id === replyTo.sender_id)?.name || 'Unknown'}
+                </div>
+                <div className="truncate">{replyTo.message || 'Attachment'}</div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setReplyTo(null)}
+                className="ml-3 rounded p-1 hover:bg-blue-100"
+                aria-label="Cancel reply"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+          {pendingFiles.length > 0 && (
+            <div className="mb-3 flex flex-wrap gap-2">
+              {pendingFiles.map((file, index) => (
+                <div
+                  key={`${file.name}-${file.lastModified}-${index}`}
+                  className="flex items-center gap-2 rounded-md border border-gray-300 bg-white px-2 py-1 text-xs text-gray-700"
+                >
+                  <span className="max-w-[160px] truncate">{file.name}</span>
+                  <span className="text-[10px] text-gray-500">{formatFileSize(file.size)}</span>
+                  <button
+                    type="button"
+                    onClick={() => setPendingFiles((prev) => prev.filter((_, i) => i !== index))}
+                    className="rounded p-1 hover:bg-gray-100"
+                    aria-label="Remove file"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
           <form onSubmit={handleSend} className="flex gap-2">
             <input
+              ref={messageInputRef}
               type="text"
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
               placeholder="Type a message..."
               className="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
-            <Button type="submit" disabled={!newMessage.trim()}>
+            <input
+              ref={fileInputRef}
+              type="file"
+              className="hidden"
+              multiple
+              onChange={(e) => {
+                if (e.target.files) {
+                  handleAddFiles(e.target.files)
+                  e.target.value = ''
+                }
+              }}
+              aria-hidden="true"
+              tabIndex={-1}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => fileInputRef.current?.click()}
+              aria-label="Attach files"
+            >
+              <Paperclip className="h-4 w-4" />
+            </Button>
+            <Button type="submit" disabled={!newMessage.trim() && pendingFiles.length === 0}>
               <Send className="h-4 w-4 mr-2" />
               Send
             </Button>
