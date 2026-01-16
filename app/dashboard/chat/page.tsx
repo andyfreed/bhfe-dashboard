@@ -140,7 +140,7 @@ export default function ChatPage() {
     setMessages(uniqueMessages)
 
     if (uniqueMessages.length > 0) {
-      const groupIds = uniqueMessages.map((message) => message.message_group_id || message.id)
+      const groupIds = uniqueMessages.map((message: ChatMessage) => message.message_group_id || message.id)
       const { data: attachmentsData, error: attachmentsError } = await supabase
         .from('chat_attachments')
         .select('*')
@@ -150,7 +150,7 @@ export default function ChatPage() {
       if (attachmentsError) {
         console.error('Error loading attachments:', attachmentsError)
       } else {
-        const grouped = (attachmentsData || []).reduce((acc, attachment) => {
+        const grouped = (attachmentsData || []).reduce((acc, attachment: ChatAttachment) => {
           if (!acc[attachment.message_group_id]) {
             acc[attachment.message_group_id] = []
           }
