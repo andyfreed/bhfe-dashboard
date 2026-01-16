@@ -164,7 +164,7 @@ export default function DashboardPage() {
             </div>
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight drop-shadow-lg">Dashboard</h1>
           </div>
-          <p className="text-base sm:text-lg lg:text-xl text-blue-100 font-semibold drop-shadow">Welcome back! Here's an overview of your business.</p>
+          
         </div>
       </div>
 
@@ -172,7 +172,7 @@ export default function DashboardPage() {
         <Card className="border-2 border-slate-300 shadow-xl overflow-hidden bg-gradient-to-br from-white to-slate-50">
           <CardHeader className="border-b border-slate-200 bg-white">
             <CardTitle className="text-xl text-slate-900 font-bold">My Top Tasks</CardTitle>
-            <CardDescription className="text-slate-600">Assigned to you, prioritized</CardDescription>
+            
           </CardHeader>
           <CardContent className="p-6 space-y-3">
             {prioritizedTodos.length === 0 ? (
@@ -245,7 +245,7 @@ export default function DashboardPage() {
               </div>
               <div>
                 <CardTitle className="text-2xl text-white font-bold">CPA Renewals Coming Up</CardTitle>
-                <CardDescription className="text-blue-100 mt-1 font-medium">States with renewals in the next 3 months</CardDescription>
+                <CardDescription className="text-white mt-1 font-medium">States with renewals in the next 3 months</CardDescription>
               </div>
             </div>
           </CardHeader>
