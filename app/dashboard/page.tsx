@@ -210,8 +210,7 @@ export default function DashboardPage() {
         </Card>
         <Card className="border-2 border-slate-300 shadow-xl overflow-hidden bg-white">
           <CardHeader className="border-b border-slate-200 bg-white">
-            <CardTitle className="text-xl text-slate-900 font-bold">Recently Completed</CardTitle>
-            <CardDescription className="text-slate-600">Last 4 completed tasks</CardDescription>
+            <CardTitle className="text-xl text-slate-900 font-bold">Recently Completed (All Users)</CardTitle>
           </CardHeader>
           <CardContent className="p-6 space-y-3">
             {recentCompletedTodos.length === 0 ? (
