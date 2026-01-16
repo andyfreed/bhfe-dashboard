@@ -20,7 +20,9 @@ export default function DashboardPage() {
     id: string
     title: string
     updated_at: string
+    completed_by: string | null
   }>>([])
+  const [profileNames, setProfileNames] = useState<Record<string, string>>({})
   const [upcomingRenewals, setUpcomingRenewals] = useState<Array<{
     state_name: string
     state_code: string
@@ -48,7 +50,7 @@ export default function DashboardPage() {
 
       const { data: completedData, error: completedError } = await supabase
         .from('todos')
-        .select('id, title, updated_at')
+        .select('id, title, updated_at, assigned_to, user_id')
         .eq('completed', true)
         .order('updated_at', { ascending: false })
         .limit(4)
@@ -56,7 +58,31 @@ export default function DashboardPage() {
       if (completedError) {
         console.error('Error loading completed todos:', completedError)
       } else {
-        setRecentCompletedTodos(completedData || [])
+        const normalized = (completedData || []).map((todo) => ({
+          id: todo.id,
+          title: todo.title,
+          updated_at: todo.updated_at,
+          completed_by: todo.assigned_to || todo.user_id || null,
+        }))
+        setRecentCompletedTodos(normalized)
+
+        const profileIds = Array.from(new Set(normalized.map((todo) => todo.completed_by).filter(Boolean))) as string[]
+        if (profileIds.length > 0) {
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('id, name, email')
+            .in('id', profileIds)
+
+          if (profileError) {
+            console.error('Error loading profiles:', profileError)
+          } else {
+            const nextProfiles: Record<string, string> = {}
+            ;(profileData || []).forEach((profile) => {
+              nextProfiles[profile.id] = profile.name || profile.email?.split('@')[0] || 'Unknown'
+            })
+            setProfileNames(nextProfiles)
+          }
+        }
       }
 
       // Get upcoming CPA renewals (current month, next month, 3rd month)
@@ -227,6 +253,9 @@ export default function DashboardPage() {
                     <div className="font-semibold text-slate-900 truncate">{todo.title}</div>
                     <div className="text-xs text-slate-500">
                       Completed: {new Date(todo.updated_at).toLocaleDateString()}
+                    </div>
+                    <div className="text-xs text-slate-500">
+                      Completed by: {todo.completed_by ? (profileNames[todo.completed_by] || 'Unknown') : 'Unknown'}
                     </div>
                   </div>
                 </div>
