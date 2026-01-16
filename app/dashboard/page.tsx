@@ -1,19 +1,20 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { CheckSquare, Calendar, Bell, MessageSquare, Calendar as CalendarIcon, MapPin, ArrowRight } from 'lucide-react'
-import Link from 'next/link'
+import { Calendar as CalendarIcon, MapPin } from 'lucide-react'
 
 export default function DashboardPage() {
-  const [stats, setStats] = useState({
-    todos: 0,
-    events: 0,
-    reminders: 0,
-    projects: 0,
-    unreadMessages: 0,
-  })
+  const [assignedTodos, setAssignedTodos] = useState<Array<{
+    id: string
+    title: string
+    due_date: string | null
+    reminder_date: string | null
+    is_super_reminder: boolean | null
+    priority: 'low' | 'medium' | 'high' | null
+    completed: boolean | null
+  }>>([])
   const [upcomingRenewals, setUpcomingRenewals] = useState<Array<{
     state_name: string
     state_code: string
@@ -23,29 +24,21 @@ export default function DashboardPage() {
   const supabase = createClient()
 
   useEffect(() => {
-    const loadStats = async () => {
+    const loadDashboard = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      // Get all stats (excluding projects)
-      const [todos, events, reminders, messages] = await Promise.all([
-        supabase.from('todos').select('id', { count: 'exact', head: true }),
-        supabase.from('calendar_events').select('id', { count: 'exact', head: true }),
-        supabase.from('reminders').select('id', { count: 'exact', head: true })
-          .eq('user_id', user.id)
-          .eq('is_completed', false),
-        supabase.from('chat_messages').select('id', { count: 'exact', head: true })
-          .eq('receiver_id', user.id)
-          .eq('is_read', false),
-      ])
+      const { data: todoData, error: todoError } = await supabase
+        .from('todos')
+        .select('id, title, due_date, reminder_date, is_super_reminder, priority, completed')
+        .eq('assigned_to', user.id)
+        .eq('completed', false)
 
-      setStats({
-        todos: todos.count || 0,
-        events: events.count || 0,
-        reminders: reminders.count || 0,
-        projects: 0,
-        unreadMessages: messages.count || 0,
-      })
+      if (todoError) {
+        console.error('Error loading assigned todos:', todoError)
+      } else {
+        setAssignedTodos(todoData || [])
+      }
 
       // Get upcoming CPA renewals (current month, next month, 3rd month)
       const now = new Date()
@@ -80,59 +73,55 @@ export default function DashboardPage() {
       setLoading(false)
     }
 
-    loadStats()
+    loadDashboard()
   }, [supabase])
 
-  const statsCards = [
-    {
-      title: 'To-Do Items',
-      value: stats.todos,
-      icon: CheckSquare,
-      href: '/dashboard/todos',
-      gradient: 'bg-gradient-to-br from-blue-500 via-blue-600 to-cyan-500',
-      bgGradient: 'bg-gradient-to-br from-blue-50 via-cyan-50 to-blue-50',
-      borderColor: 'border-blue-400',
-      iconBg: 'bg-blue-500',
-      textColor: 'text-blue-700',
-      valueGradient: 'bg-gradient-to-r from-blue-600 to-cyan-600',
-    },
-    {
-      title: 'Calendar Events',
-      value: stats.events,
-      icon: Calendar,
-      href: '/dashboard/calendar',
-      gradient: 'bg-gradient-to-br from-emerald-500 via-green-600 to-teal-500',
-      bgGradient: 'bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50',
-      borderColor: 'border-emerald-400',
-      iconBg: 'bg-emerald-500',
-      textColor: 'text-emerald-700',
-      valueGradient: 'bg-gradient-to-r from-emerald-600 to-teal-600',
-    },
-    {
-      title: 'Reminders',
-      value: stats.reminders,
-      icon: Bell,
-      href: '/dashboard/reminders',
-      gradient: 'bg-gradient-to-br from-amber-500 via-orange-500 to-amber-600',
-      bgGradient: 'bg-gradient-to-br from-amber-50 via-orange-50 to-amber-50',
-      borderColor: 'border-amber-400',
-      iconBg: 'bg-amber-500',
-      textColor: 'text-amber-700',
-      valueGradient: 'bg-gradient-to-r from-amber-600 to-orange-600',
-    },
-    {
-      title: 'Unread Messages',
-      value: stats.unreadMessages,
-      icon: MessageSquare,
-      href: '/dashboard/chat',
-      gradient: 'bg-gradient-to-br from-red-500 via-rose-600 to-red-600',
-      bgGradient: 'bg-gradient-to-br from-red-50 via-rose-50 to-red-50',
-      borderColor: 'border-red-400',
-      iconBg: 'bg-red-500',
-      textColor: 'text-red-700',
-      valueGradient: 'bg-gradient-to-r from-red-600 to-rose-600',
-    },
-  ]
+  const prioritizedTodos = useMemo(() => {
+    const startOfToday = new Date()
+    startOfToday.setHours(0, 0, 0, 0)
+    const priorityRank: Record<string, number> = {
+      high: 0,
+      medium: 1,
+      low: 2,
+    }
+
+    const getEffectiveDate = (todo: typeof assignedTodos[number]) => {
+      const raw = todo.reminder_date || todo.due_date
+      return raw ? new Date(raw) : null
+    }
+
+    const getRank = (todo: typeof assignedTodos[number]) => {
+      const isSuper = !!todo.is_super_reminder
+      const effectiveDate = getEffectiveDate(todo)
+      if (!effectiveDate) return 4
+      const startOfDueDate = new Date(effectiveDate)
+      startOfDueDate.setHours(0, 0, 0, 0)
+      const isOverdue = startOfDueDate < startOfToday
+      const isToday = startOfDueDate.getTime() === startOfToday.getTime()
+
+      if (isSuper && isOverdue) return 0
+      if (isSuper && isToday) return 1
+      if (!isSuper && isToday) return 2
+      if (!isSuper && isOverdue) return 3
+      return 4
+    }
+
+    const sorted = [...assignedTodos].sort((a, b) => {
+      const rankDiff = getRank(a) - getRank(b)
+      if (rankDiff !== 0) return rankDiff
+
+      const priorityDiff = (priorityRank[a.priority || 'medium'] ?? 1) - (priorityRank[b.priority || 'medium'] ?? 1)
+      if (priorityDiff !== 0) return priorityDiff
+
+      const dateA = getEffectiveDate(a)?.getTime() ?? Number.MAX_SAFE_INTEGER
+      const dateB = getEffectiveDate(b)?.getTime() ?? Number.MAX_SAFE_INTEGER
+      if (dateA !== dateB) return dateA - dateB
+
+      return a.title.localeCompare(b.title)
+    })
+
+    return sorted.slice(0, 4)
+  }, [assignedTodos])
 
   if (loading) {
     return (
@@ -161,44 +150,47 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Stats Grid with Vibrant Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {statsCards.map((card, index) => {
-          const Icon = card.icon
-          return (
-            <Link 
-              key={card.title} 
-              href={card.href} 
-              style={{ animationDelay: `${index * 50}ms` }} 
-              className="animate-in block group"
-            >
-              <Card className={`hover-lift cursor-pointer border-3 ${card.borderColor} transition-all duration-300 hover:shadow-2xl relative overflow-hidden bg-white`}>
-                {/* Gradient background overlay */}
-                <div className={`absolute inset-0 ${card.bgGradient} opacity-40 group-hover:opacity-70 transition-opacity duration-300`} />
-                
-                <CardHeader className="flex flex-row items-center justify-between pb-4 relative z-10">
-                  <CardTitle className="text-sm font-bold text-slate-800 uppercase tracking-wide group-hover:text-slate-900">
-                    {card.title}
-                  </CardTitle>
-                  <div className={`${card.gradient} p-4 rounded-2xl shadow-xl group-hover:scale-110 group-hover:rotate-3 transition-all duration-300`}>
-                    <Icon className="h-7 w-7 text-white drop-shadow-md" />
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <Card className="border-2 border-slate-300 shadow-xl overflow-hidden bg-gradient-to-br from-white to-slate-50">
+          <CardHeader className="border-b border-slate-200 bg-white">
+            <CardTitle className="text-xl text-slate-900 font-bold">My Top Tasks</CardTitle>
+            <CardDescription className="text-slate-600">Assigned to you, prioritized</CardDescription>
+          </CardHeader>
+          <CardContent className="p-6 space-y-3">
+            {prioritizedTodos.length === 0 ? (
+              <div className="text-sm text-slate-500">No assigned tasks.</div>
+            ) : (
+              prioritizedTodos.map((todo) => {
+                const displayDate = todo.reminder_date || todo.due_date
+                const dateLabel = displayDate ? new Date(displayDate).toLocaleDateString() : 'No date'
+                return (
+                  <div
+                    key={todo.id}
+                    className="flex items-start justify-between gap-4 rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-sm"
+                  >
+                    <div className="min-w-0">
+                      <div className="font-semibold text-slate-900 truncate">{todo.title}</div>
+                      <div className="text-xs text-slate-500">Due: {dateLabel}</div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {todo.is_super_reminder && (
+                        <span className="text-[10px] uppercase tracking-wide font-bold bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full">
+                          Super
+                        </span>
+                      )}
+                      {todo.priority && (
+                        <span className="text-[10px] uppercase tracking-wide font-bold bg-slate-100 text-slate-600 px-2 py-1 rounded-full">
+                          {todo.priority}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </CardHeader>
-                <CardContent className="relative z-10">
-                  <div className={`text-6xl font-black ${card.valueGradient} bg-clip-text text-transparent mb-3 drop-shadow-sm`}>
-                    {card.value}
-                  </div>
-                  <div className="flex items-center gap-2 text-sm font-bold text-slate-600 group-hover:text-slate-900">
-                    <span>View details</span>
-                    <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                  </div>
-                </CardContent>
-                {/* Decorative corner accent */}
-                <div className={`absolute top-0 right-0 w-20 h-20 ${card.gradient} opacity-10 rounded-bl-full`} />
-              </Card>
-            </Link>
-          )
-        })}
+                )
+              })
+            )}
+          </CardContent>
+        </Card>
+        <Card className="border-2 border-slate-300 shadow-xl bg-white" />
       </div>
 
       {/* CPA Renewals Coming Up */}
