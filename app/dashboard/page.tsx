@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Calendar as CalendarIcon, MapPin } from 'lucide-react'
+import Link from 'next/link'
 
 export default function DashboardPage() {
   const [assignedTodos, setAssignedTodos] = useState<Array<{
@@ -169,8 +170,8 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <Card className="border-2 border-slate-300 shadow-xl overflow-hidden bg-gradient-to-br from-white to-slate-50">
-          <CardHeader className="border-b border-slate-200 bg-white">
+        <Card className="border-2 border-slate-300 shadow-xl overflow-hidden bg-gradient-to-br from-white via-slate-50 to-white">
+          <CardHeader className="border-b border-slate-200 bg-gradient-to-r from-white via-slate-50 to-white">
             <CardTitle className="text-xl text-slate-900 font-bold">My Top Tasks</CardTitle>
             
           </CardHeader>
@@ -182,9 +183,10 @@ export default function DashboardPage() {
                 const displayDate = todo.reminder_date || todo.due_date
                 const dateLabel = displayDate ? new Date(displayDate).toLocaleDateString() : 'No date'
                 return (
-                  <div
+                  <Link
                     key={todo.id}
-                    className="flex items-start justify-between gap-4 rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-sm"
+                    href="/dashboard/todos"
+                    className="flex items-start justify-between gap-4 rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-sm transition-transform hover:-translate-y-0.5 hover:shadow-md"
                   >
                     <div className="min-w-0">
                       <div className="font-semibold text-slate-900 truncate">{todo.title}</div>
@@ -202,14 +204,14 @@ export default function DashboardPage() {
                         </span>
                       )}
                     </div>
-                  </div>
+                  </Link>
                 )
               })
             )}
           </CardContent>
         </Card>
-        <Card className="border-2 border-slate-300 shadow-xl overflow-hidden bg-white">
-          <CardHeader className="border-b border-slate-200 bg-white">
+        <Card className="border-2 border-slate-300 shadow-xl overflow-hidden bg-gradient-to-br from-white via-slate-50 to-white">
+          <CardHeader className="border-b border-slate-200 bg-gradient-to-r from-white via-slate-50 to-white">
             <CardTitle className="text-xl text-slate-900 font-bold">Recently Completed (All Users)</CardTitle>
           </CardHeader>
           <CardContent className="p-6 space-y-3">
